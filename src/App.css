@@ -1,38 +1,28 @@
-.App {
-  text-align: center;
+.attendance-table th,
+.attendance-table td {
+  position: relative;
 }
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.attendance-table th:first-child,
+.attendance-table td:first-child {
+  position: sticky;
+  left: 0;
+  background: #fff;
+  z-index: 2;
+  width: 140px;
+  min-width: 140px;
+  max-width: 140px;
 }
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.attendance-table th:nth-child(2),
+.attendance-table td:nth-child(2) {
+  position: sticky;
+  left: 140px;
+  background: #f8f8ff;
+  z-index: 2;
+  width: 50px;
+  min-width: 50px;
+  max-width: 50px;
 }
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.attendance-table-wrapper {
+  overflow-x: auto;
+  width: 100%;
 }
