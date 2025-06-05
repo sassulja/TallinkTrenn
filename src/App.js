@@ -1,46 +1,34 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./App.css";
 import playerPasswords from "./player_passwords.json";
 import dates from "./dates.json";
 import logo from "./Logo.jpg";
+import { db } from "./firebase";
+import { ref, set, onValue } from "firebase/database";
 
 const ADMIN_PASSWORD = "Tallink2025";
 
-// --- Helpers ---
-function getInitialGroups(players) {
-  const saved = JSON.parse(localStorage.getItem("playerGroups") || "{}");
+// Helpers for default groups
+function getDefaultGroups(players) {
   let out = {};
   players.forEach(({ name }) => {
-    out[name] = saved[name] || "1";
+    out[name] = "1";
   });
   return out;
 }
-function getInitialAttendance(players, dates) {
-  const saved = JSON.parse(localStorage.getItem("attendance") || "{}");
+function getDefaultFussGroups(players) {
+  let out = {};
+  players.forEach(({ name }) => {
+    out[name] = "B";
+  });
+  return out;
+}
+function getDefaultAttendance(players, dates) {
   let out = {};
   players.forEach(({ name }) => {
     out[name] = {};
     dates.forEach(({ date }) => {
-      out[name][date] = (saved[name] && saved[name][date]) || "";
-    });
-  });
-  return out;
-}
-function getInitialFussGroups(players) {
-  const saved = JSON.parse(localStorage.getItem("fussGroups") || "{}");
-  let out = {};
-  players.forEach(({ name }) => {
-    out[name] = saved[name] || "B";
-  });
-  return out;
-}
-function getInitialFussAttendance(players, dates) {
-  const saved = JSON.parse(localStorage.getItem("fussAttendance") || "{}");
-  let out = {};
-  players.forEach(({ name }) => {
-    out[name] = {};
-    dates.forEach(({ date }) => {
-      out[name][date] = (saved[name] && saved[name][date]) || "";
+      out[name][date] = "";
     });
   });
   return out;
@@ -99,35 +87,85 @@ function downloadExcel(
 }
 
 export default function App() {
-  // --- State ---
+  // State
   const [step, setStep] = useState("login");
   const [loginName, setLoginName] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
-  const [playerGroups, setPlayerGroups] = useState(getInitialGroups(playerPasswords));
-  const [attendance, setAttendance] = useState(getInitialAttendance(playerPasswords, dates));
-  const [fussGroups, setFussGroups] = useState(getInitialFussGroups(playerPasswords));
-  const [fussAttendance, setFussAttendance] = useState(getInitialFussAttendance(playerPasswords, dates));
+  const [playerGroups, setPlayerGroups] = useState(getDefaultGroups(playerPasswords));
+  const [attendance, setAttendance] = useState(getDefaultAttendance(playerPasswords, dates));
+  const [fussGroups, setFussGroups] = useState(getDefaultFussGroups(playerPasswords));
+  const [fussAttendance, setFussAttendance] = useState(getDefaultAttendance(playerPasswords, dates));
   const [adminMode, setAdminMode] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState("");
   const [groupAssignMode, setGroupAssignMode] = useState(false);
   const [showGroupPrompt, setShowGroupPrompt] = useState(false);
   const [activeView, setActiveView] = useState("tennis"); // "tennis" or "fuss"
 
-  // --- Save to localStorage ---
+  const tableWrapperRef = useRef(null);
+
+useEffect(() => {
+    if (!tableWrapperRef.current) return;
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const colIdx = dates.findIndex(d => d.date >= todayStr);
+    if (colIdx >= 0) {
+      const scrollX = Math.max((colIdx - 2) * 42, 0);
+      tableWrapperRef.current.scrollLeft = scrollX;
+    }
+  }, [dates, activeView]);
+
+  // --- Sync from Firebase ---
   useEffect(() => {
-    localStorage.setItem("attendance", JSON.stringify(attendance));
+    // Attendance (tennis)
+    const attRef = ref(db, "attendance");
+    const unsubAtt = onValue(attRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) setAttendance(data);
+    });
+
+    // PlayerGroups (tennis)
+    const grpRef = ref(db, "playerGroups");
+    const unsubGrp = onValue(grpRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) setPlayerGroups(data);
+    });
+
+    // Fuss attendance
+    const fussAttRef = ref(db, "fussAttendance");
+    const unsubFussAtt = onValue(fussAttRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) setFussAttendance(data);
+    });
+
+    // Fuss groups
+    const fussGrpRef = ref(db, "fussGroups");
+    const unsubFussGrp = onValue(fussGrpRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) setFussGroups(data);
+    });
+
+    return () => {
+      unsubAtt();
+      unsubGrp();
+      unsubFussAtt();
+      unsubFussGrp();
+    };
+  }, []);
+
+  // --- Save to Firebase whenever changed ---
+  useEffect(() => {
+    set(ref(db, "attendance"), attendance);
   }, [attendance]);
   useEffect(() => {
-    localStorage.setItem("playerGroups", JSON.stringify(playerGroups));
+    set(ref(db, "playerGroups"), playerGroups);
   }, [playerGroups]);
   useEffect(() => {
-    localStorage.setItem("fussAttendance", JSON.stringify(fussAttendance));
+    set(ref(db, "fussAttendance"), fussAttendance);
   }, [fussAttendance]);
   useEffect(() => {
-    localStorage.setItem("fussGroups", JSON.stringify(fussGroups));
+    set(ref(db, "fussGroups"), fussGroups);
   }, [fussGroups]);
 
-  // --- Friday prompt ---
+  // --- Friday group prompt ---
   useEffect(() => {
     function checkGroupPrompt() {
       const now = new Date();
@@ -157,6 +195,7 @@ export default function App() {
       setGroupAssignMode(true);
     }
   }, [adminMode, playerGroups, fussGroups]);
+
   // --- Login handler ---
   function handleLogin(e) {
     e.preventDefault();
@@ -500,7 +539,7 @@ export default function App() {
               Füss
             </button>
           </div>
-          {showGroupPrompt && (
+                    {showGroupPrompt && (
             <div className="group-prompt" style={{ background: "#ffffcc", padding: 16, marginBottom: 24 }}>
               <b>On reede pärastlõuna!</b> Palun vaata üle grupid uueks nädalaks.
               <button style={{ marginLeft: 16 }} onClick={() => setGroupAssignMode(true)}>
@@ -537,7 +576,7 @@ export default function App() {
             </button>
           </div>
           {renderAdminSummary(activeView === "fuss")}
-          <div style={{ overflowX: "auto" }}>
+          <div className="attendance-table-wrapper" style={{ overflowX: "auto" }} ref={tableWrapperRef}>
             {renderTable(false, activeView === "fuss")}
           </div>
         </div>
