@@ -1,28 +1,226 @@
+.attendance-table-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 500px;
+  width: 100%;
+}
+
 .attendance-table th,
 .attendance-table td {
-  position: relative;
+  white-space: nowrap;
 }
+
+.attendance-table th {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 3;
+}
+
 .attendance-table th:first-child,
 .attendance-table td:first-child {
   position: sticky;
   left: 0;
   background: #fff;
-  z-index: 2;
+  z-index: 4;
   width: 140px;
   min-width: 140px;
   max-width: 140px;
 }
+
 .attendance-table th:nth-child(2),
 .attendance-table td:nth-child(2) {
   position: sticky;
   left: 140px;
   background: #f8f8ff;
-  z-index: 2;
+  z-index: 4;
   width: 50px;
   min-width: 50px;
   max-width: 50px;
 }
-.attendance-table-wrapper {
+
+/* Intersection of header row and first two columns */
+.attendance-table th:first-child {
+  z-index: 6 !important;
+}
+.attendance-table th:nth-child(2) {
+  z-index: 6 !important;
+}
+
+.feedback-modal {
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(40, 40, 60, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.feedback-content {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 4px 32px #2228  ;
+  padding: 36px 26px 24px 26px;
+  min-width: 320px;
+  max-width: 95vw;
+  min-height: 120px;
+  text-align: center;
+}
+
+.feedback-content .emoji-scale-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  margin-top: 4px;
+}
+.feedback-content .emoji-scale-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 54px;
+  font-size: 13px;
+  color: #444;
+}
+.feedback-content .emoji-scale-item span {
+  font-size: 28px;
+  margin-bottom: 2px;
+}
+.feedback-content .coach-feedback-row {
+  display: flex;
+  align-items: center;
+  margin: 6px 0;
+}
+.feedback-content .coach-feedback-row .player-name {
+  min-width: 150px;
+  text-align: left;
+}
+.feedback-content .coach-feedback-row button {
+  margin: 0 2px;
+  font-size: 24px;
+  background: #f4f4f4;
+  border: 1px solid #bbb;
+  border-radius: 8px;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.15s, border 0.15s;
+}
+.feedback-content .coach-feedback-row button.selected {
+  background: #c1f8c8;
+  border: 2px solid #3fbc60;
+}
+
+.feedback-content h2 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 1.3em;
+}
+
+@media (max-width: 600px) {
+  .feedback-content {
+    width: 99vw !important;
+    min-width: unset !important;
+    max-width: 99vw !important;
+    box-sizing: border-box;
+    margin: 0 auto;
+    padding: 16px 1vw 16px 1vw;
+    font-size: 1.09em;
+  }
+  .feedback-content .emoji-scale-row {
+    gap: 6px;
+  }
+  .feedback-content .emoji-scale-item {
+    width: 36px;
+    font-size: 12px;
+  }
+  .feedback-content .emoji-scale-item span {
+    font-size: 22px;
+  }
+  .feedback-content .coach-feedback-row .player-name {
+    min-width: 70px;
+    font-size: 0.96em;
+  }
+  .feedback-content .coach-feedback-row button {
+    font-size: 20px;
+    min-width: 34px;
+    min-height: 34px;
+    padding: 2px 0;
+  }
+}
+/* Feedback legend for player feedback icons (parent view) */
+.feedback-legend {
+  display: flex;
+  gap: 18px;
+  justify-content: flex-start;
+  align-items: center;
+  font-size: 1.08em;
+  margin: 6px 0 10px 0;
+  flex-wrap: wrap;
+}
+.feedback-legend .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px 3px 5px;
+  border-radius: 7px;
+  background: #f9f9fa;
+  border: 1px solid #ececec;
+  font-size: 0.96em;
+}
+.feedback-legend .legend-item span {
+  font-size: 22px;
+  margin-right: 2px;
+}
+@media (max-width: 600px) {
+  .feedback-legend {
+    flex-wrap: wrap;
+    font-size: 0.98em;
+    gap: 8px;
+  }
+  .feedback-legend .legend-item {
+    font-size: 0.92em;
+    padding: 2px 5px 2px 4px;
+  }
+  .feedback-legend .legend-item span {
+    font-size: 16px;
+  }
+}
+
+/* Player feedback table sticky header fix */
+.player-feedback-table th {
+  position: sticky;
+  top: 0;
+  background: #f7f9fb;
+  z-index: 5;
+  font-weight: 600;
+  font-size: 1.04em;
+}
+.player-feedback-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+
+.player-feedback-table th,
+.player-feedback-table td {
+  min-width: 110px;
+  max-width: 180px;
+  word-break: break-word;
+  text-align: center;
+  vertical-align: middle;
+  padding: 10px 4px;
+  white-space: normal !important;
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+/* Make player feedback table horizontally scrollable if needed */
+.player-feedback-table-wrapper {
   overflow-x: auto;
   width: 100%;
+  margin-bottom: 16px;
 }
