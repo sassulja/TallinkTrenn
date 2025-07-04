@@ -29,16 +29,6 @@ function estonianDate(dateStr) {
   return `${day}.${month}.${year}`;
 }
 
-// Format name for mobile view: "First L." (first name + last name initial)
-function formatMobileName(fullName) {
-  if (!fullName) return '';
-  const parts = fullName.trim().split(' ');
-  if (parts.length === 1) return parts[0];
-  const firstName = parts[0];
-  const lastInitial = parts[parts.length - 1].charAt(0);
-  return `${firstName} ${lastInitial}.`;
-}
-
 // --- AttendanceToggle component ---
 function AttendanceToggle({ value, onChange }) {
   const isJah = value === 'Jah';
@@ -83,32 +73,6 @@ function generatePastDates(startDateStr, endDateStr) {
   return dates;
 }
 function App() {
-  // Add mobile name formatting styles
-  React.useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = `
-      .player-name-mobile {
-        display: none;
-      }
-      .player-name-desktop {
-        display: inline;
-      }
-      
-      @media (max-width: 768px) {
-        .player-name-mobile {
-          display: inline;
-        }
-        .player-name-desktop {
-          display: none;
-        }
-      }
-    `;
-    document.head.appendChild(style);
-    
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
   const dates = React.useMemo(() => getNextFiveWeekdays(), []);
   // --- State hooks for variables referenced but not defined ---
   const [selectedPlayer, setSelectedPlayer] = React.useState(null);
@@ -168,8 +132,8 @@ React.useEffect(() => {
   const [showOldParent, setShowOldParent] = React.useState(false);
   const [showCoachFeedbackModal, setShowCoachFeedbackModal] = React.useState(false);
   const [coachFeedbackSession, setCoachFeedbackSession] = React.useState(null);
-  // Removed tableWrapperRef as it's no longer used
-  const [activeView, setActiveView] = React.useState('tennis');
+  const [tableWrapperRef, setTableWrapperRef] = React.useState(null);
+  const [activeView, setActiveView] = React.useState('');
   const [showGroupPrompt, setShowGroupPrompt] = React.useState(false);
   const [showAddPlayer, setShowAddPlayer] = React.useState(false);
   const [addPlayerError, setAddPlayerError] = React.useState('');
@@ -398,29 +362,6 @@ React.useEffect(() => {
     });
   }, [db, playerPasswords]);
 
-  // Separate effect for initializing groups when playerPasswords changes
-  React.useEffect(() => {
-    if (!db || !playerPasswords.length) return;
-
-    // Initialize player groups if not already set
-    if (Object.keys(playerGroups).length === 0) {
-      const defaultGroups = {};
-      playerPasswords.forEach(player => {
-        defaultGroups[player.name] = "1";
-      });
-      setPlayerGroups(defaultGroups);
-    }
-
-    // Initialize fuss groups if not already set  
-    if (Object.keys(fussGroups).length === 0) {
-      const defaultGroups = {};
-      playerPasswords.forEach(player => {
-        defaultGroups[player.name] = "A";
-      });
-      setFussGroups(defaultGroups);
-    }
-  }, [db, playerPasswords, playerGroups, fussGroups]); // Include all dependencies but make sure conditions prevent infinite loops
-
 // --- Utility: Get next five weekdays (Mon-Fri) ---
 function getNextFiveWeekdays() {
   const result = [];
@@ -477,6 +418,138 @@ function getNextFiveWeekdays() {
     setShowGroupChangedWarning(true);
   }
 
+  // Function to render the attendance table
+  function renderTable(forPlayer, isFuss) {
+    const data = isFuss ? fussAttendance : attendance;
+    const groups = isFuss ? fussGroups : playerGroups;
+    const next5 = getNextFiveWeekdays();
+    const groupKeys = isFuss ? ["A", "B"] : ["1", "2"];
+    const byGroup = {};
+    groupKeys.forEach(grp => byGroup[grp] = {});
+
+    // Calculate group summaries
+    next5.forEach((d) => {
+      groupKeys.forEach((grp) => {
+        const groupPlayers = playerPasswords
+          .map((p) => p.name)
+          .filter((n) => groups[n] === grp);
+        const attending = groupPlayers.filter(
+          (n) =>
+            isFuss
+              ? data[n] && data[n][d.date] && data[n][d.date] !== "Ei käinud"
+              : data[n] && data[n][d.date] === "Jah"
+        );
+        byGroup[grp][d.date] = {
+          count: attending.length,
+          courts: groupCourtCount(grp, d.date, data, isFuss)
+        };
+      });
+    });
+
+    // Handle attendance change
+    const handleAttendanceChange = (name, date, value) => {
+      const newData = {
+        ...data,
+        [name]: {
+          ...data[name],
+          [date]: value
+        }
+      };
+      
+      if (isFuss) {
+        setFussAttendance(newData);
+        set(databaseRef(db, "fussAttendance"), newData);
+      } else {
+        setAttendance(newData);
+        set(databaseRef(db, "attendance"), newData);
+      }
+    };
+
+    return (
+      <div style={{ margin: "24px 0" }}>
+        <h3>Järgmise 5 päeva kokkuvõte (grupi kaupa)</h3>
+        {groupKeys.map((grp) => (
+          <div key={grp} style={{ marginBottom: 16 }}>
+            <b>Grupp {grp}</b>
+            <table className="attendance-table">
+              <thead>
+                <tr>
+                  <th>Kuupäev</th>
+                  <th>Osalejaid</th>
+                  {!isFuss && <th>Väljakuid vaja</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {next5.map((d) => (
+                  <tr key={d.date}>
+                    <td>
+                      {d.weekday} <b>{estonianDate(d.date)}</b>
+                    </td>
+                    <td>{byGroup[grp][d.date].count}</td>
+                    {!isFuss && <td>{byGroup[grp][d.date].courts}</td>}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))}
+
+        <h3 style={{ marginTop: 32 }}>Osalemine</h3>
+        <div style={{ overflowX: "auto" }}>
+          <table className="attendance-table">
+            <thead>
+              <tr>
+                <th>Mängija</th>
+                {next5.map((d) => (
+                  <th key={d.date}>
+                    {d.weekday}<br/>
+                    {estonianDate(d.date)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {playerPasswords.map((p) => {
+                const playerGroup = groups[p.name];
+                if (playerGroup !== (forPlayer ? (isFuss ? fussGroups[forPlayer] : playerGroups[forPlayer]) : groupKeys[0])) {
+                  return null;
+                }
+                return (
+                  <tr key={p.name}>
+                    <td>{p.name}</td>
+                    {next5.map((d) => (
+                      <td key={d.date}>
+                        {forPlayer ? (
+                          // Player view: keep dropdown
+                          <select
+                            value={data[p.name]?.[d.date] || ""}
+                            onChange={(e) => handleAttendanceChange(p.name, d.date, e.target.value)}
+                            disabled={forPlayer && p.name !== forPlayer}
+                          >
+                            <option value="">-</option>
+                            <option value="Jah">Jah</option>
+                            <option value="Ei">Ei</option>
+                            {isFuss && <option value="Ei käinud">Ei käinud</option>}
+                          </select>
+                        ) : (
+                          // Coach/Admin view: toggles
+                          <AttendanceToggle
+                            value={data[p.name]?.[d.date] || "Ei"}
+                            onChange={(val) => handleAttendanceChange(p.name, d.date, val)}
+                          />
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
 // --- Date helpers ---
 
 function getNextFiveWeekdays() {
@@ -515,7 +588,6 @@ function getNextPreviousWeekdays(referenceDate, count) {
 
 function getTableDates(showPastDates, allDates) {
   const today = new Date();
-  today.setHours(0, 0, 0, 0); // Normalize to midnight
   const todayStr = today.toISOString().split("T")[0];
 
   if (!Array.isArray(allDates)) {
@@ -526,7 +598,6 @@ function getTableDates(showPastDates, allDates) {
   const futureDates = allDates
     .filter(d => {
       const date = new Date(d.date);
-      date.setHours(0, 0, 0, 0); // Normalize to midnight
       return date >= today;
     })
     .sort((a, b) => a.date.localeCompare(b.date))
@@ -537,7 +608,6 @@ function getTableDates(showPastDates, allDates) {
   const pastDates = allDates
     .filter(d => {
       const date = new Date(d.date);
-      date.setHours(0, 0, 0, 0); // Normalize to midnight
       return date < today;
     })
     .sort((a, b) => a.date.localeCompare(b.date));
@@ -1008,7 +1078,7 @@ function handleChangePassword(e) {
                   <thead>
                     <tr>
                       <th>Mängija</th>
-                      {getTableDates(false, allDates).map((d) => (
+                      {getTableDates(false).map((d) => (
                         <th key={d.date}>
                           {d.weekday}<br/>{estonianDate(d.date)}
                         </th>
@@ -1018,7 +1088,7 @@ function handleChangePassword(e) {
                   <tbody>
                     <tr>
                       <td>{selectedPlayer}</td>
-                      {getTableDates(false, allDates).map((d) => (
+                      {getTableDates(false).map((d) => (
                         <td key={d.date}>
                           <AttendanceToggle
                             value={attendance[selectedPlayer]?.[d.date] || "Ei"}
@@ -1050,7 +1120,7 @@ function handleChangePassword(e) {
                     <thead>
                       <tr>
                         <th>Mängija</th>
-                        {getTableDates(true, allDates).filter(d => new Date(d.date) < new Date()).slice(-30).map((d) => (
+                        {getTableDates(true).filter(d => new Date(d.date) < new Date()).slice(-30).map((d) => (
                           <th key={d.date}>
                             {d.weekday}<br/>{estonianDate(d.date)}
                           </th>
@@ -1060,7 +1130,7 @@ function handleChangePassword(e) {
                     <tbody>
                       <tr>
                         <td>{selectedPlayer}</td>
-                        {getTableDates(true, allDates).filter(d => new Date(d.date) < new Date()).slice(-30).map((d) => (
+                        {getTableDates(true).filter(d => new Date(d.date) < new Date()).slice(-30).map((d) => (
                           <td key={d.date}>
                             {attendance[selectedPlayer]?.[d.date] || "-"}
                           </td>
@@ -1081,7 +1151,7 @@ function handleChangePassword(e) {
                   <thead>
                     <tr>
                       <th>Mängija</th>
-                      {getTableDates(false, allDates).map((d) => (
+                      {getTableDates(false).map((d) => (
                         <th key={d.date}>
                           {d.weekday}<br/>{estonianDate(d.date)}
                         </th>
@@ -1091,7 +1161,7 @@ function handleChangePassword(e) {
                   <tbody>
                     <tr>
                       <td>{selectedPlayer}</td>
-                      {getTableDates(false, allDates).map((d) => (
+                      {getTableDates(false).map((d) => (
                         <td key={d.date}>
                           <AttendanceToggle
                             value={fussAttendance[selectedPlayer]?.[d.date] || "Ei"}
@@ -1123,7 +1193,7 @@ function handleChangePassword(e) {
                     <thead>
                       <tr>
                         <th>Mängija</th>
-                        {getTableDates(true, allDates).filter(d => new Date(d.date) < new Date()).slice(-30).map((d) => (
+                        {getTableDates(true).filter(d => new Date(d.date) < new Date()).slice(-30).map((d) => (
                           <th key={d.date}>
                             {d.weekday}<br/>{estonianDate(d.date)}
                           </th>
@@ -1133,7 +1203,7 @@ function handleChangePassword(e) {
                     <tbody>
                       <tr>
                         <td>{selectedPlayer}</td>
-                        {getTableDates(true, allDates).filter(d => new Date(d.date) < new Date()).slice(-30).map((d) => (
+                        {getTableDates(true).filter(d => new Date(d.date) < new Date()).slice(-30).map((d) => (
                           <td key={d.date}>
                             {fussAttendance[selectedPlayer]?.[d.date] || "-"}
                           </td>
@@ -1279,7 +1349,7 @@ function handleChangePassword(e) {
                 </tr>
               </thead>
               <tbody>
-                {getTableDates(true, allDates).map(d => (
+                {getTableDates(true).map(d => (
                   feedbackData[parentPlayer] && feedbackData[parentPlayer][d.date] ?
                   <tr key={d.date}>
                     <td>{estonianDate(d.date)}</td>
@@ -1356,7 +1426,7 @@ function handleChangePassword(e) {
             <div style={{marginTop: 30}}>
               <h2>Tagasiside treeningute kohta</h2>
               <div style={{display: 'flex', flexWrap: 'wrap', gap: 12}}>
-                {getTableDates(showPastDates, allDates)
+                {getTableDates(showPastDates)
                   .filter(d => {
                     // Limit to today and previous 3 days (calendar days, ignore time)
                     const today = new Date();
@@ -1421,7 +1491,6 @@ function handleChangePassword(e) {
                   coachFeedbackData={coachFeedbackData}
                   playerPasswords={playerPasswords}
                   attendance={attendance}
-                  fussAttendance={fussAttendance}
                   onSave={(newData) => {
                     set(databaseRef(db, `coachFeedback/${coachFeedbackSession.date}/${coachFeedbackSession.group}`), newData);
                     setShowCoachFeedbackModal(false);
@@ -1430,413 +1499,132 @@ function handleChangePassword(e) {
               )}
             </div>
           )}
-          
-          {/* Main attendance tables - same layout as admin */}
-          {/* Tennis view */}
-          {activeView === "tennis" && (
-            <div style={{ marginBottom: 32 }}>
-              <h2>Tennis</h2>
-              <button onClick={() => setShowPastDates(v => !v)} style={{ margin: '16px 0 8px 0' }}>
-                {showPastDates ? "Peida varasemad päevad" : "Näita varasemaid päevi"}
-              </button>
-              <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-                {/* Group 1 */}
-                <div>
-                  <h3>Grupp 1</h3>
-                  <div style={{ 
-                    overflowX: "auto", 
-                    overflowY: "auto",
-                    maxWidth: "100%",
-                    maxHeight: "400px",
-                    border: "1px solid #ddd",
-                    borderRadius: "8px"
-                  }}>
-                    <table className="attendance-table" style={{ minWidth: "600px" }}>
+          <div
+            className="attendance-table-wrapper"
+            style={{ overflowX: "auto", overflowY: "auto", maxHeight: "500px" }}
+            ref={tableWrapperRef}
+          >
+            {/* Show loading if dates not loaded */}
+            {(getTableDates(showPastDates).length === 0) ? (
+              <div>Laadib kuupäevi...</div>
+            ) : (
+              renderTable(showPastDates, activeView === "fuss")
+            )}
+          </div>
+          <div style={{ marginBottom: 32 }}>
+            <h2>Tennis</h2>
+            {/* Next 5 days table (existing) */}
+            {/* ...existing next 5 days table code... */}
+            {/* Collapsible past attendance table */}
+            {/* Show loading if dates not loaded */}
+            {(getTableDates(true).length === 0) ? (
+              <div>Laadib kuupäevi...</div>
+            ) : (
+              <>
+                <button onClick={() => setShowPastTennis(v => !v)} style={{ margin: '16px 0 8px 0' }}>
+                  {showPastTennis ? "Peida varasemad päevad" : "Näita varasemaid päevi"}
+                </button>
+                {showPastTennis && (
+                  <div style={{ overflowX: 'auto', maxWidth: 1200 }}>
+                    <table className="attendance-table">
                       <thead>
-                        <tr style={{ position: "sticky", top: 0, zIndex: 15 }}>
-                          <th style={{ 
-                            position: "sticky", 
-                            left: 0, 
-                            top: 0,
-                            background: "#f8f9fa", 
-                            zIndex: 20,
-                            minWidth: "120px",
-                            borderRight: "2px solid #dee2e6"
-                          }}>Mängija</th>
-                          {getTableDates(showPastDates, allDates).map((date) => (
-                            <th key={date.date} style={{ 
-                              minWidth: "80px", 
-                              whiteSpace: "nowrap",
-                              background: "#f8f9fa",
-                              position: "sticky",
-                              top: 0
-                            }}>
-                              {date.weekday}<br/>{estonianDate(date.date)}
+                        <tr>
+                          <th>Mängija</th>
+                          {getTableDates(true).filter(d => new Date(d.date) < new Date()).slice(-30).map(d => (
+                            <th key={d.date} style={{ background: '#f6f7fa' }}>
+                              {d.weekday}<br/>{estonianDate(d.date)}
                             </th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
-                        {Object.entries(playerGroups)
-                          .filter(([_, group]) => group === "1")
-                          .map(([name]) => (
-                            <tr key={name}>
-                              <td style={{ 
-                                position: "sticky", 
-                                left: 0, 
-                                background: "#fff", 
-                                zIndex: 5,
-                                fontWeight: "500",
-                                borderRight: "2px solid #dee2e6"
-                              }}>
-                                <span className="player-name-desktop">{name}</span>
-                                <span className="player-name-mobile">{formatMobileName(name)}</span>
+                        {Object.entries(playerGroups).map(([name, group]) => (
+                          <tr key={name}>
+                            <td>{name}</td>
+                            {getTableDates(true).filter(d => new Date(d.date) < new Date()).slice(-30).map(d => (
+                              <td key={d.date} style={{ background: '#f6f7fa' }}>
+                                <AttendanceToggle
+                                  value={attendance[d.date]?.[name] ?? "Ei"}
+                                  onChange={val => {
+                                    const newAttendance = {
+                                      ...attendance,
+                                      [d.date]: {
+                                        ...attendance[d.date],
+                                        [name]: val,
+                                      },
+                                    };
+                                    setAttendance(newAttendance);
+                                    set(databaseRef(db, `attendance/${d.date}`), newAttendance[d.date]);
+                                  }}
+                                />
                               </td>
-                              {getTableDates(showPastDates, allDates).map((date) => (
-                                <td key={date.date} style={{ minWidth: "80px" }}>
-                                  <AttendanceToggle
-                                    value={attendance[date.date]?.[name] || "Ei"}
-                                    onChange={(val) => {
-                                      const newAttendance = {
-                                        ...attendance,
-                                        [date.date]: {
-                                          ...attendance[date.date],
-                                          [name]: val
-                                        },
-                                      };
-                                      setAttendance(newAttendance);
-                                      set(
-                                        databaseRef(db, `attendance/${date.date}`),
-                                        newAttendance[date.date]
-                                      );
-                                    }}
-                                  />
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
+                            ))}
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
-                </div>
-
-                {/* Group 2 */}
-                <div>
-                  <h3>Grupp 2</h3>
-                  <div style={{ 
-                    overflowX: "auto", 
-                    overflowY: "auto",
-                    maxWidth: "100%",
-                    maxHeight: "400px",
-                    border: "1px solid #ddd",
-                    borderRadius: "8px"
-                  }}>
-                    <table className="attendance-table" style={{ minWidth: "600px" }}>
+                )}
+              </>
+            )}
+          </div>
+          <div>
+            <h2>Füss</h2>
+            {/* Next 5 days table (existing) */}
+            {/* ...existing next 5 days fuss table code... */}
+            {/* Collapsible past attendance table for fuss */}
+            {/* Show loading if dates not loaded */}
+            {(getTableDates(true).length === 0) ? (
+              <div>Laadib kuupäevi...</div>
+            ) : (
+              <>
+                <button onClick={() => setShowPastFuss(v => !v)} style={{ margin: '16px 0 8px 0' }}>
+                  {showPastFuss ? "Peida varasemad päevad" : "Näita varasemaid päevi"}
+                </button>
+                {showPastFuss && (
+                  <div style={{ overflowX: 'auto', maxWidth: 1200 }}>
+                    <table className="attendance-table">
                       <thead>
-                        <tr style={{ position: "sticky", top: 0, zIndex: 15 }}>
-                          <th style={{ 
-                            position: "sticky", 
-                            left: 0, 
-                            top: 0,
-                            background: "#f8f9fa", 
-                            zIndex: 20,
-                            minWidth: "120px",
-                            borderRight: "2px solid #dee2e6"
-                          }}>Mängija</th>
-                          {getTableDates(showPastDates, allDates).map((date) => (
-                            <th key={date.date} style={{ 
-                              minWidth: "80px", 
-                              whiteSpace: "nowrap",
-                              background: "#f8f9fa",
-                              position: "sticky",
-                              top: 0
-                            }}>
-                              {date.weekday}<br/>{estonianDate(date.date)}
+                        <tr>
+                          <th>Mängija</th>
+                          {getTableDates(true).filter(d => new Date(d.date) < new Date()).slice(-30).map(d => (
+                            <th key={d.date} style={{ background: '#f6f7fa' }}>
+                              {d.weekday}<br/>{estonianDate(d.date)}
                             </th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
-                        {Object.entries(playerGroups)
-                          .filter(([_, group]) => group === "2")
-                          .map(([name]) => (
-                            <tr key={name}>
-                              <td style={{ 
-                                position: "sticky", 
-                                left: 0, 
-                                background: "#fff", 
-                                zIndex: 5,
-                                fontWeight: "500",
-                                borderRight: "2px solid #dee2e6"
-                              }}>
-                                <span className="player-name-desktop">{name}</span>
-                                <span className="player-name-mobile">{formatMobileName(name)}</span>
+                        {Object.entries(fussGroups).map(([name, group]) => (
+                          <tr key={name}>
+                            <td>{name}</td>
+                            {getTableDates(true).filter(d => new Date(d.date) < new Date()).slice(-30).map(d => (
+                              <td key={d.date} style={{ background: '#f6f7fa' }}>
+                                <AttendanceToggle
+                                  value={fussAttendance[d.date]?.[name] ?? "Ei"}
+                                  onChange={val => {
+                                    const newAttendance = {
+                                      ...fussAttendance,
+                                      [d.date]: {
+                                        ...fussAttendance[d.date],
+                                        [name]: val,
+                                      },
+                                    };
+                                    setFussAttendance(newAttendance);
+                                    set(databaseRef(db, `fussAttendance/${d.date}`), newAttendance[d.date]);
+                                  }}
+                                />
                               </td>
-                              {getTableDates(showPastDates, allDates).map((date) => (
-                                <td key={date.date} style={{ minWidth: "80px" }}>
-                                  <AttendanceToggle
-                                    value={attendance[date.date]?.[name] || "Ei"}
-                                    onChange={(val) => {
-                                      const newAttendance = {
-                                        ...attendance,
-                                        [date.date]: {
-                                          ...attendance[date.date],
-                                          [name]: val
-                                        },
-                                      };
-                                      setAttendance(newAttendance);
-                                      set(
-                                        databaseRef(db, `attendance/${date.date}`),
-                                        newAttendance[date.date]
-                                      );
-                                    }}
-                                  />
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
+                            ))}
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Füss view */}
-          {activeView === "fuss" && (
-            <div>
-              <h2>Füss</h2>
-              
-              {/* Coach feedback section for Füss */}
-              <div style={{marginTop: 30, marginBottom: 30}}>
-                <h2>Tagasiside treeningute kohta</h2>
-                <div style={{display: 'flex', flexWrap: 'wrap', gap: 12}}>
-                  {getTableDates(showPastDates, allDates)
-                    .filter(d => {
-                      // Limit to today and previous 3 days (calendar days, ignore time)
-                      const today = new Date();
-                      const dateObj = new Date(d.date);
-                      today.setHours(0,0,0,0);
-                      dateObj.setHours(0,0,0,0);
-                      const diff = (today - dateObj) / (1000 * 60 * 60 * 24);
-                      return diff >= 0 && diff <= 3;
-                    })
-                    .map(d => (
-                      ["A","B"].map(grp => {
-                        const groupPlayers = (Array.isArray(playerPasswords) ? playerPasswords : Object.values(playerPasswords)).map(p => p.name).filter(n => fussGroups[n] === grp);
-                        const attended = groupPlayers.filter(n => fussAttendance[d.date]?.[n] === "Jah");
-                        if (attended.length === 0) return null;
-                        // Coach feedback color logic
-                        const feedbackList = coachFeedbackData?.[d.date]?.[`fuss-${grp}`] || {};
-                        const someFeedbackGiven = Object.values(feedbackList).some(v => v !== 3);
-                        return (
-                          <div
-                            key={d.date + grp}
-                            style={{
-                              border: '1px solid #bbb',
-                              borderRadius: 8,
-                              padding: 12,
-                              minWidth: 180,
-                              background: '#fafaff',
-                              cursor: 'pointer',
-                              position: 'relative'
-                            }}
-                            onClick={() => {
-                              setCoachFeedbackSession({ date: d.date, group: `fuss-${grp}`, weekday: d.weekday, sport: 'fuss' });
-                              setShowCoachFeedbackModal(true);
-                            }}
-                          >
-                            <div style={{ fontWeight: 600, fontSize: 15 }}>
-                              {estonianDate(d.date)} ({d.weekday}) <span style={{ fontWeight: 400 }}>Grupp {grp}</span>
-                              <span
-                                style={{
-                                  display: 'inline-block',
-                                  width: 14,
-                                  height: 14,
-                                  borderRadius: '50%',
-                                  background: someFeedbackGiven ? '#d6fdd9' : '#ff6060',
-                                  marginLeft: 8,
-                                  verticalAlign: 'middle'
-                                }}
-                              ></span>
-                            </div>
-                            <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>
-                              {attended.length} mängijat osales
-                            </div>
-                          </div>
-                        );
-                      })
-                    ))}
-                </div>
-              </div>
-              
-              <button onClick={() => setShowPastDates(v => !v)} style={{ margin: '16px 0 8px 0' }}>
-                {showPastDates ? "Peida varasemad päevad" : "Näita varasemaid päevi"}
-              </button>
-              <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-                {/* Group A */}
-                <div>
-                  <h3>Grupp A</h3>
-                  <div style={{ 
-                    overflowX: "auto", 
-                    overflowY: "auto",
-                    maxWidth: "100%",
-                    maxHeight: "400px",
-                    border: "1px solid #ddd",
-                    borderRadius: "8px"
-                  }}>
-                    <table className="attendance-table" style={{ minWidth: "600px" }}>
-                      <thead>
-                        <tr style={{ position: "sticky", top: 0, zIndex: 15 }}>
-                          <th style={{ 
-                            position: "sticky", 
-                            left: 0, 
-                            top: 0,
-                            background: "#f8f9fa", 
-                            zIndex: 20,
-                            minWidth: "120px",
-                            borderRight: "2px solid #dee2e6"
-                          }}>Mängija</th>
-                          {getTableDates(showPastDates, allDates).map((date) => (
-                            <th key={date.date} style={{ 
-                              minWidth: "80px", 
-                              whiteSpace: "nowrap",
-                              background: "#f8f9fa",
-                              position: "sticky",
-                              top: 0
-                            }}>
-                              {date.weekday}<br/>{estonianDate(date.date)}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {Object.entries(fussGroups)
-                          .filter(([_, group]) => group === "A")
-                          .map(([name]) => (
-                            <tr key={name}>
-                              <td style={{ 
-                                position: "sticky", 
-                                left: 0, 
-                                background: "#fff", 
-                                zIndex: 5,
-                                fontWeight: "500",
-                                borderRight: "2px solid #dee2e6"
-                              }}>
-                                <span className="player-name-desktop">{name}</span>
-                                <span className="player-name-mobile">{formatMobileName(name)}</span>
-                              </td>
-                              {getTableDates(showPastDates, allDates).map((date) => (
-                                <td key={date.date} style={{ minWidth: "80px" }}>
-                                  <AttendanceToggle
-                                    value={fussAttendance[date.date]?.[name] || "Ei"}
-                                    onChange={(val) => {
-                                      const newAttendance = {
-                                        ...fussAttendance,
-                                        [date.date]: {
-                                          ...fussAttendance[date.date],
-                                          [name]: val
-                                        },
-                                      };
-                                      setFussAttendance(newAttendance);
-                                      set(
-                                        databaseRef(db, `fussAttendance/${date.date}`),
-                                        newAttendance[date.date]
-                                      );
-                                    }}
-                                  />
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Group B */}
-                <div>
-                  <h3>Grupp B</h3>
-                  <div style={{ 
-                    overflowX: "auto", 
-                    overflowY: "auto",
-                    maxWidth: "100%",
-                    maxHeight: "400px",
-                    border: "1px solid #ddd",
-                    borderRadius: "8px"
-                  }}>
-                    <table className="attendance-table" style={{ minWidth: "600px" }}>
-                      <thead>
-                        <tr style={{ position: "sticky", top: 0, zIndex: 15 }}>
-                          <th style={{ 
-                            position: "sticky", 
-                            left: 0, 
-                            top: 0,
-                            background: "#f8f9fa", 
-                            zIndex: 20,
-                            minWidth: "120px",
-                            borderRight: "2px solid #dee2e6"
-                          }}>Mängija</th>
-                          {getTableDates(showPastDates, allDates).map((date) => (
-                            <th key={date.date} style={{ 
-                              minWidth: "80px", 
-                              whiteSpace: "nowrap",
-                              background: "#f8f9fa",
-                              position: "sticky",
-                              top: 0
-                            }}>
-                              {date.weekday}<br/>{estonianDate(date.date)}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {Object.entries(fussGroups)
-                          .filter(([_, group]) => group === "B")
-                          .map(([name]) => (
-                            <tr key={name}>
-                              <td style={{ 
-                                position: "sticky", 
-                                left: 0, 
-                                background: "#fff", 
-                                zIndex: 5,
-                                fontWeight: "500",
-                                borderRight: "2px solid #dee2e6"
-                              }}>
-                                <span className="player-name-desktop">{name}</span>
-                                <span className="player-name-mobile">{formatMobileName(name)}</span>
-                              </td>
-                              {getTableDates(showPastDates, allDates).map((date) => (
-                                <td key={date.date} style={{ minWidth: "80px" }}>
-                                  <AttendanceToggle
-                                    value={fussAttendance[date.date]?.[name] || "Ei"}
-                                    onChange={(val) => {
-                                      const newAttendance = {
-                                        ...fussAttendance,
-                                        [date.date]: {
-                                          ...fussAttendance[date.date],
-                                          [name]: val
-                                        },
-                                      };
-                                      setFussAttendance(newAttendance);
-                                      set(
-                                        databaseRef(db, `fussAttendance/${date.date}`),
-                                        newAttendance[date.date]
-                                      );
-                                    }}
-                                  />
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+                )}
+              </>
+            )}
+          </div>
         </div>
       )}
 
@@ -1884,341 +1672,160 @@ function handleChangePassword(e) {
             <button onClick={() => setShowPastDates(v => !v)} style={{ margin: '16px 0 8px 0' }}>
               {showPastDates ? "Peida varasemad päevad" : "Näita varasemaid päevi"}
             </button>
-            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-              {/* Group 1 */}
-              <div>
-                <h3>Grupp 1</h3>
-                <div style={{ 
-                  overflowX: "auto", 
-                  overflowY: "auto",
-                  maxWidth: "100%",
-                  maxHeight: "400px",
-                  border: "1px solid #ddd",
-                  borderRadius: "8px"
-                }}>
-                  <table className="attendance-table" style={{ minWidth: "600px" }}>
+            {(() => {
+              // Use getTableDates(showPastDates) for tableDates
+              const tableDates = getTableDates(showPastDates, dates);
+              // Guard clause: wait for players or tableDates
+              if (!tableDates || tableDates.length === 0 || !playerGroups || Object.keys(playerGroups).length === 0) {
+                console.log("⛔ Waiting for playerGroups or tableDates...", { playerGroups, tableDates });
+                return <div>Ootab mängijate või kuupäevi...</div>;
+              }
+              // Table rendering: show player names, not group numbers
+              return (
+                <div>
+                  <h2>Treeningute kohalolek</h2>
+                  <table>
                     <thead>
-                      <tr style={{ position: "sticky", top: 0, zIndex: 15 }}>
-                        <th style={{ 
-                          position: "sticky", 
-                          left: 0, 
-                          top: 0,
-                          background: "#f8f9fa", 
-                          zIndex: 20,
-                          minWidth: "120px",
-                          borderRight: "2px solid #dee2e6"
-                        }}>Mängija</th>
-                        {getTableDates(showPastDates, allDates).map((date) => (
-                          <th key={date.date} style={{ 
-                            minWidth: "80px", 
-                            whiteSpace: "nowrap",
-                            background: "#f8f9fa",
-                            position: "sticky",
-                            top: 0
-                          }}>
+                      <tr>
+                        <th>Mängija</th>
+                        {tableDates.map((date) => (
+                          <th key={date.date}>
                             {date.weekday}<br/>{estonianDate(date.date)}
                           </th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {Object.entries(playerGroups)
-                        .filter(([_, group]) => group === "1")
-                        .map(([name]) => (
-                          <tr key={name}>
-                            <td style={{ 
-                              position: "sticky", 
-                              left: 0, 
-                              background: "#fff", 
-                              zIndex: 5,
-                              fontWeight: "500",
-                              borderRight: "2px solid #dee2e6"
-                            }}>
-                              <span className="player-name-desktop">{name}</span>
-                              <span className="player-name-mobile">{formatMobileName(name)}</span>
+                      {Object.entries(playerGroups).map(([name, group]) => (
+                        <tr key={name}>
+                          <td>{name}</td>
+                          {tableDates.map((date) => (
+                            <td key={date.date}>
+                              <AttendanceToggle
+                                value={attendance[date.date]?.[name] || "Ei"}
+                                onChange={(val) => {
+                                  const newAttendance = {
+                                    ...attendance,
+                                    [date.date]: {
+                                      ...attendance[date.date],
+                                      [name]: val,
+                                    },
+                                  };
+                                  setAttendance(newAttendance);
+                                  set(
+                                    databaseRef(db, `attendance/${date.date}`),
+                                    newAttendance[date.date]
+                                  );
+                                }}
+                              />
                             </td>
-                            {getTableDates(showPastDates, allDates).map((date) => (
-                              <td key={date.date} style={{ minWidth: "80px" }}>
-                                <AttendanceToggle
-                                  value={attendance[date.date]?.[name] || "Ei"}
-                                  onChange={(val) => {
-                                    const newAttendance = {
-                                      ...attendance,
-                                      [date.date]: {
-                                        ...attendance[date.date],
-                                        [name]: val
-                                      },
-                                    };
-                                    setAttendance(newAttendance);
-                                    set(
-                                      databaseRef(db, `attendance/${date.date}`),
-                                      newAttendance[date.date]
-                                    );
-                                  }}
-                                />
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
+                          ))}
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
-              </div>
-
-              {/* Group 2 */}
-              <div>
-                <h3>Grupp 2</h3>
-                <div style={{ 
-                  overflowX: "auto", 
-                  overflowY: "auto",
-                  maxWidth: "100%",
-                  maxHeight: "400px",
-                  border: "1px solid #ddd",
-                  borderRadius: "8px"
-                }}>
-                  <table className="attendance-table" style={{ minWidth: "600px" }}>
-                    <thead>
-                      <tr style={{ position: "sticky", top: 0, zIndex: 15 }}>
-                        <th style={{ 
-                          position: "sticky", 
-                          left: 0, 
-                          top: 0,
-                          background: "#f8f9fa", 
-                          zIndex: 20,
-                          minWidth: "120px",
-                          borderRight: "2px solid #dee2e6"
-                        }}>Mängija</th>
-                        {getTableDates(showPastDates, allDates).map((date) => (
-                          <th key={date.date} style={{ 
-                            minWidth: "80px", 
-                            whiteSpace: "nowrap",
-                            background: "#f8f9fa",
-                            position: "sticky",
-                            top: 0
-                          }}>
-                            {date.weekday}<br/>{estonianDate(date.date)}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.entries(playerGroups)
-                        .filter(([_, group]) => group === "2")
-                        .map(([name]) => (
-                          <tr key={name}>
-                            <td style={{ 
-                              position: "sticky", 
-                              left: 0, 
-                              background: "#fff", 
-                              zIndex: 5,
-                              fontWeight: "500",
-                              borderRight: "2px solid #dee2e6"
-                            }}>
-                              <span className="player-name-desktop">{name}</span>
-                              <span className="player-name-mobile">{formatMobileName(name)}</span>
-                            </td>
-                            {getTableDates(showPastDates, allDates).map((date) => (
-                              <td key={date.date} style={{ minWidth: "80px" }}>
-                                <AttendanceToggle
-                                  value={attendance[date.date]?.[name] || "Ei"}
-                                  onChange={(val) => {
-                                    const newAttendance = {
-                                      ...attendance,
-                                      [date.date]: {
-                                        ...attendance[date.date],
-                                        [name]: val
-                                      },
-                                    };
-                                    setAttendance(newAttendance);
-                                    set(
-                                      databaseRef(db, `attendance/${date.date}`),
-                                      newAttendance[date.date]
-                                    );
-                                  }}
-                                />
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
+              );
+            })()}
           </div>
 
-          {/* Füss Groups */}
+          {/* Fuss Groups */}
           <div>
             <h2>Füss</h2>
-            {/* Add show/hide past dates button for füss section */}
-            <button onClick={() => setShowPastDates(v => !v)} style={{ margin: '16px 0 8px 0' }}>
-              {showPastDates ? "Peida varasemad päevad" : "Näita varasemaid päevi"}
-            </button>
-            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            <div style={{ display: "flex", gap: 24 }}>
               {/* Group A */}
-              <div>
+              <div style={{ flex: 1 }}>
                 <h3>Grupp A</h3>
-                <div style={{ 
-                  overflowX: "auto", 
-                  overflowY: "auto",
-                  maxWidth: "100%",
-                  maxHeight: "400px",
-                  border: "1px solid #ddd",
-                  borderRadius: "8px"
-                }}>
-                  <table className="attendance-table" style={{ minWidth: "600px" }}>
-                    <thead>
-                      <tr style={{ position: "sticky", top: 0, zIndex: 15 }}>
-                        <th style={{ 
-                          position: "sticky", 
-                          left: 0, 
-                          top: 0,
-                          background: "#f8f9fa", 
-                          zIndex: 20,
-                          minWidth: "120px",
-                          borderRight: "2px solid #dee2e6"
-                        }}>Mängija</th>
-                        {getTableDates(showPastDates, allDates).map((date) => (
-                          <th key={date.date} style={{ 
-                            minWidth: "80px", 
-                            whiteSpace: "nowrap",
-                            background: "#f8f9fa",
-                            position: "sticky",
-                            top: 0
-                          }}>
-                            {date.weekday}<br/>{estonianDate(date.date)}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.entries(fussGroups)
-                        .filter(([_, group]) => group === "A")
-                        .map(([name]) => (
-                          <tr key={name}>
-                            <td style={{ 
-                              position: "sticky", 
-                              left: 0, 
-                              background: "#fff", 
-                              zIndex: 5,
-                              fontWeight: "500",
-                              borderRight: "2px solid #dee2e6"
-                            }}>
-                              <span className="player-name-desktop">{name}</span>
-                              <span className="player-name-mobile">{formatMobileName(name)}</span>
+                <table className="attendance-table">
+                  <thead>
+                    <tr>
+                      <th>Mängija</th>
+                      {getTableDates(false).map((date) => (
+                        <th key={date.date}>{estonianDate(date.date)}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(fussGroups)
+                      .filter(([_, group]) => group === "A")
+                      .map(([name]) => (
+                        <tr key={name}>
+                          <td>{name}</td>
+                          {getTableDates(false).map((date) => (
+                            <td key={date.date}>
+                              <AttendanceToggle
+                                value={fussAttendance[date.date]?.[name] || "Ei"}
+                                onChange={(val) => {
+                                  const newAttendance = {
+                                    ...fussAttendance,
+                                    [date.date]: {
+                                      ...fussAttendance[date.date],
+                                      [name]: val,
+                                    },
+                                  };
+                                  setFussAttendance(newAttendance);
+                                  set(
+                                    databaseRef(db, `fussAttendance/${date.date}`),
+                                    newAttendance[date.date]
+                                  );
+                                }}
+                              />
                             </td>
-                            {getTableDates(showPastDates, allDates).map((date) => (
-                              <td key={date.date} style={{ minWidth: "80px" }}>
-                                <AttendanceToggle
-                                  value={fussAttendance[date.date]?.[name] || "Ei"}
-                                  onChange={(val) => {
-                                    const newAttendance = {
-                                      ...fussAttendance,
-                                      [date.date]: {
-                                        ...fussAttendance[date.date],
-                                        [name]: val
-                                      },
-                                    };
-                                    setFussAttendance(newAttendance);
-                                    set(
-                                      databaseRef(db, `fussAttendance/${date.date}`),
-                                      newAttendance[date.date]
-                                    );
-                                  }}
-                                />
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </div>
+                          ))}
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
               </div>
 
               {/* Group B */}
-              <div>
+              <div style={{ flex: 1 }}>
                 <h3>Grupp B</h3>
-                <div style={{ 
-                  overflowX: "auto", 
-                  overflowY: "auto",
-                  maxWidth: "100%",
-                  maxHeight: "400px",
-                  border: "1px solid #ddd",
-                  borderRadius: "8px"
-                }}>
-                  <table className="attendance-table" style={{ minWidth: "600px" }}>
-                    <thead>
-                      <tr style={{ position: "sticky", top: 0, zIndex: 15 }}>
-                        <th style={{ 
-                          position: "sticky", 
-                          left: 0,
-                          top: 0,
-                          background: "#f8f9fa", 
-                          zIndex: 20,
-                          minWidth: "120px",
-                          borderRight: "2px solid #dee2e6"
-                        }}>Mängija</th>
-                        {getTableDates(showPastDates, allDates).map((date) => (
-                          <th key={date.date} style={{ 
-                            minWidth: "80px", 
-                            whiteSpace: "nowrap",
-                            background: "#f8f9fa",
-                            position: "sticky",
-                            top: 0
-                          }}>
-                            {date.weekday}<br/>{estonianDate(date.date)}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.entries(fussGroups)
-                        .filter(([_, group]) => group === "B")
-                        .map(([name]) => (
-                          <tr key={name}>
-                            <td style={{ 
-                              position: "sticky", 
-                              left: 0, 
-                              background: "#fff", 
-                              zIndex: 5,
-                              fontWeight: "500",
-                              borderRight: "2px solid #dee2e6"
-                            }}>
-                              <span className="player-name-desktop">{name}</span>
-                              <span className="player-name-mobile">{formatMobileName(name)}</span>
+                <table className="attendance-table">
+                  <thead>
+                    <tr>
+                      <th>Mängija</th>
+                      {getTableDates(false).map((date) => (
+                        <th key={date.date}>{estonianDate(date.date)}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(fussGroups)
+                      .filter(([_, group]) => group === "B")
+                      .map(([name]) => (
+                        <tr key={name}>
+                          <td>{name}</td>
+                          {getTableDates(false).map((date) => (
+                            <td key={date.date}>
+                              <AttendanceToggle
+                                value={fussAttendance[date.date]?.[name] || "Ei"}
+                                onChange={(val) => {
+                                  const newAttendance = {
+                                    ...fussAttendance,
+                                    [date.date]: {
+                                      ...fussAttendance[date.date],
+                                      [name]: val,
+                                    },
+                                  };
+                                  setFussAttendance(newAttendance);
+                                  set(
+                                    databaseRef(db, `fussAttendance/${date.date}`),
+                                    newAttendance[date.date]
+                                  );
+                                }}
+                              />
                             </td>
-                            {getTableDates(showPastDates, allDates).map((date) => (
-                              <td key={date.date} style={{ minWidth: "80px" }}>
-                                <AttendanceToggle
-                                  value={fussAttendance[date.date]?.[name] || "Ei"}
-                                  onChange={(val) => {
-                                    const newAttendance = {
-                                      ...fussAttendance,
-                                      [date.date]: {
-                                        ...fussAttendance[date.date],
-                                        [name]: val
-                                      },
-                                    };
-                                    setFussAttendance(newAttendance);
-                                    set(
-                                      databaseRef(db, `fussAttendance/${date.date}`),
-                                      newAttendance[date.date]
-                                    );
-                                  }}
-                                />
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </div>
+                          ))}
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
         </div>
       )}
-
     {/* Add Player Modal (admin) */}
     {showAddPlayer && (
       <div style={{
@@ -2468,6 +2075,29 @@ function handleChangePassword(e) {
                     </tr>
                   </thead>
                   <tbody>
+                    {TENNIS_GROUP2_ORDER.map(day => (
+                      schedule.tennis.group2[day] ?
+                        <tr key={day}>
+                          <td>{
+                            day === "Monday1" ? "Esmaspäev 9:30 - 11:00" :
+                            day === "Monday2" ? "Esmaspäev 12:30 - 14:00" :
+                            day === "Tuesday" ? "Teisipäev" :
+                            day === "Wednesday1" ? "Kolmapäev 9:30 - 11:00" :
+                            day === "Wednesday2" ? "Kolmapäev 12:30 - 14:00" :
+                            day === "Thursday" ? "Neljapäev" :
+                            day === "Friday" ? "Reede" : day
+                          }</td>
+                          <td>
+                            <input
+                              type="text"
+                              value={schedule.tennis.group2[day]}
+                              onChange={(e) => handleScheduleChange('tennis', 'group2', day, e.target.value)}
+                              style={{ width: '100%' }}
+                            />
+                          </td>
+                        </tr>
+                      : null
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -2550,8 +2180,12 @@ function handleChangePassword(e) {
         </div>
       </div>
     )}
+
+    {/* ... existing code ... */}
+
+    {/* ...existing code ... */}
   </div>
-);
+  );
 }
 
 // --- FeedbackModal component ---
@@ -2647,16 +2281,9 @@ function FeedbackModal({ session, onSubmit, onSkip }) {
   );
 }
 // --- CoachFeedbackModal component ---
-function CoachFeedbackModal({ session, onClose, coachFeedbackData, playerPasswords, attendance, fussAttendance, onSave }) {
+function CoachFeedbackModal({ session, onClose, coachFeedbackData, playerPasswords, attendance, onSave }) {
   // List of players who attended
-  const isFuss = session.sport === 'fuss';
-  const attendanceData = isFuss ? fussAttendance : attendance;
-  const groupName = isFuss ? session.group.replace('fuss-', '') : session.group;
-  
-  const groupPlayers = (Array.isArray(playerPasswords) ? playerPasswords : Object.values(playerPasswords))
-    .map(p => p.name)
-    .filter(n => attendanceData[session.date]?.[n] === "Jah" && n && n !== "");
-  
+  const groupPlayers = (Array.isArray(playerPasswords) ? playerPasswords : Object.values(playerPasswords)).map(p => p.name).filter(n => attendance[n][session.date] === "Jah" && n && n !== "");
   const prevData = (coachFeedbackData?.[session.date]?.[session.group]) || {};
   const [efforts, setEfforts] = React.useState(() => {
     let out = {};
@@ -2666,41 +2293,25 @@ function CoachFeedbackModal({ session, onClose, coachFeedbackData, playerPasswor
     return out;
   });
 
-  // Scale info - different for tennis and füss
-  const tennisScale = [
+  // Scale info
+  const scale = [
     { val: 1, icon: "😞", label: "Väga väike" },
     { val: 2, icon: "😕", label: "Keskmisest väiksem" },
     { val: 3, icon: "😐", label: "Keskmine" },
     { val: 4, icon: "🙂", label: "Keskmisest suurem" },
     { val: 5, icon: "💪", label: "Väga suur" }
   ];
-  
-  const fussScale = [
-    { val: 1, label: "1" },
-    { val: 2, label: "2" },
-    { val: 3, label: "3" },
-    { val: 4, label: "4" },
-    { val: 5, label: "5" }
-  ];
-  
-  const scale = isFuss ? fussScale : tennisScale;
 
   return (
     <div className="feedback-modal">
       <div className="feedback-content">
-        <h2>Pane mängijatele tagasiside ({isFuss ? 'Füss' : 'Tennis'} Grupp {groupName}, {estonianDate(session.date)})</h2>
+        <h2>Pane mängijatele tagasiside (Grupp {session.group}, {estonianDate(session.date)})</h2>
         <div style={{ marginBottom: 8 }}>
           <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 6 }}>
             {scale.map(s =>
               <div key={s.val} style={{ textAlign: "center", width: 50 }}>
-                {isFuss ? (
-                  <span style={{ fontSize: "1.6em", fontWeight: "bold" }}>{s.label}</span>
-                ) : (
-                  <>
-                    <span style={{ fontSize: "1.6em" }}>{s.icon}</span>
-                    <div style={{ fontSize: 12 }}>{s.label}</div>
-                  </>
-                )}
+                <span style={{ fontSize: "1.6em" }}>{s.icon}</span>
+                <div style={{ fontSize: 12 }}>{s.label}</div>
               </div>
             )}
           </div>
@@ -2717,14 +2328,10 @@ function CoachFeedbackModal({ session, onClose, coachFeedbackData, playerPasswor
                     fontSize: "1.3em",
                     background: efforts[name] === s.val ? "#ffe066" : "transparent",
                     border: "none",
-                    cursor: "pointer",
-                    width: isFuss ? "40px" : "auto",
-                    height: isFuss ? "40px" : "auto"
+                    cursor: "pointer"
                   }}
                   onClick={() => setEfforts(e => ({ ...e, [name]: s.val }))}
-                >
-                  {isFuss ? s.label : s.icon}
-                </button>
+                >{s.icon}</button>
               )}
             </div>
           ))}
@@ -2755,7 +2362,7 @@ const FEEDBACK_EMOJI_Q3 = {
   5: "💡"
 };
 // --- FeedbackSummaryByGroup component ---
-function FeedbackSummaryByGroup({ dates, playerPasswords, playerGroups, feedbackData, coachFeedbackData, fussGroups }) {
+function FeedbackSummaryByGroup({ dates, playerPasswords, playerGroups, feedbackData, coachFeedbackData }) {
   const [showOld1, setShowOld1] = React.useState(false);
   const [showOld2, setShowOld2] = React.useState(false);
   const [showSessionModal, setShowSessionModal] = React.useState(false);
@@ -2767,8 +2374,8 @@ function FeedbackSummaryByGroup({ dates, playerPasswords, playerGroups, feedback
       ? playerPasswords
       : Object.values(playerPasswords);
     const groupPlayers = playerList.map(p => p.name).filter(n => playerGroups[n] === String(grp));
-    // Use the dates prop directly instead of calling getTableDates
-    const tableDates = dates;
+    // Use tableDates (from getTableDates) instead of dates if available
+    const tableDates = getTableDates(true, dates);
     const validDates = tableDates.map(d => d.date);
     const feedbackDatesSet = new Set();
     for (const n of groupPlayers) {
@@ -2937,14 +2544,13 @@ function FeedbackSummaryByGroup({ dates, playerPasswords, playerGroups, feedback
         playerGroups={playerGroups}
         feedbackData={feedbackData}
         coachFeedbackData={coachFeedbackData}
-        fussGroups={fussGroups}
       />
     </div>
   );
 }
 
 // --- SessionFeedbackModal component ---
-function SessionFeedbackModal({ show, onClose, session, dates, playerPasswords, playerGroups, feedbackData, coachFeedbackData, fussGroups }) {
+function SessionFeedbackModal({ show, onClose, session, dates, playerPasswords, playerGroups, feedbackData, coachFeedbackData }) {
   React.useEffect(() => {
     if (!show) return;
     function onClick(e) {
@@ -2956,29 +2562,14 @@ function SessionFeedbackModal({ show, onClose, session, dates, playerPasswords, 
 
   if (!show || !session) return null;
   const { date, group } = session;
-  
-  // Check if this is a Füss group
-  const isFuss = group.startsWith('fuss-');
-  const displayGroup = isFuss ? group.replace('fuss-', '') : group;
-  
-  // Use the dates prop directly instead of calling getTableDates
-  const tableDates = dates;
+  // Use tableDates (from getTableDates) instead of dates if available
+  const tableDates = getTableDates(true, dates);
   const estonianDateStr = tableDates.find(d => d.date === date)?.weekday + " " + (tableDates.find(d => d.date === date)?.date || "");
   const playerList = Array.isArray(playerPasswords)
     ? playerPasswords
     : Object.values(playerPasswords);
 
-  // Filter players based on the correct group mapping
-  const groupPlayers = playerList.map(p => p.name).filter(n => {
-    if (isFuss) {
-      // For Füss groups, only include if fussGroups is defined and the player is in the right group
-      return fussGroups && typeof fussGroups === 'object' && fussGroups[n] === displayGroup;
-    } else {
-      // For tennis groups
-      return playerGroups[n] === group;
-    }
-  });
-  
+  const groupPlayers = playerList.map(p => p.name).filter(n => playerGroups[n] === group);
   // Get players with feedback or attendance "Jah" for that date and group
   const attending = groupPlayers.filter(n =>
     (feedbackData[n] && feedbackData[n][date]) ||
@@ -3002,7 +2593,7 @@ function SessionFeedbackModal({ show, onClose, session, dates, playerPasswords, 
       }}>
         <button onClick={onClose} style={{ position: "absolute", top: 14, right: 18, fontSize: 18, background: "#eee", border: "none", borderRadius: 6, padding: "4px 9px", cursor: "pointer" }}>Sulge</button>
         <h2>Tagasiside detailid</h2>
-        <div style={{fontSize:15,marginBottom:8}}><b>{estonianDateStr}</b> &nbsp; <span style={{fontSize:13, color:"#555"}}>{isFuss ? 'Füss' : 'Tennis'} Grupp {displayGroup}</span></div>
+        <div style={{fontSize:15,marginBottom:8}}><b>{estonianDateStr}</b> &nbsp; <span style={{fontSize:13, color:"#555"}}>Grupp {group}</span></div>
         <table className="attendance-table" style={{ fontSize: 14, width: "100%" }}>
           <thead>
             <tr>
@@ -3018,10 +2609,7 @@ function SessionFeedbackModal({ show, onClose, session, dates, playerPasswords, 
               const fb = feedbackData[name]?.[date];
               if (!fb) return null;
               const coachVal = coachFeedbackData?.[date]?.[group]?.[name] || 3;
-              // Different display for coach feedback based on sport type
-              const tennisCoachObj = {1:"😞 Väga väike",2:"😕 Keskmisest väiksem",3:"😐 Keskmine",4:"🙂 Keskmisest suurem",5:"💪 Väga suur"};
-              const fussCoachObj = {1:"1",2:"2",3:"3",4:"4",5:"5"};
-              const coachObj = isFuss ? fussCoachObj : tennisCoachObj;
+              const coachObj = {1:"😞 Väga väike",2:"😕 Keskmisest väiksem",3:"😐 Keskmine",4:"🙂 Keskmisest suurem",5:"💪 Väga suur"};
               return (
                 <tr key={name}>
                   <td style={{ padding: "7px 5px", wordBreak: "break-word" }}>
@@ -3069,5 +2657,42 @@ function getNextFiveWeekdays() {
   }
   return result;
 }
+
+
+// --- getTableDates helper ---
+function getTableDates(showPastDates) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (!Array.isArray(allDates)) return [];
+
+  const parsedDates = allDates.map(d => ({
+    ...d,
+    dateObj: new Date(d.date)
+  }));
+
+  const futureDates = parsedDates
+    .filter(d => d.dateObj >= today)
+    .sort((a, b) => a.dateObj - b.dateObj)
+    .slice(0, 5);
+
+  if (!showPastDates) {
+    return futureDates.map(({ date, weekday }) => ({ date, weekday }));
+  }
+
+  const pastDates = parsedDates
+    .filter(d => d.dateObj < today)
+    .sort((a, b) => b.dateObj - a.dateObj)
+    .slice(0, 30)
+    .reverse();
+
+  return [
+    ...pastDates.map(({ date, weekday }) => ({ date, weekday })),
+    ...futureDates.map(({ date, weekday }) => ({ date, weekday }))
+  ];
+}
+
+
+
 
 export default App;

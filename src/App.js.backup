@@ -398,29 +398,6 @@ React.useEffect(() => {
     });
   }, [db, playerPasswords]);
 
-  // Separate effect for initializing groups when playerPasswords changes
-  React.useEffect(() => {
-    if (!db || !playerPasswords.length) return;
-
-    // Initialize player groups if not already set
-    if (Object.keys(playerGroups).length === 0) {
-      const defaultGroups = {};
-      playerPasswords.forEach(player => {
-        defaultGroups[player.name] = "1";
-      });
-      setPlayerGroups(defaultGroups);
-    }
-
-    // Initialize fuss groups if not already set  
-    if (Object.keys(fussGroups).length === 0) {
-      const defaultGroups = {};
-      playerPasswords.forEach(player => {
-        defaultGroups[player.name] = "A";
-      });
-      setFussGroups(defaultGroups);
-    }
-  }, [db, playerPasswords, playerGroups, fussGroups]); // Include all dependencies but make sure conditions prevent infinite loops
-
 // --- Utility: Get next five weekdays (Mon-Fri) ---
 function getNextFiveWeekdays() {
   const result = [];
@@ -1501,7 +1478,7 @@ function handleChangePassword(e) {
                                         ...attendance,
                                         [date.date]: {
                                           ...attendance[date.date],
-                                          [name]: val
+                                          [name]: val,
                                         },
                                       };
                                       setAttendance(newAttendance);
@@ -1581,7 +1558,7 @@ function handleChangePassword(e) {
                                         ...attendance,
                                         [date.date]: {
                                           ...attendance[date.date],
-                                          [name]: val
+                                          [name]: val,
                                         },
                                       };
                                       setAttendance(newAttendance);
@@ -1736,7 +1713,7 @@ function handleChangePassword(e) {
                                         ...fussAttendance,
                                         [date.date]: {
                                           ...fussAttendance[date.date],
-                                          [name]: val
+                                          [name]: val,
                                         },
                                       };
                                       setFussAttendance(newAttendance);
@@ -1816,7 +1793,7 @@ function handleChangePassword(e) {
                                         ...fussAttendance,
                                         [date.date]: {
                                           ...fussAttendance[date.date],
-                                          [name]: val
+                                          [name]: val,
                                         },
                                       };
                                       setFussAttendance(newAttendance);
@@ -1946,7 +1923,7 @@ function handleChangePassword(e) {
                                       ...attendance,
                                       [date.date]: {
                                         ...attendance[date.date],
-                                        [name]: val
+                                        [name]: val,
                                       },
                                     };
                                     setAttendance(newAttendance);
@@ -2026,7 +2003,7 @@ function handleChangePassword(e) {
                                       ...attendance,
                                       [date.date]: {
                                         ...attendance[date.date],
-                                        [name]: val
+                                        [name]: val,
                                       },
                                     };
                                     setAttendance(newAttendance);
@@ -2040,57 +2017,55 @@ function handleChangePassword(e) {
                             ))}
                           </tr>
                         ))}
-                    </tbody>
-                  </table>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </div>
 
-          {/* Füss Groups */}
-          <div>
-            <h2>Füss</h2>
-            {/* Add show/hide past dates button for füss section */}
-            <button onClick={() => setShowPastDates(v => !v)} style={{ margin: '16px 0 8px 0' }}>
-              {showPastDates ? "Peida varasemad päevad" : "Näita varasemaid päevi"}
-            </button>
-            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-              {/* Group A */}
+                {/* Füss Groups */}
               <div>
-                <h3>Grupp A</h3>
-                <div style={{ 
-                  overflowX: "auto", 
-                  overflowY: "auto",
-                  maxWidth: "100%",
-                  maxHeight: "400px",
-                  border: "1px solid #ddd",
-                  borderRadius: "8px"
-                }}>
-                  <table className="attendance-table" style={{ minWidth: "600px" }}>
-                    <thead>
-                      <tr style={{ position: "sticky", top: 0, zIndex: 15 }}>
-                        <th style={{ 
-                          position: "sticky", 
-                          left: 0, 
-                          top: 0,
-                          background: "#f8f9fa", 
-                          zIndex: 20,
-                          minWidth: "120px",
-                          borderRight: "2px solid #dee2e6"
-                        }}>Mängija</th>
-                        {getTableDates(showPastDates, allDates).map((date) => (
-                          <th key={date.date} style={{ 
-                            minWidth: "80px", 
-                            whiteSpace: "nowrap",
-                            background: "#f8f9fa",
-                            position: "sticky",
-                            top: 0
-                          }}>
-                            {date.weekday}<br/>{estonianDate(date.date)}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
+                <h2>Füss</h2>
+                {/* Add show/hide past dates button for füss section */}
+                <button onClick={() => setShowPastDates(v => !v)} style={{ margin: '16px 0 8px 0' }}>
+                  {showPastDates ? "Peida varasemad päevad" : "Näita varasemaid päevi"}
+                </button>
+                <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+                  {/* Group A */}
+                  <div>
+                    <h3>Grupp A</h3>
+                    <div style={{ 
+                      overflowX: "auto", 
+                      overflowY: "auto",
+                      maxWidth: "100%",
+                      maxHeight: "400px",
+                      border: "1px solid #ddd",
+                      borderRadius: "8px"
+                    }}>
+                      <table className="attendance-table" style={{ minWidth: "600px" }}>
+                        <thead>
+                          <tr style={{ position: "sticky", top: 0, zIndex: 15 }}>
+                            <th style={{ 
+                              position: "sticky", 
+                              left: 0, 
+                              top: 0,
+                              background: "#f8f9fa", 
+                              zIndex: 20,
+                              minWidth: "120px",
+                              borderRight: "2px solid #dee2e6"
+                            }}>Mängija</th>
+                            {getTableDates(showPastDates, allDates).map((date) => (
+                              <th key={date.date} style={{ 
+                                minWidth: "80px", 
+                                whiteSpace: "nowrap",
+                                background: "#f8f9fa",
+                                position: "sticky",
+                                top: 0
+                              }}>
+                                {date.weekday}<br/>{estonianDate(date.date)}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
                     <tbody>
                       {Object.entries(fussGroups)
                         .filter(([_, group]) => group === "A")
@@ -2112,17 +2087,24 @@ function handleChangePassword(e) {
                                 <AttendanceToggle
                                   value={fussAttendance[date.date]?.[name] || "Ei"}
                                   onChange={(val) => {
-                                    const newAttendance = {
-                                      ...fussAttendance,
-                                      [date.date]: {
-                                        ...fussAttendance[date.date],
-                                        [name]: val
-                                      },
-                                    };
-                                    setFussAttendance(newAttendance);
+                                    // Create a shallow copy of the existing date data or an empty object
+                                    const dateData = fussAttendance[date.date] ? 
+                                      {...fussAttendance[date.date]} : {};
+                                    
+                                    // Update just this player's attendance value
+                                    dateData[name] = val;
+                                    
+                                    // Create a new attendance object with the updated date
+                                    const updatedAttendance = {...fussAttendance};
+                                    updatedAttendance[date.date] = dateData;
+                                    
+                                    // Update local state
+                                    setFussAttendance(updatedAttendance);
+                                    
+                                    // Update just this date node in Firebase
                                     set(
                                       databaseRef(db, `fussAttendance/${date.date}`),
-                                      newAttendance[date.date]
+                                      dateData
                                     );
                                   }}
                                 />
@@ -2192,17 +2174,24 @@ function handleChangePassword(e) {
                                 <AttendanceToggle
                                   value={fussAttendance[date.date]?.[name] || "Ei"}
                                   onChange={(val) => {
-                                    const newAttendance = {
-                                      ...fussAttendance,
-                                      [date.date]: {
-                                        ...fussAttendance[date.date],
-                                        [name]: val
-                                      },
-                                    };
-                                    setFussAttendance(newAttendance);
+                                    // Create a shallow copy of the existing date data or an empty object
+                                    const dateData = fussAttendance[date.date] ? 
+                                      {...fussAttendance[date.date]} : {};
+                                    
+                                    // Update just this player's attendance value
+                                    dateData[name] = val;
+                                    
+                                    // Create a new attendance object with the updated date
+                                    const updatedAttendance = {...fussAttendance};
+                                    updatedAttendance[date.date] = dateData;
+                                    
+                                    // Update local state
+                                    setFussAttendance(updatedAttendance);
+                                    
+                                    // Update just this date node in Firebase
                                     set(
                                       databaseRef(db, `fussAttendance/${date.date}`),
-                                      newAttendance[date.date]
+                                      dateData
                                     );
                                   }}
                                 />
@@ -2218,7 +2207,6 @@ function handleChangePassword(e) {
           </div>
         </div>
       )}
-
     {/* Add Player Modal (admin) */}
     {showAddPlayer && (
       <div style={{
@@ -2468,6 +2456,29 @@ function handleChangePassword(e) {
                     </tr>
                   </thead>
                   <tbody>
+                    {TENNIS_GROUP2_ORDER.map(day => (
+                      schedule.tennis.group2[day] ?
+                        <tr key={day}>
+                          <td>{
+                            day === "Monday1" ? "Esmaspäev 9:30 - 11:00" :
+                            day === "Monday2" ? "Esmaspäev 12:30 - 14:00" :
+                            day === "Tuesday" ? "Teisipäev" :
+                            day === "Wednesday1" ? "Kolmapäev 9:30 - 11:00" :
+                            day === "Wednesday2" ? "Kolmapäev 12:30 - 14:00" :
+                            day === "Thursday" ? "Neljapäev" :
+                            day === "Friday" ? "Reede" : day
+                          }</td>
+                          <td>
+                            <input
+                              type="text"
+                              value={schedule.tennis.group2[day]}
+                              onChange={(e) => handleScheduleChange('tennis', 'group2', day, e.target.value)}
+                              style={{ width: '100%' }}
+                            />
+                          </td>
+                        </tr>
+                      : null
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -2550,8 +2561,12 @@ function handleChangePassword(e) {
         </div>
       </div>
     )}
+
+    {/* ... existing code ... */}
+
+    {/* ...existing code ... */}
   </div>
-);
+  );
 }
 
 // --- FeedbackModal component ---
