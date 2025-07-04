@@ -1844,7 +1844,7 @@ function FeedbackSummaryByGroup({ dates, playerPasswords, playerGroups, feedback
                 <span style={{ display: "block" }}>aktiivsus</span>
               </th>
               <th>Eesmärk</th>
-              <th>“Rahulolematuid”</th>
+              <th>"Rahulolematuid"</th>
               <th>Kokku vastuseid</th>
             </tr>
           </thead>
