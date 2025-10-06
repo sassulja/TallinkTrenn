@@ -64,6 +64,167 @@ function AttendanceToggle({ value, onChange }) {
   );
 }
 
+// --- AttendanceToggleWithEffort component for Füss ---
+function AttendanceToggleWithEffort({ value, onChange, effortValue, onEffortChange, playerName, date, coachMode }) {
+  const [showEffortScale, setShowEffortScale] = React.useState(false);
+  
+  // Helper function to get background color based on effort value
+  const getEffortColor = (effort) => {
+    if (effort >= 1 && effort <= 4) return '#ffb1b1'; // Red
+    if (effort >= 5 && effort <= 7) return '#ffe066'; // Yellow
+    if (effort >= 8 && effort <= 10) return '#b8ffc9'; // Green
+    return '#fff';
+  };
+  
+  // Helper function to get text color based on effort value
+  const getEffortTextColor = (effort) => {
+    if (effort >= 1 && effort <= 4) return '#a00'; // Dark red
+    if (effort >= 5 && effort <= 7) return '#b08000'; // Dark yellow
+    if (effort >= 8 && effort <= 10) return '#0a4'; // Dark green
+    return '#000';
+  };
+  
+  const handleEffortSelect = (effort) => {
+    onEffortChange(effort);
+    // Also set attendance to "Jah" when effort is selected
+    onChange('Jah');
+    setShowEffortScale(false);
+  };
+  
+  const handleEffortButtonClick = () => {
+    setShowEffortScale(true);
+  };
+  
+  const handleResetToEi = () => {
+    onChange('Ei');
+    onEffortChange(null);
+    setShowEffortScale(false);
+  };
+  
+  const handleEiClick = () => {
+    if (coachMode) {
+      setShowEffortScale(true);
+    }
+  };
+  
+  // If coach mode and effort is selected, show the effort button
+  if (coachMode && effortValue && effortValue >= 1 && effortValue <= 10 && !showEffortScale) {
+    return (
+      <button
+        type="button"
+        onClick={handleEffortButtonClick}
+        style={{
+          background: getEffortColor(effortValue),
+          color: getEffortTextColor(effortValue),
+          border: '1px solid #ccc',
+          borderRadius: 6,
+          padding: '4px 8px',
+          fontWeight: 600,
+          fontSize: 14,
+          cursor: 'pointer',
+          outline: 'none',
+          minWidth: 44,
+          transition: 'background 0.2s, color 0.2s'
+        }}
+      >
+        {effortValue}
+      </button>
+    );
+  }
+  
+  // If coach mode and showing effort scale
+  if (coachMode && showEffortScale) {
+    return (
+      <div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 1, marginBottom: 4 }}>
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+            <button
+              key={num}
+              type="button"
+              onClick={() => handleEffortSelect(num)}
+              style={{
+                width: 20,
+                height: 20,
+                fontSize: 12,
+                fontWeight: 600,
+                padding: 0,
+                border: '1px solid #ccc',
+                borderRadius: 3,
+                background: effortValue === num ? getEffortColor(num) : '#fff',
+                color: effortValue === num ? getEffortTextColor(num) : '#000',
+                cursor: 'pointer'
+              }}
+            >
+              {num}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={handleResetToEi}
+          style={{
+            fontSize: 10,
+            padding: '2px 6px',
+            border: '1px solid #ccc',
+            borderRadius: 3,
+            background: '#f5f5f5',
+            cursor: 'pointer'
+          }}
+        >
+          Ei
+        </button>
+      </div>
+    );
+  }
+  
+  // Default state - show "Ei" button in coach mode, or regular toggle otherwise
+  if (coachMode) {
+    return (
+      <button
+        type="button"
+        onClick={handleEiClick}
+        style={{
+          background: '#ffb1b1',
+          color: '#a00',
+          border: '1px solid #ccc',
+          borderRadius: 6,
+          padding: '2px 14px',
+          fontWeight: 600,
+          cursor: 'pointer',
+          outline: 'none',
+          minWidth: 44,
+          transition: 'background 0.2s, color 0.2s'
+        }}
+      >
+        Ei
+      </button>
+    );
+  }
+  
+  // Fallback to regular attendance toggle for non-coach modes
+  const isJah = value === 'Jah';
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(isJah ? 'Ei' : 'Jah')}
+      style={{
+        background: isJah ? '#b8ffc9' : '#ffb1b1',
+        color: isJah ? '#0a4' : '#a00',
+        border: '1px solid #ccc',
+        borderRadius: 6,
+        padding: '2px 14px',
+        fontWeight: 600,
+        cursor: 'pointer',
+        outline: 'none',
+        minWidth: 44,
+        transition: 'background 0.2s, color 0.2s'
+      }}
+    >
+      {isJah ? 'Jah' : 'Ei'}
+    </button>
+  );
+}
+
 function generatePastDates(startDateStr, endDateStr) {
   const startDate = new Date(startDateStr);
   const endDate = new Date(endDateStr);
@@ -83,6 +244,8 @@ function generatePastDates(startDateStr, endDateStr) {
   return dates;
 }
 function App() {
+  // TEST: ChatGPT integration — remove after verifying
+  console.log('✅ ChatGPT test: App() reached');
   // Add mobile name formatting styles
   React.useEffect(() => {
     const style = document.createElement('style');
@@ -94,12 +257,40 @@ function App() {
         display: inline;
       }
       
+      .feedback-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+      
+      .feedback-content {
+        background-color: white;
+        padding: 24px;
+        border-radius: 8px;
+        max-width: 600px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+      }
+      
       @media (max-width: 768px) {
         .player-name-mobile {
           display: inline;
         }
         .player-name-desktop {
           display: none;
+        }
+        
+        .feedback-content {
+          padding: 16px;
+          width: 95%;
         }
       }
     `;
@@ -141,6 +332,7 @@ React.useEffect(() => {
 }, []);
 
   const [fussAttendance, setFussAttendance] = React.useState({});
+  const [fussEffort, setFussEffort] = React.useState({});
   const [adminMode, setAdminMode] = React.useState(false);
   const [coachMode, setCoachMode] = React.useState(false);
   const [feedbackData, setFeedbackData] = React.useState({});
@@ -168,6 +360,7 @@ React.useEffect(() => {
   const [showOldParent, setShowOldParent] = React.useState(false);
   const [showCoachFeedbackModal, setShowCoachFeedbackModal] = React.useState(false);
   const [coachFeedbackSession, setCoachFeedbackSession] = React.useState(null);
+  const [tennisSessionsCompleted, setTennisSessionsCompleted] = React.useState({});
   // Removed tableWrapperRef as it's no longer used
   const [activeView, setActiveView] = React.useState('tennis');
   const [showGroupPrompt, setShowGroupPrompt] = React.useState(false);
@@ -179,6 +372,11 @@ React.useEffect(() => {
   const [newParentPw, setNewParentPw] = React.useState('');
   const [newTennisGroup, setNewTennisGroup] = React.useState('');
   const [newFussGroup, setNewFussGroup] = React.useState('');
+  const [archivedPlayers, setArchivedPlayers] = React.useState([]);
+  const [activePlayerTab, setActivePlayerTab] = React.useState('active'); // 'active' or 'archived'
+  const [playerSearchTerm, setPlayerSearchTerm] = React.useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+  const [playerToDelete, setPlayerToDelete] = React.useState(null);
   const [downloadExcel, setDownloadExcel] = React.useState(() => {});
   const [COACH_FEEDBACK_EMOJI, setCOACH_FEEDBACK_EMOJI] = React.useState([
     { val: 1, icon: "😞", label: "Väga väike" },
@@ -268,6 +466,39 @@ React.useEffect(() => {
     setShowCoachFeedbackModal(false);
   }
 
+  // Function to handle füss effort rating
+  function handleFussEffortChange(playerName, date, group, effortValue) {
+    const newFussEffort = {
+      ...fussEffort,
+      [date]: {
+        ...fussEffort[date],
+        [`fuss-${group}`]: {
+          ...fussEffort[date]?.[`fuss-${group}`],
+          [playerName]: effortValue
+        }
+      }
+    };
+    setFussEffort(newFussEffort);
+    
+    if (effortValue === null) {
+      // Remove the effort rating from Firebase
+      set(databaseRef(db, `fussEffort/${date}/fuss-${group}/${playerName}`), null);
+    } else {
+      set(databaseRef(db, `fussEffort/${date}/fuss-${group}/${playerName}`), effortValue);
+    }
+  }
+
+  // Function to mark tennis session as completed
+  function markTennisSessionCompleted(date, group) {
+    const sessionKey = `${date}-${group}`;
+    const newCompleted = {
+      ...tennisSessionsCompleted,
+      [sessionKey]: true
+    };
+    setTennisSessionsCompleted(newCompleted);
+    set(databaseRef(db, `tennisSessionsCompleted/${sessionKey}`), true);
+  }
+
   // Function to handle login
   function handleLogin(e) {
     e.preventDefault();
@@ -340,6 +571,97 @@ React.useEffect(() => {
     setAddPlayerError("");
   }
 
+  // Function to archive (delete) a player
+  function handleArchivePlayer() {
+    if (!playerToDelete) return;
+    
+    const playerData = playerPasswords.find(p => p.name === playerToDelete);
+    const parentData = parentPasswords.find(p => p.name === playerToDelete);
+    
+    if (!playerData) return;
+    
+    // Create archived player record
+    const archivedPlayer = {
+      ...playerData,
+      parentPassword: parentData?.parent_password || '',
+      tennisGroup: playerGroups[playerToDelete] || '1',
+      fussGroup: fussGroups[playerToDelete] || 'A',
+      archivedDate: new Date().toISOString()
+    };
+    
+    // Add to archived players
+    const updatedArchived = [...archivedPlayers, archivedPlayer];
+    setArchivedPlayers(updatedArchived);
+    set(databaseRef(db, 'archivedPlayers'), updatedArchived);
+    
+    // Remove from active players
+    const updatedPlayerPasswords = playerPasswords.filter(p => p.name !== playerToDelete);
+    const updatedParentPasswords = parentPasswords.filter(p => p.name !== playerToDelete);
+    
+    setPlayerPasswords(updatedPlayerPasswords);
+    setParentPasswords(updatedParentPasswords);
+    set(databaseRef(db, 'playerPasswords'), updatedPlayerPasswords);
+    set(databaseRef(db, 'parentPasswords'), updatedParentPasswords);
+    
+    // Remove from groups
+    const newPlayerGroups = { ...playerGroups };
+    const newFussGroups = { ...fussGroups };
+    delete newPlayerGroups[playerToDelete];
+    delete newFussGroups[playerToDelete];
+    
+    setPlayerGroups(newPlayerGroups);
+    setFussGroups(newFussGroups);
+    set(databaseRef(db, 'playerGroups'), newPlayerGroups);
+    set(databaseRef(db, 'fussGroups'), newFussGroups);
+    
+    // Close confirmation dialog
+    setShowDeleteConfirm(false);
+    setPlayerToDelete(null);
+  }
+
+  // Function to restore an archived player
+  function handleRestorePlayer(archivedPlayer) {
+    // Add back to active players
+    const newPlayerData = {
+      name: archivedPlayer.name,
+      password: archivedPlayer.password,
+      parentPassword: archivedPlayer.parentPassword
+    };
+    
+    const newParentData = {
+      name: archivedPlayer.name,
+      parent_password: archivedPlayer.parentPassword
+    };
+    
+    const updatedPlayerPasswords = [...playerPasswords, newPlayerData];
+    const updatedParentPasswords = [...parentPasswords, newParentData];
+    
+    setPlayerPasswords(updatedPlayerPasswords);
+    setParentPasswords(updatedParentPasswords);
+    set(databaseRef(db, 'playerPasswords'), updatedPlayerPasswords);
+    set(databaseRef(db, 'parentPasswords'), updatedParentPasswords);
+    
+    // Restore groups (use default or saved groups)
+    const newPlayerGroups = {
+      ...playerGroups,
+      [archivedPlayer.name]: archivedPlayer.tennisGroup || '1'
+    };
+    const newFussGroups = {
+      ...fussGroups,
+      [archivedPlayer.name]: archivedPlayer.fussGroup || 'A'
+    };
+    
+    setPlayerGroups(newPlayerGroups);
+    setFussGroups(newFussGroups);
+    set(databaseRef(db, 'playerGroups'), newPlayerGroups);
+    set(databaseRef(db, 'fussGroups'), newFussGroups);
+    
+    // Remove from archived players
+    const updatedArchived = archivedPlayers.filter(p => p.name !== archivedPlayer.name);
+    setArchivedPlayers(updatedArchived);
+    set(databaseRef(db, 'archivedPlayers'), updatedArchived);
+  }
+
   // Initialize Firebase and load data
   React.useEffect(() => {
     if (!db) return;
@@ -373,6 +695,20 @@ React.useEffect(() => {
       setFussAttendance(data);
     });
 
+    // Load fuss effort ratings
+    const fussEffortRef = databaseRef(db, 'fussEffort');
+    onValue(fussEffortRef, (snapshot) => {
+      const data = snapshot.val() || {};
+      setFussEffort(data);
+    });
+
+    // Load tennis sessions completed
+    const tennisSessionsRef = databaseRef(db, 'tennisSessionsCompleted');
+    onValue(tennisSessionsRef, (snapshot) => {
+      const data = snapshot.val() || {};
+      setTennisSessionsCompleted(data);
+    });
+
     // Load tennis groups
     const tennisGroupsRef = databaseRef(db, 'playerGroups');
     onValue(tennisGroupsRef, (snapshot) => {
@@ -395,6 +731,18 @@ React.useEffect(() => {
         defaultGroups[player.name] = data[player.name] || "A";
       });
       setFussGroups(defaultGroups);
+    });
+
+    // Load archived players
+    const archivedPlayersRef = databaseRef(db, 'archivedPlayers');
+    onValue(archivedPlayersRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const archived = Array.isArray(data) ? data : Object.values(data);
+        setArchivedPlayers(archived);
+      } else {
+        setArchivedPlayers([]);
+      }
     });
   }, [db, playerPasswords]);
 
@@ -420,23 +768,6 @@ React.useEffect(() => {
       setFussGroups(defaultGroups);
     }
   }, [db, playerPasswords, playerGroups, fussGroups]); // Include all dependencies but make sure conditions prevent infinite loops
-
-// --- Utility: Get next five weekdays (Mon-Fri) ---
-function getNextFiveWeekdays() {
-  const result = [];
-  const today = new Date();
-  while (result.length < 5) {
-    const day = today.getDay();
-    if (day !== 0 && day !== 6) {
-      result.push(new Date(today));
-    }
-    today.setDate(today.getDate() + 1);
-  }
-  return result.map(date => ({
-    date: date.toISOString().split("T")[0],
-    weekday: date.toLocaleDateString("et-EE", { weekday: 'long' }),
-  }));
-}
 
   // Function to calculate court count
   function groupCourtCount(group, date, data, isFuss) {
@@ -514,6 +845,7 @@ function getNextPreviousWeekdays(referenceDate, count) {
 }
 
 function getTableDates(showPastDates, allDates) {
+  export { estonianDate, getTableDates, getNextFiveWeekdays };
   const today = new Date();
   today.setHours(0, 0, 0, 0); // Normalize to midnight
   const todayStr = today.toISOString().split("T")[0];
@@ -770,21 +1102,22 @@ function handleChangePassword(e) {
 
       {step === "login" && (
         <div style={{ marginTop: 32, display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-          <button
-            style={{ background: "#f6faff", border: "1px solid #bce", padding: "8px 18px", borderRadius: 8, fontWeight: 600, fontSize: 16 }}
-            onClick={() => setStep("parentLogin")}
-          >
-            Lapsevanemale
-          </button>
-          <button
-            style={{ background: "#eafcf2", border: "1px solid #bce", padding: "8px 18px", borderRadius: 8, fontWeight: 600, fontSize: 16 }}
-            onClick={() => { setStep("coachLogin"); setCoachLoginPassword(""); setCoachLoginError(""); }}
-          >
-            Treenerile
-          </button>
-        </div>
-      )}
-
+  <button
+    data-testid="btn-parent-login"
+    style={{ background: "#f6faff", border: "1px solid #bce", padding: "8px 18px", borderRadius: 8, fontWeight: 600, fontSize: 16 }}
+    onClick={() => setStep("parentLogin")}
+  >
+    Lapsevanemale
+  </button>
+  <button
+    data-testid="btn-coach-login"
+    style={{ background: "#eafcf2", border: "1px solid #bce", padding: "8px 18px", borderRadius: 8, fontWeight: 600, fontSize: 16 }}
+    onClick={() => { setStep("coachLogin"); setCoachLoginPassword(""); setCoachLoginError(""); }}
+  >
+    Treenerile
+  </button>
+</div>
+)}
       {step === "coachLogin" && (
         <form
           onSubmit={e => {
@@ -1306,15 +1639,15 @@ function handleChangePassword(e) {
       {step === "coach" && coachMode && (
         <div>
           <h2>Treeneri vaade</h2>
-          <div style={{ marginBottom: 18 }}>
-            <button
-              onClick={() => setActiveView("tennis")}
-              style={{
-                background: activeView === "tennis" ? "#a3e6e3" : "",
-                fontWeight: activeView === "tennis" ? "bold" : "",
-                marginRight: 8
-              }}
-            >
+         <button
+  data-testid="tab-tennis"
+  onClick={() => setActiveView("tennis")}
+  style={{
+    background: activeView === "tennis" ? "#a3e6e3" : "",
+    fontWeight: activeView === "tennis" ? "bold" : "",
+    marginRight: 8
+  }}
+>
               Tennis
             </button>
             <button
@@ -1325,16 +1658,14 @@ function handleChangePassword(e) {
               }}
             >
               Füss
-            </button>
-          </div>
-          {showGroupPrompt && (
-            <div className="group-prompt" style={{ background: "#ffffcc", padding: 16, marginBottom: 24 }}>
-              <b>On reede pärastlõuna!</b> Palun vaata üle grupid uueks nädalaks.
-              <button style={{ marginLeft: 16 }} onClick={() => setGroupAssignMode(true)}>
-                Muuda gruppe
-              </button>
-            </div>
-          )}
+            <button
+  data-testid="tab-fuss"
+  onClick={() => setActiveView("fuss")}
+  style={{
+    background: activeView === "fuss" ? "#ffe066" : "",
+    fontWeight: activeView === "fuss" ? "bold" : ""
+  }}
+>
           <div style={{ marginBottom: 16 }}>
             <button onClick={() => setGroupAssignMode(true)}>Muuda gruppe</button>
             {/* No Excel export button in coach view */}
@@ -1369,12 +1700,68 @@ function handleChangePassword(e) {
                   .map(d => (
                     ["1","2"].map(grp => {
                       const groupPlayers = (Array.isArray(playerPasswords) ? playerPasswords : Object.values(playerPasswords)).map(p => p.name).filter(n => playerGroups[n] === grp);
-                      const attended = groupPlayers.filter(n => attendance[n][d.date] === "Jah");
+                      
+                      // FIX 1: Correct attendance data structure
+                      const attended = groupPlayers.filter(n => attendance[d.date]?.[n] === "Jah");
                       if (attended.length === 0) return null;
-                      // Here you could add logic to check coach feedback
-                      // Coach feedback color logic
-                      const feedbackList = coachFeedbackData?.[d.date]?.[grp] || {};
-                      const someFeedbackGiven = Object.values(feedbackList).some(v => v !== 3);
+                      
+                      const sessionKey = `${d.date}-${grp}`;
+                      const isCompleted = tennisSessionsCompleted[sessionKey];
+                      
+                      // Get schedule time for this group and date
+                      const dayOfWeek = new Date(d.date).getDay();
+                      const dayName = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][dayOfWeek];
+                      
+                      let scheduleTime = '';
+                      let sessionEndTime = null;
+                      
+                      if (grp === '1') {
+                        const group1Schedule = schedule.tennis.group1 || {};
+                        // Map day names to schedule keys
+                        const scheduleKey = dayName === 'monday' ? 'Monday' :
+                                          dayName === 'tuesday' ? 'Tuesday1' : // Default to first session
+                                          dayName === 'wednesday' ? 'Wednesday' :
+                                          dayName === 'thursday' ? 'Thursday1' : // Default to first session
+                                          dayName === 'friday' ? 'Friday' : null;
+                        scheduleTime = scheduleKey ? group1Schedule[scheduleKey] || '' : '';
+                      } else if (grp === '2') {
+                        const group2Schedule = schedule.tennis.group2 || {};
+                        const scheduleKey = dayName === 'monday' ? 'Monday1' : // Default to first session
+                                          dayName === 'tuesday' ? 'Tuesday' :
+                                          dayName === 'wednesday' ? 'Wednesday1' : // Default to first session
+                                          dayName === 'thursday' ? 'Thursday' :
+                                          dayName === 'friday' ? 'Friday' : null;
+                        scheduleTime = scheduleKey ? group2Schedule[scheduleKey] || '' : '';
+                      }
+                      
+                      // FIX 2: Check if session has finished
+                      const isSessionFinished = () => {
+                        const now = new Date();
+                        const sessionDate = new Date(d.date);
+                        
+                        // If session is from a previous day, it's finished
+                        if (sessionDate.toDateString() !== now.toDateString()) {
+                          return true;
+                        }
+                        
+                        // If session is today, check the time
+                        if (scheduleTime) {
+                          const timeMatch = scheduleTime.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+                          if (timeMatch) {
+                            const [, , , endHour, endMinute] = timeMatch;
+                            const sessionEnd = new Date(sessionDate);
+                            sessionEnd.setHours(parseInt(endHour), parseInt(endMinute), 0, 0);
+                            return now > sessionEnd;
+                          }
+                        }
+                        
+                        // If we can't parse the time, assume it's finished if it's not today
+                        return false;
+                      };
+                      
+                      // Only show sessions that have finished and aren't completed yet
+                      if (!isSessionFinished() || isCompleted) return null;
+                      
                       return (
                         <div
                           key={d.date + grp}
@@ -1382,7 +1769,7 @@ function handleChangePassword(e) {
                             border: '1px solid #bbb',
                             borderRadius: 8,
                             padding: 12,
-                            minWidth: 180,
+                            minWidth: 200,
                             background: '#fafaff',
                             cursor: 'pointer',
                             position: 'relative'
@@ -1392,21 +1779,16 @@ function handleChangePassword(e) {
                             setShowCoachFeedbackModal(true);
                           }}
                         >
-                          <div style={{ fontWeight: 600, fontSize: 15 }}>
-                            {estonianDate(d.date)} ({d.weekday}) <span style={{ fontWeight: 400 }}>Grupp {grp}</span>
-                            <span
-                              style={{
-                                display: 'inline-block',
-                                width: 14,
-                                height: 14,
-                                borderRadius: '50%',
-                                background: someFeedbackGiven ? '#d6fdd9' : '#ff6060',
-                                marginLeft: 8,
-                                verticalAlign: 'middle'
-                              }}
-                            ></span>
+                          <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 8 }}>
+                            🗓️ {estonianDate(d.date)} ({d.weekday})
                           </div>
-                          <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>
+                          <div style={{ fontSize: 13, color: '#666', marginBottom: 4 }}>
+                            🧑‍🤝‍🧑 Tennis Grupp {grp}
+                          </div>
+                          <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>
+                            🕒 {scheduleTime || 'Aeg määramata'}
+                          </div>
+                          <div style={{ fontSize: 12, color: '#666' }}>
                             {attended.length} mängijat osales
                           </div>
                         </div>
@@ -1422,8 +1804,12 @@ function handleChangePassword(e) {
                   playerPasswords={playerPasswords}
                   attendance={attendance}
                   fussAttendance={fussAttendance}
+                  playerGroups={playerGroups}
+                  fussGroups={fussGroups}
                   onSave={(newData) => {
                     set(databaseRef(db, `coachFeedback/${coachFeedbackSession.date}/${coachFeedbackSession.group}`), newData);
+                    // Mark session as completed
+                    markTennisSessionCompleted(coachFeedbackSession.date, coachFeedbackSession.group);
                     setShowCoachFeedbackModal(false);
                   }}
                 />
@@ -1463,17 +1849,33 @@ function handleChangePassword(e) {
                             minWidth: "120px",
                             borderRight: "2px solid #dee2e6"
                           }}>Mängija</th>
-                          {getTableDates(showPastDates, allDates).map((date) => (
-                            <th key={date.date} style={{ 
-                              minWidth: "80px", 
-                              whiteSpace: "nowrap",
-                              background: "#f8f9fa",
-                              position: "sticky",
-                              top: 0
-                            }}>
-                              {date.weekday}<br/>{estonianDate(date.date)}
-                            </th>
-                          ))}
+                          {getTableDates(showPastDates, allDates).map((date) => {
+                            const sessionKey = `${date.date}-1`;
+                            const isCompleted = tennisSessionsCompleted[sessionKey];
+                            const hasFeedback = coachFeedbackData?.[date.date]?.[1];
+                            const canEdit = isCompleted || hasFeedback;
+                            
+                            return (
+                              <th key={date.date} style={{ 
+                                minWidth: "80px", 
+                                whiteSpace: "nowrap",
+                                background: "#f8f9fa",
+                                position: "sticky",
+                                top: 0,
+                                cursor: canEdit ? 'pointer' : 'default',
+                                textDecoration: canEdit ? 'underline' : 'none'
+                              }}
+                              onClick={() => {
+                                if (canEdit) {
+                                  setCoachFeedbackSession({ date: date.date, group: '1', weekday: date.weekday });
+                                  setShowCoachFeedbackModal(true);
+                                }
+                              }}
+                              >
+                                {date.weekday}<br/>{estonianDate(date.date)}
+                              </th>
+                            );
+                          })}
                         </tr>
                       </thead>
                       <tbody>
@@ -1543,17 +1945,33 @@ function handleChangePassword(e) {
                             minWidth: "120px",
                             borderRight: "2px solid #dee2e6"
                           }}>Mängija</th>
-                          {getTableDates(showPastDates, allDates).map((date) => (
-                            <th key={date.date} style={{ 
-                              minWidth: "80px", 
-                              whiteSpace: "nowrap",
-                              background: "#f8f9fa",
-                              position: "sticky",
-                              top: 0
-                            }}>
-                              {date.weekday}<br/>{estonianDate(date.date)}
-                            </th>
-                          ))}
+                          {getTableDates(showPastDates, allDates).map((date) => {
+                            const sessionKey = `${date.date}-2`;
+                            const isCompleted = tennisSessionsCompleted[sessionKey];
+                            const hasFeedback = coachFeedbackData?.[date.date]?.[2];
+                            const canEdit = isCompleted || hasFeedback;
+                            
+                            return (
+                              <th key={date.date} style={{ 
+                                minWidth: "80px", 
+                                whiteSpace: "nowrap",
+                                background: "#f8f9fa",
+                                position: "sticky",
+                                top: 0,
+                                cursor: canEdit ? 'pointer' : 'default',
+                                textDecoration: canEdit ? 'underline' : 'none'
+                              }}
+                              onClick={() => {
+                                if (canEdit) {
+                                  setCoachFeedbackSession({ date: date.date, group: '2', weekday: date.weekday });
+                                  setShowCoachFeedbackModal(true);
+                                }
+                              }}
+                              >
+                                {date.weekday}<br/>{estonianDate(date.date)}
+                              </th>
+                            );
+                          })}
                         </tr>
                       </thead>
                       <tbody>
@@ -1729,7 +2147,7 @@ function handleChangePassword(e) {
                               </td>
                               {getTableDates(showPastDates, allDates).map((date) => (
                                 <td key={date.date} style={{ minWidth: "80px" }}>
-                                  <AttendanceToggle
+                                  <AttendanceToggleWithEffort
                                     value={fussAttendance[date.date]?.[name] || "Ei"}
                                     onChange={(val) => {
                                       const newAttendance = {
@@ -1745,6 +2163,13 @@ function handleChangePassword(e) {
                                         newAttendance[date.date]
                                       );
                                     }}
+                                    effortValue={fussEffort[date.date]?.[`fuss-A`]?.[name] || null}
+                                    onEffortChange={(effortValue) => {
+                                      handleFussEffortChange(name, date.date, 'A', effortValue);
+                                    }}
+                                    playerName={name}
+                                    date={date.date}
+                                    coachMode={coachMode}
                                   />
                                 </td>
                               ))}
@@ -1809,7 +2234,7 @@ function handleChangePassword(e) {
                               </td>
                               {getTableDates(showPastDates, allDates).map((date) => (
                                 <td key={date.date} style={{ minWidth: "80px" }}>
-                                  <AttendanceToggle
+                                  <AttendanceToggleWithEffort
                                     value={fussAttendance[date.date]?.[name] || "Ei"}
                                     onChange={(val) => {
                                       const newAttendance = {
@@ -1825,6 +2250,13 @@ function handleChangePassword(e) {
                                         newAttendance[date.date]
                                       );
                                     }}
+                                    effortValue={fussEffort[date.date]?.[`fuss-B`]?.[name] || null}
+                                    onEffortChange={(effortValue) => {
+                                      handleFussEffortChange(name, date.date, 'B', effortValue);
+                                    }}
+                                    playerName={name}
+                                    date={date.date}
+                                    coachMode={coachMode}
                                   />
                                 </td>
                               ))}
@@ -1844,7 +2276,7 @@ function handleChangePassword(e) {
         <div>
           <div style={{ marginBottom: 16 }}>
             <button style={{ marginRight: 12 }} onClick={() => setShowAddPlayer(true)}>
-              Lisa mängija
+              Halda mängijaid
             </button>
             <button onClick={() => setGroupAssignMode(true)}>Muuda gruppe</button>
             <button onClick={() => setShowScheduleModal(true)} style={{ marginLeft: 12 }}>
@@ -2219,7 +2651,7 @@ function handleChangePassword(e) {
         </div>
       )}
 
-    {/* Add Player Modal (admin) */}
+    {/* Add/Manage Player Modal (admin) */}
     {showAddPlayer && (
       <div style={{
         position: 'fixed',
@@ -2237,44 +2669,307 @@ function handleChangePassword(e) {
           backgroundColor: 'white',
           padding: '24px',
           borderRadius: '8px',
+          maxWidth: 800,
+          width: '90%',
+          maxHeight: '90vh',
+          overflowY: 'auto'
+        }}>
+          <h2>Mängijate haldamine</h2>
+          
+          {/* Tab buttons */}
+          <div style={{ marginBottom: 20, borderBottom: '1px solid #ccc' }}>
+            <button 
+              onClick={() => setActivePlayerTab('active')}
+              style={{
+                padding: '8px 16px',
+                marginRight: 8,
+                border: 'none',
+                background: activePlayerTab === 'active' ? '#007bff' : 'transparent',
+                color: activePlayerTab === 'active' ? 'white' : 'black',
+                cursor: 'pointer',
+                borderRadius: '4px 4px 0 0'
+              }}
+            >
+              ➕ Aktiivsed mängijad
+            </button>
+            <button 
+              onClick={() => setActivePlayerTab('archived')}
+              style={{
+                padding: '8px 16px',
+                border: 'none',
+                background: activePlayerTab === 'archived' ? '#007bff' : 'transparent',
+                color: activePlayerTab === 'archived' ? 'white' : 'black',
+                cursor: 'pointer',
+                borderRadius: '4px 4px 0 0'
+              }}
+            >
+              🗂️ Arhiveeritud mängijad
+            </button>
+          </div>
+
+          {/* Search bar */}
+          <div style={{ marginBottom: 16 }}>
+            <input
+              type="text"
+              placeholder="Otsi mängijat nime järgi..."
+              value={playerSearchTerm}
+              onChange={(e) => setPlayerSearchTerm(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                fontSize: '14px'
+              }}
+            />
+          </div>
+
+          {activePlayerTab === 'active' ? (
+            <div>
+              {/* Add new player form */}
+              <div style={{ 
+                background: '#f8f9fa', 
+                padding: '16px', 
+                borderRadius: '8px', 
+                marginBottom: '20px' 
+              }}>
+                <h3>Lisa uus mängija</h3>
+                <form onSubmit={handleAddPlayer} className="add-player-form">
+                  <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                    <div style={{ flex: 1 }}>
+                      <label>Eesnimi:<br/>
+                        <input 
+                          value={newPlayerFirst} 
+                          onChange={e => setNewPlayerFirst(e.target.value)} 
+                          style={{ width: "95%" }} 
+                          required 
+                        />
+                      </label>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label>Perekonnanimi:<br/>
+                        <input 
+                          value={newPlayerLast} 
+                          onChange={e => setNewPlayerLast(e.target.value)} 
+                          style={{ width: "95%" }} 
+                          required 
+                        />
+                      </label>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                    <div style={{ flex: 1 }}>
+                      <label>Mängija parool:<br/>
+                        <input 
+                          value={newPlayerPw} 
+                          type="password" 
+                          onChange={e => setNewPlayerPw(e.target.value)} 
+                          style={{ width: "95%" }} 
+                          required 
+                        />
+                      </label>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label>Vanema kood:<br/>
+                        <input 
+                          value={newParentPw} 
+                          type="password" 
+                          onChange={e => setNewParentPw(e.target.value)} 
+                          style={{ width: "95%" }} 
+                          required 
+                        />
+                      </label>
+                    </div>
+                  </div>
+                  {addPlayerError && <div style={{ color: "#d00", marginBottom: 10 }}>{addPlayerError}</div>}
+                  <button type="submit" style={{ fontWeight: 600, fontSize: 16, padding: '8px 16px' }}>
+                    Lisa mängija
+                  </button>
+                </form>
+              </div>
+
+              {/* Active players list */}
+              <div>
+                <h3>Aktiivsed mängijad ({playerPasswords.filter(p => 
+                  p.name.toLowerCase().includes(playerSearchTerm.toLowerCase())
+                ).length})</h3>
+                <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                  {playerPasswords
+                    .filter(p => p.name.toLowerCase().includes(playerSearchTerm.toLowerCase()))
+                    .map(player => (
+                      <div key={player.name} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '8px 12px',
+                        border: '1px solid #eee',
+                        borderRadius: '4px',
+                        marginBottom: '4px',
+                        background: '#fff'
+                      }}>
+                        <div>
+                          <strong>{player.name}</strong>
+                          <div style={{ fontSize: '12px', color: '#666' }}>
+                            Tennis: Grupp {playerGroups[player.name] || '1'} | 
+                            Füss: Grupp {fussGroups[player.name] || 'A'}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setPlayerToDelete(player.name);
+                            setShowDeleteConfirm(true);
+                          }}
+                          style={{
+                            background: '#dc3545',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            padding: '4px 8px',
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                          }}
+                          title="Arhiveeri mängija"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Archived players tab */
+            <div>
+              <h3>Arhiveeritud mängijad ({archivedPlayers.filter(p => 
+                p.name.toLowerCase().includes(playerSearchTerm.toLowerCase())
+              ).length})</h3>
+              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                {archivedPlayers.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                    Arhiveeritud mängijaid pole
+                  </div>
+                ) : (
+                  archivedPlayers
+                    .filter(p => p.name.toLowerCase().includes(playerSearchTerm.toLowerCase()))
+                    .map(player => (
+                      <div key={player.name} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '8px 12px',
+                        border: '1px solid #eee',
+                        borderRadius: '4px',
+                        marginBottom: '4px',
+                        background: '#f8f9fa'
+                      }}>
+                        <div>
+                          <strong>{player.name}</strong>
+                          <div style={{ fontSize: '12px', color: '#666' }}>
+                            Arhiveeritud: {new Date(player.archivedDate).toLocaleDateString('et-EE')} |
+                            Tennis: Grupp {player.tennisGroup} | Füss: Grupp {player.fussGroup}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleRestorePlayer(player)}
+                          style={{
+                            background: '#28a745',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            padding: '6px 12px',
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                          }}
+                          title="Taasta mängija"
+                        >
+                          ♻️ Taasta
+                        </button>
+                      </div>
+                    ))
+                )}
+              </div>
+            </div>
+          )}
+
+          <div style={{ marginTop: 20, textAlign: 'right' }}>
+            <button 
+              type="button" 
+              onClick={() => {
+                setShowAddPlayer(false);
+                setActivePlayerTab('active');
+                setPlayerSearchTerm('');
+                setNewPlayerFirst('');
+                setNewPlayerLast('');
+                setNewPlayerPw('');
+                setNewParentPw('');
+                setAddPlayerError('');
+              }}
+              style={{ padding: '8px 16px' }}
+            >
+              Sulge
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Delete confirmation modal */}
+    {showDeleteConfirm && (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1001
+      }}>
+        <div style={{
+          backgroundColor: 'white',
+          padding: '24px',
+          borderRadius: '8px',
           maxWidth: 400,
           width: '90%'
         }}>
-          <h2>Lisa uus mängija</h2>
-          <form
-            onSubmit={handleAddPlayer}
-            className="add-player-form"
-          >
-            <div style={{ marginBottom: 10 }}>
-              <label>Eesnimi:<br/>
-                <input value={newPlayerFirst} onChange={e => setNewPlayerFirst(e.target.value)} style={{ width: "98%" }} required />
-              </label>
-            </div>
-            <div style={{ marginBottom: 10 }}>
-              <label>Perekonnanimi:<br/>
-                <input value={newPlayerLast} onChange={e => setNewPlayerLast(e.target.value)} style={{ width: "98%" }} required />
-              </label>
-            </div>
-            <div style={{ marginBottom: 10 }}>
-              <label>Mängija parool:<br/>
-                <input value={newPlayerPw} type="password" onChange={e => setNewPlayerPw(e.target.value)} style={{ width: "98%" }} required />
-              </label>
-            </div>
-            <div style={{ marginBottom: 14 }}>
-              <label>Vanema kood:<br/>
-                <input value={newParentPw} type="password" onChange={e => setNewParentPw(e.target.value)} style={{ width: "98%" }} required />
-              </label>
-            </div>
-            {addPlayerError && <div style={{ color: "#d00", marginBottom: 10 }}>{addPlayerError}</div>}
-            <button type="submit" style={{ fontWeight: 600, fontSize: 16 }}>Lisa mängija</button>
-            <button 
-              type="button" 
-              onClick={() => setShowAddPlayer(false)}
-              style={{ marginLeft: 12 }}
+          <h3>Kinnita arhiveerimine</h3>
+          <p>Oled kindel, et soovid mängija <strong>{playerToDelete}</strong> arhiveerida?</p>
+          <p style={{ fontSize: '14px', color: '#666' }}>
+            Mängija eemaldatakse aktiivsete mängijate seast, kuid andmed säilitatakse 
+            ja saab hiljem taastada.
+          </p>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+            <button
+              onClick={() => {
+                setShowDeleteConfirm(false);
+                setPlayerToDelete(null);
+              }}
+              style={{
+                padding: '8px 16px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                background: 'white',
+                cursor: 'pointer'
+              }}
             >
-              Tühista
+              Ei
             </button>
-          </form>
+            <button
+              onClick={handleArchivePlayer}
+              style={{
+                padding: '8px 16px',
+                border: 'none',
+                borderRadius: '4px',
+                background: '#dc3545',
+                color: 'white',
+                cursor: 'pointer'
+              }}
+            >
+              Jah, arhiveeri
+            </button>
+          </div>
         </div>
       </div>
     )}
@@ -2647,14 +3342,23 @@ function FeedbackModal({ session, onSubmit, onSkip }) {
   );
 }
 // --- CoachFeedbackModal component ---
-function CoachFeedbackModal({ session, onClose, coachFeedbackData, playerPasswords, attendance, fussAttendance, onSave }) {
+function CoachFeedbackModal({ session, onClose, coachFeedbackData, playerPasswords, attendance, fussAttendance, playerGroups, fussGroups, onSave }) {
   // List of players who attended
   const isFuss = session.sport === 'fuss';
   const attendanceData = isFuss ? fussAttendance : attendance;
   const groupName = isFuss ? session.group.replace('fuss-', '') : session.group;
   
-  const groupPlayers = (Array.isArray(playerPasswords) ? playerPasswords : Object.values(playerPasswords))
+  // Filter players based on group and attendance
+  const allPlayers = Array.isArray(playerPasswords) ? playerPasswords : Object.values(playerPasswords);
+  const groupPlayers = allPlayers
     .map(p => p.name)
+    .filter(n => {
+      // Check if player is in the right group
+      const playerGroup = isFuss ? 
+        (fussGroups && fussGroups[n]) || 'A' :
+        (playerGroups && playerGroups[n]) || '1';
+      return playerGroup === groupName;
+    })
     .filter(n => attendanceData[session.date]?.[n] === "Jah" && n && n !== "");
   
   const prevData = (coachFeedbackData?.[session.date]?.[session.group]) || {};
@@ -2680,60 +3384,125 @@ function CoachFeedbackModal({ session, onClose, coachFeedbackData, playerPasswor
     { val: 2, label: "2" },
     { val: 3, label: "3" },
     { val: 4, label: "4" },
-    { val: 5, label: "5" }
+    { val: 5, label: "5" },
+    { val: 6, label: "6" },
+    { val: 7, label: "7" },
+    { val: 8, label: "8" },
+    { val: 9, label: "9" },
+    { val: 10, label: "10" }
   ];
   
   const scale = isFuss ? fussScale : tennisScale;
 
   return (
-    <div className="feedback-modal">
-      <div className="feedback-content">
-        <h2>Pane mängijatele tagasiside ({isFuss ? 'Füss' : 'Tennis'} Grupp {groupName}, {estonianDate(session.date)})</h2>
-        <div style={{ marginBottom: 8 }}>
-          <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 6 }}>
+    <div className="feedback-modal" style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000
+    }}>
+      <div className="feedback-content" style={{
+        backgroundColor: 'white',
+        padding: '24px',
+        borderRadius: '8px',
+        maxWidth: 600,
+        width: '90%',
+        maxHeight: '90vh',
+        overflowY: 'auto'
+      }}>
+        <h2>Pane mängijatele tagasiside</h2>
+        <div style={{ marginBottom: 16 }}>
+          <strong>{isFuss ? 'Füss' : 'Tennis'} Grupp {groupName}</strong><br/>
+          {estonianDate(session.date)} ({session.weekday})
+        </div>
+        
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
             {scale.map(s =>
-              <div key={s.val} style={{ textAlign: "center", width: 50 }}>
+              <div key={s.val} style={{ textAlign: "center", minWidth: isFuss ? 30 : 50 }}>
                 {isFuss ? (
-                  <span style={{ fontSize: "1.6em", fontWeight: "bold" }}>{s.label}</span>
+                  <span style={{ fontSize: "1.2em", fontWeight: "bold" }}>{s.label}</span>
                 ) : (
                   <>
                     <span style={{ fontSize: "1.6em" }}>{s.icon}</span>
-                    <div style={{ fontSize: 12 }}>{s.label}</div>
+                    <div style={{ fontSize: 11 }}>{s.label}</div>
                   </>
                 )}
               </div>
             )}
           </div>
         </div>
+        
         <div style={{ maxHeight: 300, overflowY: "auto" }}>
-          {groupPlayers.map(name => (
-            <div key={name} style={{ marginBottom: 8, display: "flex", alignItems: "center" }}>
-              <span style={{ minWidth: 120 }}>{name}</span>
-              {scale.map(s =>
-                <button
-                  key={s.val}
-                  style={{
-                    margin: "0 2px",
-                    fontSize: "1.3em",
-                    background: efforts[name] === s.val ? "#ffe066" : "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    width: isFuss ? "40px" : "auto",
-                    height: isFuss ? "40px" : "auto"
-                  }}
-                  onClick={() => setEfforts(e => ({ ...e, [name]: s.val }))}
-                >
-                  {isFuss ? s.label : s.icon}
-                </button>
-              )}
+          {groupPlayers.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+              Selles grupis pole täna kedagi osalenud
             </div>
-          ))}
+          ) : (
+            groupPlayers.map(name => (
+              <div key={name} style={{ marginBottom: 12, display: "flex", alignItems: "center", flexWrap: "wrap" }}>
+                <span style={{ minWidth: 120, marginRight: 8 }}>{name}</span>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+                  {scale.map(s =>
+                    <button
+                      key={s.val}
+                      style={{
+                        margin: "0 1px",
+                        fontSize: isFuss ? "1.1em" : "1.3em",
+                        background: efforts[name] === s.val ? "#ffe066" : "transparent",
+                        border: "1px solid #ccc",
+                        cursor: "pointer",
+                        width: isFuss ? "32px" : "auto",
+                        height: isFuss ? "32px" : "auto",
+                        padding: isFuss ? "4px" : "8px",
+                        borderRadius: "4px"
+                      }}
+                      onClick={() => setEfforts(e => ({ ...e, [name]: s.val }))}
+                    >
+                      {isFuss ? s.label : s.icon}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
         </div>
-        <div style={{ marginTop: 14 }}>
+        
+        <div style={{ marginTop: 20, display: "flex", gap: 12 }}>
           <button
             onClick={() => onSave(efforts)}
-            style={{ marginRight: 12 }}>Salvesta</button>
-          <button onClick={onClose}>Sulge</button>
+            style={{ 
+              backgroundColor: "#4CAF50",
+              color: "white",
+              border: "none",
+              padding: "10px 20px",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontSize: "16px"
+            }}
+          >
+            Salvesta
+          </button>
+          <button 
+            onClick={onClose}
+            style={{ 
+              backgroundColor: "#f44336",
+              color: "white",
+              border: "none",
+              padding: "10px 20px",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontSize: "16px"
+            }}
+          >
+            Sulge
+          </button>
         </div>
       </div>
     </div>
