@@ -1,0 +1,932 @@
+{
+  "2025-06-25": {
+    "weekday": "Wednesday"
+  },
+  "2025-06-26": {
+    "weekday": "Thursday"
+  },
+  "2025-06-27": {
+    "weekday": "Friday"
+  },
+  "2025-06-30": {
+    "weekday": "Monday"
+  },
+  "2025-07-01": {
+    "weekday": "Tuesday"
+  },
+  "2025-07-02": {
+    "weekday": "Wednesday"
+  },
+  "2025-07-03": {
+    "weekday": "Thursday"
+  },
+  "2025-07-04": {
+    "weekday": "Friday"
+  },
+  "2025-07-07": {
+    "weekday": "Monday"
+  },
+  "2025-07-08": {
+    "weekday": "Tuesday"
+  },
+  "2025-07-09": {
+    "weekday": "Wednesday"
+  },
+  "2025-07-10": {
+    "weekday": "Thursday"
+  },
+  "2025-07-11": {
+    "weekday": "Friday"
+  },
+  "2025-07-14": {
+    "weekday": "Monday"
+  },
+  "2025-07-15": {
+    "weekday": "Tuesday"
+  },
+  "2025-07-16": {
+    "weekday": "Wednesday"
+  },
+  "2025-07-17": {
+    "weekday": "Thursday"
+  },
+  "2025-07-18": {
+    "weekday": "Friday"
+  },
+  "2025-07-21": {
+    "weekday": "Monday"
+  },
+  "2025-07-22": {
+    "weekday": "Tuesday"
+  },
+  "2025-07-23": {
+    "weekday": "Wednesday"
+  },
+  "2025-07-24": {
+    "weekday": "Thursday"
+  },
+  "2025-07-25": {
+    "weekday": "Friday"
+  },
+  "2025-07-28": {
+    "weekday": "Monday"
+  },
+  "2025-07-29": {
+    "weekday": "Tuesday"
+  },
+  "2025-07-30": {
+    "weekday": "Wednesday"
+  },
+  "2025-07-31": {
+    "weekday": "Thursday"
+  },
+  "2025-08-01": {
+    "weekday": "Friday"
+  },
+  "2025-08-04": {
+    "weekday": "Monday"
+  },
+  "2025-08-05": {
+    "weekday": "Tuesday"
+  },
+  "2025-08-06": {
+    "weekday": "Wednesday"
+  },
+  "2025-08-07": {
+    "weekday": "Thursday"
+  },
+  "2025-08-08": {
+    "weekday": "Friday"
+  },
+  "2025-08-11": {
+    "weekday": "Monday"
+  },
+  "2025-08-12": {
+    "weekday": "Tuesday"
+  },
+  "2025-08-13": {
+    "weekday": "Wednesday"
+  },
+  "2025-08-14": {
+    "weekday": "Thursday"
+  },
+  "2025-08-15": {
+    "weekday": "Friday"
+  },
+  "2025-08-18": {
+    "weekday": "Monday"
+  },
+  "2025-08-19": {
+    "weekday": "Tuesday"
+  },
+  "2025-08-20": {
+    "weekday": "Wednesday"
+  },
+  "2025-08-21": {
+    "weekday": "Thursday"
+  },
+  "2025-08-22": {
+    "weekday": "Friday"
+  },
+  "2025-08-25": {
+    "weekday": "Monday"
+  },
+  "2025-08-26": {
+    "weekday": "Tuesday"
+  },
+  "2025-08-27": {
+    "weekday": "Wednesday"
+  },
+  "2025-08-28": {
+    "weekday": "Thursday"
+  },
+  "2025-08-29": {
+    "weekday": "Friday"
+  },
+  "2025-09-01": {
+    "weekday": "Monday"
+  },
+  "2025-09-02": {
+    "weekday": "Tuesday"
+  },
+  "2025-09-03": {
+    "weekday": "Wednesday"
+  },
+  "2025-09-04": {
+    "weekday": "Thursday"
+  },
+  "2025-09-05": {
+    "weekday": "Friday"
+  },
+  "2025-09-08": {
+    "weekday": "Monday"
+  },
+  "2025-09-09": {
+    "weekday": "Tuesday"
+  },
+  "2025-09-10": {
+    "weekday": "Wednesday"
+  },
+  "2025-09-11": {
+    "weekday": "Thursday"
+  },
+  "2025-09-12": {
+    "weekday": "Friday"
+  },
+  "2025-09-15": {
+    "weekday": "Monday"
+  },
+  "2025-09-16": {
+    "weekday": "Tuesday"
+  },
+  "2025-09-17": {
+    "weekday": "Wednesday"
+  },
+  "2025-09-18": {
+    "weekday": "Thursday"
+  },
+  "2025-09-19": {
+    "weekday": "Friday"
+  },
+  "2025-09-22": {
+    "weekday": "Monday"
+  },
+  "2025-09-23": {
+    "weekday": "Tuesday"
+  },
+  "2025-09-24": {
+    "weekday": "Wednesday"
+  },
+  "2025-09-25": {
+    "weekday": "Thursday"
+  },
+  "2025-09-26": {
+    "weekday": "Friday"
+  },
+  "2025-09-29": {
+    "weekday": "Monday"
+  },
+  "2025-09-30": {
+    "weekday": "Tuesday"
+  },
+  "2025-10-01": {
+    "weekday": "Wednesday"
+  },
+  "2025-10-02": {
+    "weekday": "Thursday"
+  },
+  "2025-10-03": {
+    "weekday": "Friday"
+  },
+  "2025-10-06": {
+    "weekday": "Monday"
+  },
+  "2025-10-07": {
+    "weekday": "Tuesday"
+  },
+  "2025-10-08": {
+    "weekday": "Wednesday"
+  },
+  "2025-10-09": {
+    "weekday": "Thursday"
+  },
+  "2025-10-10": {
+    "weekday": "Friday"
+  },
+  "2025-10-13": {
+    "weekday": "Monday"
+  },
+  "2025-10-14": {
+    "weekday": "Tuesday"
+  },
+  "2025-10-15": {
+    "weekday": "Wednesday"
+  },
+  "2025-10-16": {
+    "weekday": "Thursday"
+  },
+  "2025-10-17": {
+    "weekday": "Friday"
+  },
+  "2025-10-20": {
+    "weekday": "Monday"
+  },
+  "2025-10-21": {
+    "weekday": "Tuesday"
+  },
+  "2025-10-22": {
+    "weekday": "Wednesday"
+  },
+  "2025-10-23": {
+    "weekday": "Thursday"
+  },
+  "2025-10-24": {
+    "weekday": "Friday"
+  },
+  "2025-10-27": {
+    "weekday": "Monday"
+  },
+  "2025-10-28": {
+    "weekday": "Tuesday"
+  },
+  "2025-10-29": {
+    "weekday": "Wednesday"
+  },
+  "2025-10-30": {
+    "weekday": "Thursday"
+  },
+  "2025-10-31": {
+    "weekday": "Friday"
+  },
+  "2025-11-03": {
+    "weekday": "Monday"
+  },
+  "2025-11-04": {
+    "weekday": "Tuesday"
+  },
+  "2025-11-05": {
+    "weekday": "Wednesday"
+  },
+  "2025-11-06": {
+    "weekday": "Thursday"
+  },
+  "2025-11-07": {
+    "weekday": "Friday"
+  },
+  "2025-11-10": {
+    "weekday": "Monday"
+  },
+  "2025-11-11": {
+    "weekday": "Tuesday"
+  },
+  "2025-11-12": {
+    "weekday": "Wednesday"
+  },
+  "2025-11-13": {
+    "weekday": "Thursday"
+  },
+  "2025-11-14": {
+    "weekday": "Friday"
+  },
+  "2025-11-17": {
+    "weekday": "Monday"
+  },
+  "2025-11-18": {
+    "weekday": "Tuesday"
+  },
+  "2025-11-19": {
+    "weekday": "Wednesday"
+  },
+  "2025-11-20": {
+    "weekday": "Thursday"
+  },
+  "2025-11-21": {
+    "weekday": "Friday"
+  },
+  "2025-11-24": {
+    "weekday": "Monday"
+  },
+  "2025-11-25": {
+    "weekday": "Tuesday"
+  },
+  "2025-11-26": {
+    "weekday": "Wednesday"
+  },
+  "2025-11-27": {
+    "weekday": "Thursday"
+  },
+  "2025-11-28": {
+    "weekday": "Friday"
+  },
+  "2025-12-01": {
+    "weekday": "Monday"
+  },
+  "2025-12-02": {
+    "weekday": "Tuesday"
+  },
+  "2025-12-03": {
+    "weekday": "Wednesday"
+  },
+  "2025-12-04": {
+    "weekday": "Thursday"
+  },
+  "2025-12-05": {
+    "weekday": "Friday"
+  },
+  "2025-12-08": {
+    "weekday": "Monday"
+  },
+  "2025-12-09": {
+    "weekday": "Tuesday"
+  },
+  "2025-12-10": {
+    "weekday": "Wednesday"
+  },
+  "2025-12-11": {
+    "weekday": "Thursday"
+  },
+  "2025-12-12": {
+    "weekday": "Friday"
+  },
+  "2025-12-15": {
+    "weekday": "Monday"
+  },
+  "2025-12-16": {
+    "weekday": "Tuesday"
+  },
+  "2025-12-17": {
+    "weekday": "Wednesday"
+  },
+  "2025-12-18": {
+    "weekday": "Thursday"
+  },
+  "2025-12-19": {
+    "weekday": "Friday"
+  },
+  "2025-12-22": {
+    "weekday": "Monday"
+  },
+  "2025-12-23": {
+    "weekday": "Tuesday"
+  },
+  "2025-12-24": {
+    "weekday": "Wednesday"
+  },
+  "2025-12-25": {
+    "weekday": "Thursday"
+  },
+  "2025-12-26": {
+    "weekday": "Friday"
+  },
+  "2025-12-29": {
+    "weekday": "Monday"
+  },
+  "2025-12-30": {
+    "weekday": "Tuesday"
+  },
+  "2025-12-31": {
+    "weekday": "Wednesday"
+  },
+  "2026-01-01": {
+    "weekday": "Thursday"
+  },
+  "2026-01-02": {
+    "weekday": "Friday"
+  },
+  "2026-01-05": {
+    "weekday": "Monday"
+  },
+  "2026-01-06": {
+    "weekday": "Tuesday"
+  },
+  "2026-01-07": {
+    "weekday": "Wednesday"
+  },
+  "2026-01-08": {
+    "weekday": "Thursday"
+  },
+  "2026-01-09": {
+    "weekday": "Friday"
+  },
+  "2026-01-12": {
+    "weekday": "Monday"
+  },
+  "2026-01-13": {
+    "weekday": "Tuesday"
+  },
+  "2026-01-14": {
+    "weekday": "Wednesday"
+  },
+  "2026-01-15": {
+    "weekday": "Thursday"
+  },
+  "2026-01-16": {
+    "weekday": "Friday"
+  },
+  "2026-01-19": {
+    "weekday": "Monday"
+  },
+  "2026-01-20": {
+    "weekday": "Tuesday"
+  },
+  "2026-01-21": {
+    "weekday": "Wednesday"
+  },
+  "2026-01-22": {
+    "weekday": "Thursday"
+  },
+  "2026-01-23": {
+    "weekday": "Friday"
+  },
+  "2026-01-26": {
+    "weekday": "Monday"
+  },
+  "2026-01-27": {
+    "weekday": "Tuesday"
+  },
+  "2026-01-28": {
+    "weekday": "Wednesday"
+  },
+  "2026-01-29": {
+    "weekday": "Thursday"
+  },
+  "2026-01-30": {
+    "weekday": "Friday"
+  },
+  "2026-02-02": {
+    "weekday": "Monday"
+  },
+  "2026-02-03": {
+    "weekday": "Tuesday"
+  },
+  "2026-02-04": {
+    "weekday": "Wednesday"
+  },
+  "2026-02-05": {
+    "weekday": "Thursday"
+  },
+  "2026-02-06": {
+    "weekday": "Friday"
+  },
+  "2026-02-09": {
+    "weekday": "Monday"
+  },
+  "2026-02-10": {
+    "weekday": "Tuesday"
+  },
+  "2026-02-11": {
+    "weekday": "Wednesday"
+  },
+  "2026-02-12": {
+    "weekday": "Thursday"
+  },
+  "2026-02-13": {
+    "weekday": "Friday"
+  },
+  "2026-02-16": {
+    "weekday": "Monday"
+  },
+  "2026-02-17": {
+    "weekday": "Tuesday"
+  },
+  "2026-02-18": {
+    "weekday": "Wednesday"
+  },
+  "2026-02-19": {
+    "weekday": "Thursday"
+  },
+  "2026-02-20": {
+    "weekday": "Friday"
+  },
+  "2026-02-23": {
+    "weekday": "Monday"
+  },
+  "2026-02-24": {
+    "weekday": "Tuesday"
+  },
+  "2026-02-25": {
+    "weekday": "Wednesday"
+  },
+  "2026-02-26": {
+    "weekday": "Thursday"
+  },
+  "2026-02-27": {
+    "weekday": "Friday"
+  },
+  "2026-03-02": {
+    "weekday": "Monday"
+  },
+  "2026-03-03": {
+    "weekday": "Tuesday"
+  },
+  "2026-03-04": {
+    "weekday": "Wednesday"
+  },
+  "2026-03-05": {
+    "weekday": "Thursday"
+  },
+  "2026-03-06": {
+    "weekday": "Friday"
+  },
+  "2026-03-09": {
+    "weekday": "Monday"
+  },
+  "2026-03-10": {
+    "weekday": "Tuesday"
+  },
+  "2026-03-11": {
+    "weekday": "Wednesday"
+  },
+  "2026-03-12": {
+    "weekday": "Thursday"
+  },
+  "2026-03-13": {
+    "weekday": "Friday"
+  },
+  "2026-03-16": {
+    "weekday": "Monday"
+  },
+  "2026-03-17": {
+    "weekday": "Tuesday"
+  },
+  "2026-03-18": {
+    "weekday": "Wednesday"
+  },
+  "2026-03-19": {
+    "weekday": "Thursday"
+  },
+  "2026-03-20": {
+    "weekday": "Friday"
+  },
+  "2026-03-23": {
+    "weekday": "Monday"
+  },
+  "2026-03-24": {
+    "weekday": "Tuesday"
+  },
+  "2026-03-25": {
+    "weekday": "Wednesday"
+  },
+  "2026-03-26": {
+    "weekday": "Thursday"
+  },
+  "2026-03-27": {
+    "weekday": "Friday"
+  },
+  "2026-03-30": {
+    "weekday": "Monday"
+  },
+  "2026-03-31": {
+    "weekday": "Tuesday"
+  },
+  "2026-04-01": {
+    "weekday": "Wednesday"
+  },
+  "2026-04-02": {
+    "weekday": "Thursday"
+  },
+  "2026-04-03": {
+    "weekday": "Friday"
+  },
+  "2026-04-06": {
+    "weekday": "Monday"
+  },
+  "2026-04-07": {
+    "weekday": "Tuesday"
+  },
+  "2026-04-08": {
+    "weekday": "Wednesday"
+  },
+  "2026-04-09": {
+    "weekday": "Thursday"
+  },
+  "2026-04-10": {
+    "weekday": "Friday"
+  },
+  "2026-04-13": {
+    "weekday": "Monday"
+  },
+  "2026-04-14": {
+    "weekday": "Tuesday"
+  },
+  "2026-04-15": {
+    "weekday": "Wednesday"
+  },
+  "2026-04-16": {
+    "weekday": "Thursday"
+  },
+  "2026-04-17": {
+    "weekday": "Friday"
+  },
+  "2026-04-20": {
+    "weekday": "Monday"
+  },
+  "2026-04-21": {
+    "weekday": "Tuesday"
+  },
+  "2026-04-22": {
+    "weekday": "Wednesday"
+  },
+  "2026-04-23": {
+    "weekday": "Thursday"
+  },
+  "2026-04-24": {
+    "weekday": "Friday"
+  },
+  "2026-04-27": {
+    "weekday": "Monday"
+  },
+  "2026-04-28": {
+    "weekday": "Tuesday"
+  },
+  "2026-04-29": {
+    "weekday": "Wednesday"
+  },
+  "2026-04-30": {
+    "weekday": "Thursday"
+  },
+  "2026-05-01": {
+    "weekday": "Friday"
+  },
+  "2026-05-04": {
+    "weekday": "Monday"
+  },
+  "2026-05-05": {
+    "weekday": "Tuesday"
+  },
+  "2026-05-06": {
+    "weekday": "Wednesday"
+  },
+  "2026-05-07": {
+    "weekday": "Thursday"
+  },
+  "2026-05-08": {
+    "weekday": "Friday"
+  },
+  "2026-05-11": {
+    "weekday": "Monday"
+  },
+  "2026-05-12": {
+    "weekday": "Tuesday"
+  },
+  "2026-05-13": {
+    "weekday": "Wednesday"
+  },
+  "2026-05-14": {
+    "weekday": "Thursday"
+  },
+  "2026-05-15": {
+    "weekday": "Friday"
+  },
+  "2026-05-18": {
+    "weekday": "Monday"
+  },
+  "2026-05-19": {
+    "weekday": "Tuesday"
+  },
+  "2026-05-20": {
+    "weekday": "Wednesday"
+  },
+  "2026-05-21": {
+    "weekday": "Thursday"
+  },
+  "2026-05-22": {
+    "weekday": "Friday"
+  },
+  "2026-05-25": {
+    "weekday": "Monday"
+  },
+  "2026-05-26": {
+    "weekday": "Tuesday"
+  },
+  "2026-05-27": {
+    "weekday": "Wednesday"
+  },
+  "2026-05-28": {
+    "weekday": "Thursday"
+  },
+  "2026-05-29": {
+    "weekday": "Friday"
+  },
+  "2026-06-01": {
+    "weekday": "Monday"
+  },
+  "2026-06-02": {
+    "weekday": "Tuesday"
+  },
+  "2026-06-03": {
+    "weekday": "Wednesday"
+  },
+  "2026-06-04": {
+    "weekday": "Thursday"
+  },
+  "2026-06-05": {
+    "weekday": "Friday"
+  },
+  "2026-06-08": {
+    "weekday": "Monday"
+  },
+  "2026-06-09": {
+    "weekday": "Tuesday"
+  },
+  "2026-06-10": {
+    "weekday": "Wednesday"
+  },
+  "2026-06-11": {
+    "weekday": "Thursday"
+  },
+  "2026-06-12": {
+    "weekday": "Friday"
+  },
+  "2026-06-15": {
+    "weekday": "Monday"
+  },
+  "2026-06-16": {
+    "weekday": "Tuesday"
+  },
+  "2026-06-17": {
+    "weekday": "Wednesday"
+  },
+  "2026-06-18": {
+    "weekday": "Thursday"
+  },
+  "2026-06-19": {
+    "weekday": "Friday"
+  },
+  "2026-06-22": {
+    "weekday": "Monday"
+  },
+  "2026-06-23": {
+    "weekday": "Tuesday"
+  },
+  "2026-06-24": {
+    "weekday": "Wednesday"
+  },
+  "2026-06-25": {
+    "weekday": "Thursday"
+  },
+  "2026-06-26": {
+    "weekday": "Friday"
+  },
+  "2026-06-29": {
+    "weekday": "Monday"
+  },
+  "2026-06-30": {
+    "weekday": "Tuesday"
+  },
+  "2026-07-01": {
+    "weekday": "Wednesday"
+  },
+  "2026-07-02": {
+    "weekday": "Thursday"
+  },
+  "2026-07-03": {
+    "weekday": "Friday"
+  },
+  "2026-07-06": {
+    "weekday": "Monday"
+  },
+  "2026-07-07": {
+    "weekday": "Tuesday"
+  },
+  "2026-07-08": {
+    "weekday": "Wednesday"
+  },
+  "2026-07-09": {
+    "weekday": "Thursday"
+  },
+  "2026-07-10": {
+    "weekday": "Friday"
+  },
+  "2026-07-13": {
+    "weekday": "Monday"
+  },
+  "2026-07-14": {
+    "weekday": "Tuesday"
+  },
+  "2026-07-15": {
+    "weekday": "Wednesday"
+  },
+  "2026-07-16": {
+    "weekday": "Thursday"
+  },
+  "2026-07-17": {
+    "weekday": "Friday"
+  },
+  "2026-07-20": {
+    "weekday": "Monday"
+  },
+  "2026-07-21": {
+    "weekday": "Tuesday"
+  },
+  "2026-07-22": {
+    "weekday": "Wednesday"
+  },
+  "2026-07-23": {
+    "weekday": "Thursday"
+  },
+  "2026-07-24": {
+    "weekday": "Friday"
+  },
+  "2026-07-27": {
+    "weekday": "Monday"
+  },
+  "2026-07-28": {
+    "weekday": "Tuesday"
+  },
+  "2026-07-29": {
+    "weekday": "Wednesday"
+  },
+  "2026-07-30": {
+    "weekday": "Thursday"
+  },
+  "2026-07-31": {
+    "weekday": "Friday"
+  },
+  "2026-08-03": {
+    "weekday": "Monday"
+  },
+  "2026-08-04": {
+    "weekday": "Tuesday"
+  },
+  "2026-08-05": {
+    "weekday": "Wednesday"
+  },
+  "2026-08-06": {
+    "weekday": "Thursday"
+  },
+  "2026-08-07": {
+    "weekday": "Friday"
+  },
+  "2026-08-10": {
+    "weekday": "Monday"
+  },
+  "2026-08-11": {
+    "weekday": "Tuesday"
+  },
+  "2026-08-12": {
+    "weekday": "Wednesday"
+  },
+  "2026-08-13": {
+    "weekday": "Thursday"
+  },
+  "2026-08-14": {
+    "weekday": "Friday"
+  },
+  "2026-08-17": {
+    "weekday": "Monday"
+  },
+  "2026-08-18": {
+    "weekday": "Tuesday"
+  },
+  "2026-08-19": {
+    "weekday": "Wednesday"
+  },
+  "2026-08-20": {
+    "weekday": "Thursday"
+  },
+  "2026-08-21": {
+    "weekday": "Friday"
+  },
+  "2026-08-24": {
+    "weekday": "Monday"
+  },
+  "2026-08-25": {
+    "weekday": "Tuesday"
+  },
+  "2026-08-26": {
+    "weekday": "Wednesday"
+  },
+  "2026-08-27": {
+    "weekday": "Thursday"
+  },
+  "2026-08-28": {
+    "weekday": "Friday"
+  },
+  "2026-08-31": {
+    "weekday": "Monday"
+  },
+  "2026-09-01": {
+    "weekday": "Tuesday"
+  }
+}
