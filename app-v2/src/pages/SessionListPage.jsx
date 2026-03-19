@@ -4,6 +4,7 @@ import { ref, onValue, update, set, get } from "firebase/database"
 import { useAuth } from "../contexts/AuthContext"
 import { database } from "../services/firebase"
 import { getTallinnNow, combineDateAndTime } from "../utils/dateUtils"
+import { PRESTATUS_LABELS, REALSTATUS_LABELS, EFFORT_SCALE, PLAYER_EFFORT_SCALE, COACH_ENGAGEMENT_SCALE } from "../utils/displayUtils"
 import { LoadingSpinner, ErrorMessage, EmptyState } from "../components/UIHelpers"
 
 function formatEstonianDate(dateStr) {
@@ -16,10 +17,10 @@ function formatEstonianDate(dateStr) {
 }
 
 const REAL_STATUS_DISPLAY = {
-    kohal: { icon: "🟢", label: "Kohal" },
-    puudus: { icon: "🔴", label: "Puudus" },
-    hilines: { icon: "🟡", label: "Hilines" },
-    vabastatud: { icon: "⚪", label: "Vabastatud" }
+    kohal: { icon: "🟢", label: REALSTATUS_LABELS.kohal },
+    puudus: { icon: "🔴", label: REALSTATUS_LABELS.puudus },
+    hilines: { icon: "🟡", label: REALSTATUS_LABELS.hilines },
+    vabastatud: { icon: "⚪", label: REALSTATUS_LABELS.vabastatud }
 }
 
 // ─── Coach/Admin Session Card ───────────────────────────
@@ -160,13 +161,13 @@ function SessionCardParent({ instId, inst, def, attendance, rosters, players, se
                     {isLocked ? (
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                             <span style={{ fontWeight: "bold", color: preStatus === "kinnitatud" ? "#22c55e" : preStatus === "eiOsale" ? "#ef4444" : "#999" }}>
-                                {preStatus === "kinnitatud" ? "Kinnitatud" : preStatus === "eiOsale" ? "Ei osale" : "Vastamata"}
+                                {PRESTATUS_LABELS[preStatus] || PRESTATUS_LABELS.null}
                             </span>
                             <span style={{ background: "#fbbf24", color: "#000", padding: "2px 8px", borderRadius: "12px", fontSize: "11px", fontWeight: "bold" }}>🔒 Lukustatud</span>
                         </div>
                     ) : preStatus === "kinnitatud" ? (
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ fontWeight: "bold", color: "#22c55e" }}>✅ Kinnitatud</span>
+                            <span style={{ fontWeight: "bold", color: "#22c55e" }}>✅ {PRESTATUS_LABELS.kinnitatud}</span>
                             <button onClick={() => onPreStatus(instId, playerId, null)}
                                 style={{ padding: "4px 12px", background: "#eee", border: "1px solid #ccc", borderRadius: "6px", cursor: "pointer", fontSize: "13px" }}>
                                 Tühista
@@ -174,7 +175,7 @@ function SessionCardParent({ instId, inst, def, attendance, rosters, players, se
                         </div>
                     ) : preStatus === "eiOsale" ? (
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ fontWeight: "bold", color: "#ef4444" }}>❌ Ei osale</span>
+                            <span style={{ fontWeight: "bold", color: "#ef4444" }}>❌ {PRESTATUS_LABELS.eiOsale}</span>
                             <button onClick={() => onPreStatus(instId, playerId, "kinnitatud")}
                                 disabled={isFull}
                                 style={{ padding: "4px 12px", background: isFull ? "#eee" : "#e0f2f1", border: "1px solid #ccc", borderRadius: "6px", cursor: isFull ? "not-allowed" : "pointer", fontSize: "13px" }}>
@@ -198,7 +199,7 @@ function SessionCardParent({ instId, inst, def, attendance, rosters, players, se
             ) : (
                 <div style={{ marginBottom: "12px" }}>
                     <span style={{ fontWeight: "bold", color: preStatus === "kinnitatud" ? "#22c55e" : preStatus === "eiOsale" ? "#ef4444" : "#999", fontSize: "13px" }}>
-                        {preStatus === "kinnitatud" ? "Kinnitatud" : preStatus === "eiOsale" ? "Ei osale" : "Vastamata"}
+                        {PRESTATUS_LABELS[preStatus] || PRESTATUS_LABELS.null}
                     </span>
                 </div>
             )}
@@ -207,13 +208,13 @@ function SessionCardParent({ instId, inst, def, attendance, rosters, players, se
             {sessionStarted && realStatus && (
                 <div style={{ marginBottom: "12px", fontSize: "14px" }}>
                     Kohalolek: <span style={{ fontWeight: "bold" }}>
-                        {REAL_STATUS_DISPLAY[realStatus]?.icon} {REAL_STATUS_DISPLAY[realStatus]?.label || "Märkimata"}
+                        {REAL_STATUS_DISPLAY[realStatus]?.icon} {REAL_STATUS_DISPLAY[realStatus]?.label || REALSTATUS_LABELS.null}
                     </span>
                 </div>
             )}
             {sessionStarted && !realStatus && (
                 <div style={{ marginBottom: "12px", fontSize: "13px", color: "#999" }}>
-                    Kohalolek: Märkimata
+                    Kohalolek: {REALSTATUS_LABELS.null}
                 </div>
             )}
 
@@ -229,7 +230,10 @@ function SessionCardParent({ instId, inst, def, attendance, rosters, players, se
                             <span style={{ fontSize: "13px", color: "#999" }}>Puudub</span>
                         ) : feedbackVisible ? (
                             <span style={{ fontSize: "13px" }}>
-                                {coachFb.effort} {coachFb.effort === 1 ? "😴" : coachFb.effort === 2 ? "😕" : coachFb.effort === 3 ? "👍" : coachFb.effort === 4 ? "💪" : "🔥"}
+                                {(() => {
+                                    const effortItem = EFFORT_SCALE.find(item => item.value === coachFb.effort)
+                                    return effortItem ? `${effortItem.label} ${effortItem.emoji}` : coachFb.effort
+                                })()}
                                 {coachFb.note && <span style={{ marginLeft: "8px", fontStyle: "italic", color: "#666" }}>"{coachFb.note}"</span>}
                             </span>
                         ) : (
@@ -242,7 +246,10 @@ function SessionCardParent({ instId, inst, def, attendance, rosters, players, se
                         <span style={{ fontSize: "13px", fontWeight: "bold", color: "#555" }}>Mängija: </span>
                         {playerFb ? (
                             <span style={{ fontSize: "13px" }}>
-                                Pingutus: {playerFb.effort} {playerFb.effort === 1 ? "😴" : playerFb.effort === 2 ? "😕" : playerFb.effort === 3 ? "👍" : playerFb.effort === 4 ? "💪" : "🔥"}
+                                {(() => {
+                                    const effortItem = PLAYER_EFFORT_SCALE.find(item => item.value === playerFb.effort)
+                                    return effortItem ? `Pingutus: ${effortItem.label} ${effortItem.emoji}` : `Pingutus: ${playerFb.effort}`
+                                })()}
                             </span>
                         ) : feedbackWindowOpen && (realStatus === "kohal" || realStatus === "hilines") ? (
                             <span style={{ fontSize: "13px", color: "#f59e0b", fontWeight: "bold" }}>📝 Anna tagasiside</span>
@@ -271,22 +278,6 @@ function SessionCardParent({ instId, inst, def, attendance, rosters, players, se
         </div>
     )
 }
-
-// ─── Emoji Scales (Player Feedback) ─────────────────────
-const EFFORT_SCALE_PLAYER = [
-    { value: 1, emoji: "😴", label: "Ei pingutanud" },
-    { value: 2, emoji: "😕", label: "Oleks saanud rohkem" },
-    { value: 3, emoji: "👍", label: "Normaalne" },
-    { value: 4, emoji: "💪", label: "Väga tubli" },
-    { value: 5, emoji: "🔥", label: "Andsin kõik" }
-]
-const COACH_ENGAGEMENT_SCALE = [
-    { value: 1, emoji: "😶", label: "Ei märganud mind" },
-    { value: 2, emoji: "🙁", label: "Vähe tähelepanu" },
-    { value: 3, emoji: "👍", label: "Piisavalt" },
-    { value: 4, emoji: "😊", label: "Väga toetav" },
-    { value: 5, emoji: "🤝", label: "Suurepärane tugi" }
-]
 
 // ─── Player Session Card ─────────────────────────────────
 function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMessages, playerId, nowMs, onPreStatus, feedbackData, feedbackLocal, feedbackSaved, feedbackEditing, onFeedbackLocalChange, onFeedbackSave, onFeedbackEdit, msg }) {
@@ -370,13 +361,13 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
                     {isLocked ? (
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                             <span style={{ fontWeight: "bold", color: preStatus === "kinnitatud" ? "#22c55e" : preStatus === "eiOsale" ? "#ef4444" : "#999" }}>
-                                {preStatus === "kinnitatud" ? "Kinnitatud" : preStatus === "eiOsale" ? "Ei osale" : "Vastamata"}
+                                {PRESTATUS_LABELS[preStatus] || PRESTATUS_LABELS.null}
                             </span>
                             <span style={{ background: "#fbbf24", color: "#000", padding: "2px 8px", borderRadius: "12px", fontSize: "11px", fontWeight: "bold" }}>🔒 Lukustatud</span>
                         </div>
                     ) : preStatus === "kinnitatud" ? (
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ fontWeight: "bold", color: "#22c55e" }}>✅ Kinnitatud</span>
+                            <span style={{ fontWeight: "bold", color: "#22c55e" }}>✅ {PRESTATUS_LABELS.kinnitatud}</span>
                             <button onClick={() => onPreStatus(instId, playerId, null)}
                                 style={{ padding: "4px 12px", background: "#eee", border: "1px solid #ccc", borderRadius: "6px", cursor: "pointer", fontSize: "13px" }}>
                                 Tühista
@@ -384,7 +375,7 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
                         </div>
                     ) : preStatus === "eiOsale" ? (
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ fontWeight: "bold", color: "#ef4444" }}>❌ Ei osale</span>
+                            <span style={{ fontWeight: "bold", color: "#ef4444" }}>❌ {PRESTATUS_LABELS.eiOsale}</span>
                             <button onClick={() => onPreStatus(instId, playerId, "kinnitatud")}
                                 disabled={isFull}
                                 style={{ padding: "4px 12px", background: isFull ? "#eee" : "#e0f2f1", border: "1px solid #ccc", borderRadius: "6px", cursor: isFull ? "not-allowed" : "pointer", fontSize: "13px" }}>
@@ -408,7 +399,7 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
             ) : (
                 <div style={{ marginBottom: "12px" }}>
                     <span style={{ fontWeight: "bold", color: preStatus === "kinnitatud" ? "#22c55e" : preStatus === "eiOsale" ? "#ef4444" : "#999", fontSize: "13px" }}>
-                        {preStatus === "kinnitatud" ? "Kinnitatud" : preStatus === "eiOsale" ? "Ei osale" : "Vastamata"}
+                        {PRESTATUS_LABELS[preStatus] || PRESTATUS_LABELS.null}
                     </span>
                 </div>
             )}
@@ -417,13 +408,13 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
             {sessionStarted && realStatus && (
                 <div style={{ marginBottom: "12px", fontSize: "14px" }}>
                     Kohalolek: <span style={{ fontWeight: "bold" }}>
-                        {REAL_STATUS_DISPLAY[realStatus]?.icon} {REAL_STATUS_DISPLAY[realStatus]?.label || "Märkimata"}
+                        {REAL_STATUS_DISPLAY[realStatus]?.icon} {REAL_STATUS_DISPLAY[realStatus]?.label || REALSTATUS_LABELS.null}
                     </span>
                 </div>
             )}
             {sessionStarted && !realStatus && (
                 <div style={{ marginBottom: "12px", fontSize: "13px", color: "#999" }}>
-                    Kohalolek: Märkimata
+                    Kohalolek: {REALSTATUS_LABELS.null}
                 </div>
             )}
 
@@ -435,7 +426,10 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
                         <div style={{ fontSize: "13px", color: "#999" }}>Puudub</div>
                     ) : feedbackVisible ? (
                         <div style={{ fontSize: "13px" }}>
-                            {coachFb.effort} {coachFb.effort === 1 ? "😴" : coachFb.effort === 2 ? "😕" : coachFb.effort === 3 ? "👍" : coachFb.effort === 4 ? "💪" : "🔥"}
+                            {(() => {
+                                const effortItem = EFFORT_SCALE.find(item => item.value === coachFb.effort)
+                                return effortItem ? `${effortItem.label} ${effortItem.emoji}` : coachFb.effort
+                            })()}
                             {coachFb.note && <div style={{ marginTop: "4px", fontStyle: "italic", color: "#666" }}>"{coachFb.note}"</div>}
                         </div>
                     ) : (
@@ -450,7 +444,7 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
                     return <div style={{ fontSize: "13px", color: "#999", marginBottom: "8px" }}>Tagasiside aeg lõppenud</div>
                 }
                 if ((isExpired && hasFeedback) || (hasFeedback && !isEditingFb)) {
-                    const effortItem = EFFORT_SCALE_PLAYER.find(e => e.value === existingFb.effort)
+                    const effortItem = PLAYER_EFFORT_SCALE.find(e => e.value === existingFb.effort)
                     const engItem = COACH_ENGAGEMENT_SCALE.find(e => e.value === existingFb.coachEngagement)
                     return (
                         <div style={{ borderTop: "1px solid #eee", marginTop: "8px", paddingTop: "8px" }}>
@@ -475,7 +469,7 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
                         <div style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "8px" }}>📝 Anna tagasiside</div>
                         <div style={{ fontSize: "13px", fontWeight: "bold", marginBottom: "6px" }}>Minu pingutus</div>
                         <div style={{ display: "flex", gap: "4px", marginBottom: "12px", flexWrap: "wrap" }}>
-                            {EFFORT_SCALE_PLAYER.map(e => (
+                            {PLAYER_EFFORT_SCALE.map(e => (
                                 <button key={e.value}
                                     onClick={() => onFeedbackLocalChange(key, { ...(feedbackLocal[key] || { effort: null, coachEngagement: null, note: "" }), effort: e.value })}
                                     style={{

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react"
 import { ref, get } from "firebase/database"
 import { database } from "../services/firebase"
 import { getTallinnNow } from "../utils/dateUtils"
+import { PRESTATUS_LABELS, REALSTATUS_LABELS } from "../utils/displayUtils"
 import { LoadingSpinner, ErrorMessage } from "../components/UIHelpers"
 
 const STATUS_ICONS = {
@@ -215,8 +216,8 @@ export default function AdminAttendancePage() {
             dateStr,
             timeStr,
             sport: item.inst.sport === "tennis" ? "Tennis🎾" : "Füss🏋️",
-            preLabel: preStatus === "kinnitatud" ? "Kinnitatud" : preStatus === "eiOsale" ? "Ei osale" : "Vastamata",
-            realLabel: realStatus === "kohal" ? "Kohal" : realStatus === "hilines" ? "Hilines" : realStatus === "puudus" ? "Puudus" : realStatus === "vabastatud" ? "Vabastatud" : "Märkimata",
+            preLabel: PRESTATUS_LABELS[preStatus] || PRESTATUS_LABELS.null,
+            realLabel: REALSTATUS_LABELS[realStatus] || REALSTATUS_LABELS.null,
             lateCancel: att?.lateCancel === true
         })
     }

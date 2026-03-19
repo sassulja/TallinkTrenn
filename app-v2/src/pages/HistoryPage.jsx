@@ -3,6 +3,7 @@ import { ref, get } from "firebase/database"
 import { useAuth } from "../contexts/AuthContext"
 import { database } from "../services/firebase"
 import { getTallinnNow, combineDateAndTime } from "../utils/dateUtils"
+import { REALSTATUS_LABELS, EFFORT_SCALE, PLAYER_EFFORT_SCALE, COACH_ENGAGEMENT_SCALE } from "../utils/displayUtils"
 import { LoadingSpinner, ErrorMessage, EmptyState } from "../components/UIHelpers"
 
 function formatEstonianDate(dateStr) {
@@ -15,14 +16,11 @@ function formatEstonianDate(dateStr) {
 }
 
 const REAL_STATUS_DISPLAY = {
-    kohal: { icon: "🟢", label: "Kohal" },
-    puudus: { icon: "🔴", label: "Puudus" },
-    hilines: { icon: "🟡", label: "Hilines" },
-    vabastatud: { icon: "⚪", label: "Vabastatud" }
+    kohal: { icon: "🟢", label: REALSTATUS_LABELS.kohal },
+    puudus: { icon: "🔴", label: REALSTATUS_LABELS.puudus },
+    hilines: { icon: "🟡", label: REALSTATUS_LABELS.hilines },
+    vabastatud: { icon: "⚪", label: REALSTATUS_LABELS.vabastatud }
 }
-
-const EFFORT_EMOJI = { 1: "😴", 2: "😕", 3: "👍", 4: "💪", 5: "🔥" }
-const ENGAGE_EMOJI = { 1: "😶", 2: "🙁", 3: "👍", 4: "😊", 5: "🤝" }
 
 function HistoryRow({ instId, inst, def, attendance, feedbackData, playerId, nowMs, role }) {
     const startTime = inst.startTime || def?.startTime || ""
@@ -59,7 +57,7 @@ function HistoryRow({ instId, inst, def, attendance, feedbackData, playerId, now
                     {realStatus ? (
                         <>{REAL_STATUS_DISPLAY[realStatus]?.icon} {REAL_STATUS_DISPLAY[realStatus]?.label}</>
                     ) : (
-                        <span style={{ color: "#999", fontWeight: "normal" }}>Märkimata</span>
+                        <span style={{ color: "#999", fontWeight: "normal" }}>{REALSTATUS_LABELS.null}</span>
                     )}
                 </span>
             </div>
@@ -78,7 +76,10 @@ function HistoryRow({ instId, inst, def, attendance, feedbackData, playerId, now
                             <div style={{ fontSize: "13px", color: "#f59e0b", fontStyle: "italic" }}>Treeneri tagasiside on varsti saadaval</div>
                         ) : (
                             <div style={{ fontSize: "13px" }}>
-                                {coachFb.effort} {EFFORT_EMOJI[coachFb.effort]}
+                                {(() => {
+                                    const effortItem = EFFORT_SCALE.find(item => item.value === coachFb.effort)
+                                    return effortItem ? `${effortItem.label} ${effortItem.emoji}` : coachFb.effort
+                                })()}
                                 {coachFb.note && <span style={{ marginLeft: "8px", fontStyle: "italic", color: "#666" }}>"{coachFb.note}"</span>}
                             </div>
                         )}
@@ -91,9 +92,15 @@ function HistoryRow({ instId, inst, def, attendance, feedbackData, playerId, now
                             <div style={{ fontSize: "13px", color: "#999" }}>Puudub</div>
                         ) : (
                             <div style={{ fontSize: "13px" }}>
-                                <div>Pingutus: <span style={{ marginLeft: "4px" }}>{playerFb.effort} {EFFORT_EMOJI[playerFb.effort]}</span></div>
+                                <div>Pingutus: <span style={{ marginLeft: "4px" }}>{(() => {
+                                    const effortItem = PLAYER_EFFORT_SCALE.find(item => item.value === playerFb.effort)
+                                    return effortItem ? `${effortItem.label} ${effortItem.emoji}` : playerFb.effort
+                                })()}</span></div>
                                 {role !== "parent" && (
-                                    <div>Treener: <span style={{ marginLeft: "4px" }}>{playerFb.coachEngagement} {ENGAGE_EMOJI[playerFb.coachEngagement]}</span></div>
+                                    <div>Treener: <span style={{ marginLeft: "4px" }}>{(() => {
+                                        const engagementItem = COACH_ENGAGEMENT_SCALE.find(item => item.value === playerFb.coachEngagement)
+                                        return engagementItem ? `${engagementItem.label} ${engagementItem.emoji}` : playerFb.coachEngagement
+                                    })()}</span></div>
                                 )}
                                 {playerFb.note && <div style={{ marginTop: "2px", fontStyle: "italic", color: "#666" }}>"{playerFb.note}"</div>}
                             </div>

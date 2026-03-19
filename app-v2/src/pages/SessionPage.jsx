@@ -4,33 +4,18 @@ import { ref, onValue, update, set, get, remove, push } from "firebase/database"
 import { useAuth } from "../contexts/AuthContext"
 import { database } from "../services/firebase"
 import { getTallinnNow, combineDateAndTime } from "../utils/dateUtils"
+import { PRESTATUS_LABELS, REALSTATUS_LABELS, EFFORT_SCALE, PLAYER_EFFORT_SCALE, COACH_ENGAGEMENT_SCALE } from "../utils/displayUtils"
 import { LoadingSpinner, ErrorMessage, EmptyState } from "../components/UIHelpers"
 
 const REAL_STATUS_CYCLE = [null, "kohal", "puudus", "hilines", "vabastatud"]
 const REAL_STATUS_DISPLAY = {
-    null: { icon: "⬜", label: "Märkimata" },
-    kohal: { icon: "🟢", label: "Kohal" },
-    puudus: { icon: "🔴", label: "Puudus" },
-    hilines: { icon: "🟡", label: "Hilines" },
-    vabastatud: { icon: "⚪", label: "Vabastatud" }
+    null: { icon: "⬜", label: REALSTATUS_LABELS.null },
+    kohal: { icon: "🟢", label: REALSTATUS_LABELS.kohal },
+    puudus: { icon: "🔴", label: REALSTATUS_LABELS.puudus },
+    hilines: { icon: "🟡", label: REALSTATUS_LABELS.hilines },
+    vabastatud: { icon: "⚪", label: REALSTATUS_LABELS.vabastatud }
 }
 const PRE_STATUS_COLORS = { kinnitatud: "#22c55e", eiOsale: "#ef4444" }
-
-const EFFORT_SCALE = [
-    { value: 1, emoji: "😴", label: "Väga madal" },
-    { value: 2, emoji: "🙁", label: "Alla keskmise" },
-    { value: 3, emoji: "👍", label: "Hea" },
-    { value: 4, emoji: "💪", label: "Väga hea" },
-    { value: 5, emoji: "🔥", label: "Erakordne" }
-]
-
-const COACH_ENGAGEMENT_SCALE = [
-    { value: 1, emoji: "😶", label: "Ei pööranud tähelepanu" },
-    { value: 2, emoji: "🙁", label: "Vähe tähelepanu" },
-    { value: 3, emoji: "👍", label: "Piisavalt" },
-    { value: 4, emoji: "😊", label: "Palju tähelepanu" },
-    { value: 5, emoji: "🤝", label: "Väga toetav ja kaasav" }
-]
 
 function formatEstonianDate(dateStr) {
     if (!dateStr) return ""
@@ -70,7 +55,7 @@ function RosterRow({ playerId, rData, playerData, att, sessionStarted, onTapCycl
     const isRemoved = rData.removedByCoach === true
     const preStatus = att?.preStatus || null
     const realStatus = att?.realStatus || null
-    const preLabel = preStatus === "kinnitatud" ? "Kinnitatud" : preStatus === "eiOsale" ? "Ei osale" : "Vastamata"
+    const preLabel = PRESTATUS_LABELS[preStatus] || PRESTATUS_LABELS.null
     const realInfo = REAL_STATUS_DISPLAY[realStatus] || REAL_STATUS_DISPLAY[null]
     const showLateCancel = att?.lateCancel === true
 
@@ -447,6 +432,9 @@ export default function SessionPage() {
     }, [activeTab, instanceId, roster])
 
     const handleTabChange = (tab) => {
+        if (tab === "tagasiside") {
+            feedbackLoaded.current = false
+        }
         setActiveTab(tab)
     }
 
@@ -495,8 +483,8 @@ export default function SessionPage() {
             "Mängija nimi", "Eelstaatus", "Kohalolek", "Hiline tühistamine", 
             "Treeneri hinnang", "Mängija pingutus", "Treeneri kaasatus", "Treeneri märkus"
         ];
-        const PRE_STATUS_MAP = { kinnitatud: "Kinnitatud", eiOsale: "Ei osale" };
-        const REAL_STATUS_MAP = { kohal: "Kohal", hilines: "Hilines", puudus: "Puudus", vabastatud: "Vabastatud" };
+        const PRE_STATUS_MAP = { kinnitatud: PRESTATUS_LABELS.kinnitatud, eiOsale: PRESTATUS_LABELS.eiOsale };
+        const REAL_STATUS_MAP = { kohal: REALSTATUS_LABELS.kohal, hilines: REALSTATUS_LABELS.hilines, puudus: REALSTATUS_LABELS.puudus, vabastatud: REALSTATUS_LABELS.vabastatud };
 
         const rows = [];
         rosterEntries.forEach(([pId, rData]) => {
@@ -505,7 +493,7 @@ export default function SessionPage() {
             const pName = p ? `${p.firstName} ${p.lastName}` : pId;
             const att = localAtt[pId] || {};
             const psMatch = PRE_STATUS_MAP[att.preStatus];
-            const preStatus = psMatch ? psMatch : "Vastamata";
+            const preStatusLabel = psMatch ? psMatch : PRESTATUS_LABELS.null;
             const realStatus = REAL_STATUS_MAP[att.realStatus] || "";
             const lateCancel = att.lateCancel === true ? "Jah" : "—";
 
@@ -514,7 +502,7 @@ export default function SessionPage() {
             const cf = fbNode.coach || {};
 
             rows.push([
-                pName, preStatus, realStatus, lateCancel,
+                pName, preStatusLabel, realStatus, lateCancel,
                 cf.effort || "", pf.effort || "", pf.coachEngagement || "", cf.note || ""
             ]);
         });
@@ -624,9 +612,9 @@ export default function SessionPage() {
             {(activeTab === "staatus" || activeTab === null) && (<>
                 {/* preStatus summary */}
                 <div style={{ background: "#f8f9fa", padding: "12px 16px", borderRadius: "8px", marginBottom: "20px", fontSize: "14px", display: "flex", flexWrap: "wrap", gap: "16px" }}>
-                    <span>Kinnitatud: <b>{preStatusCounts.kinnitatud}</b></span>
-                    <span>Vastamata: <b>{preStatusCounts.vastamata}</b></span>
-                    <span>Ei osale: <b>{preStatusCounts.eiOsale}</b></span>
+                    <span>{PRESTATUS_LABELS.kinnitatud}: <b>{preStatusCounts.kinnitatud}</b></span>
+                    <span>{PRESTATUS_LABELS.null}: <b>{preStatusCounts.vastamata}</b></span>
+                    <span>{PRESTATUS_LABELS.eiOsale}: <b>{preStatusCounts.eiOsale}</b></span>
                 </div>
 
                 {/* preStatus player list */}
@@ -636,7 +624,7 @@ export default function SessionPage() {
                             const p = players[pId]
                             const pName = p ? `${p.firstName} ${p.lastName}` : pId
                             const ps = localAtt[pId]?.preStatus || null
-                            const psLabel = ps === "kinnitatud" ? "Kinnitatud" : ps === "eiOsale" ? "Ei osale" : "Vastamata"
+                            const psLabel = PRESTATUS_LABELS[ps] || PRESTATUS_LABELS.null
                             const psColor = PRE_STATUS_COLORS[ps] || "#999"
                             const hasAtt = localAtt[pId]?.realStatus != null
                             const canRemove = role === "admin" || !hasAtt
@@ -936,7 +924,7 @@ export default function SessionPage() {
                                         {allPlayerFb.map(fb => {
                                             const p = players[fb.pId]
                                             const pName = p ? `${p.firstName} ${p.lastName}` : fb.pId
-                                            const eff = EFFORT_SCALE.find(e => e.value === fb.effort) || {}
+                                            const eff = PLAYER_EFFORT_SCALE.find(e => e.value === fb.effort) || {}
                                             const eng = COACH_ENGAGEMENT_SCALE.find(e => e.value === fb.coachEngagement) || {}
                                             return (
                                                 <div key={fb.pId} style={{ marginBottom: "12px", paddingBottom: "12px", borderBottom: "1px solid #f5f5f5" }}>
