@@ -16,6 +16,27 @@ function formatEstonianDate(dateStr) {
     return `${d}.${m}.${y} (${weekDay})`;
 }
 
+function compareDisplayNames(nameA, idA, nameB, idB) {
+    const nameCompare = nameA.localeCompare(nameB, "et")
+    if (nameCompare !== 0) return nameCompare
+    return idA.localeCompare(idB)
+}
+
+function getSessionBounds(inst, def) {
+    const startTime = inst.startTime || def?.startTime || "00:00"
+    const endTime = inst.endTime || def?.endTime || "00:00"
+    return {
+        startMs: new Date(combineDateAndTime(inst.date, startTime)).getTime(),
+        endMs: new Date(combineDateAndTime(inst.date, endTime)).getTime()
+    }
+}
+
+function compareSessionItems(a, b) {
+    const startDiff = a.sessionStartMs - b.sessionStartMs
+    if (startDiff !== 0) return startDiff
+    return a.instId.localeCompare(b.instId)
+}
+
 const REAL_STATUS_DISPLAY = {
     kohal: { icon: "🟢", label: REALSTATUS_LABELS.kohal },
     puudus: { icon: "🔴", label: REALSTATUS_LABELS.puudus },
@@ -834,8 +855,9 @@ export default function SessionListPage() {
     if (isLoading) return <LoadingSpinner />
     if (error) return <ErrorMessage message={error} />
 
-    const nowMs = getTallinnNow().getTime()
-    const localToday = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Tallinn" })
+    const nowTallinn = getTallinnNow()
+    const nowMs = nowTallinn.getTime()
+    const localToday = nowTallinn.toLocaleDateString("en-CA", { timeZone: "Europe/Tallinn" })
 
     // ─── PLAYER VIEW ───────────────────────────
     if (role === "player") {
@@ -847,10 +869,6 @@ export default function SessionListPage() {
         const pastSessions = []
 
         Object.entries(instances)
-            .sort((a, b) => {
-                if (a[1].date !== b[1].date) return a[1].date.localeCompare(b[1].date)
-                return (a[1].startTime || "").localeCompare(b[1].startTime || "")
-            })
             .forEach(([instId, inst]) => {
                 const def = definitions[inst.definitionId] || null
                 if (!def) return
@@ -858,40 +876,39 @@ export default function SessionListPage() {
                 if (!currentRoster[myPlayerId]) return
                 if (currentRoster[myPlayerId].removedByCoach) return
 
-                let sessionStartMs = 0
-                let sessionEndMs = 0
                 try {
-                    const st = inst.startTime || def.startTime || "00:00"
-                    const et = inst.endTime || def.endTime || "00:00"
-                    sessionStartMs = new Date(combineDateAndTime(inst.date, st)).getTime()
-                    sessionEndMs = new Date(combineDateAndTime(inst.date, et)).getTime()
+                    const { startMs: sessionStartMs, endMs: sessionEndMs } = getSessionBounds(inst, def)
+                    const renderCard = (
+                        <SessionCardPlayer
+                            key={instId}
+                            instId={instId} inst={inst} def={def}
+                            attendance={attendance} rosters={rosters}
+                            sessionMessages={sessionMessages}
+                            playerId={myPlayerId}
+                            nowMs={nowMs} onPreStatus={handlePlayerPreStatus}
+                            feedbackData={feedbackData}
+                            feedbackLocal={feedbackLocal}
+                            feedbackSaved={feedbackSaved}
+                            feedbackEditing={feedbackEditing}
+                            onFeedbackLocalChange={handleFeedbackLocalChange}
+                            onFeedbackSave={handlePlayerFeedbackSave}
+                            onFeedbackEdit={handleFeedbackEdit}
+                        />
+                    )
+
+                    const sessionObj = { instId, inst, def, renderCard, sessionStartMs }
+
+                    if (sessionStartMs <= nowMs && sessionEndMs >= nowMs) activeSessions.push(sessionObj)
+                    else if (sessionStartMs > nowMs && inst.date === localToday) todaySessions.push(sessionObj)
+                    else if (sessionStartMs > nowMs) upcomingSessions.push(sessionObj)
+                    else pastSessions.push(sessionObj)
                 } catch (e) { return }
-
-                const renderCard = (
-                    <SessionCardPlayer
-                        key={instId}
-                        instId={instId} inst={inst} def={def}
-                        attendance={attendance} rosters={rosters}
-                        sessionMessages={sessionMessages}
-                        playerId={myPlayerId}
-                        nowMs={nowMs} onPreStatus={handlePlayerPreStatus}
-                        feedbackData={feedbackData}
-                        feedbackLocal={feedbackLocal}
-                        feedbackSaved={feedbackSaved}
-                        feedbackEditing={feedbackEditing}
-                        onFeedbackLocalChange={handleFeedbackLocalChange}
-                        onFeedbackSave={handlePlayerFeedbackSave}
-                        onFeedbackEdit={handleFeedbackEdit}
-                    />
-                )
-
-                const sessionObj = { instId, inst, def, renderCard }
-
-                if (sessionStartMs <= nowMs && sessionEndMs >= nowMs) activeSessions.push(sessionObj)
-                else if (sessionStartMs > nowMs && inst.date === localToday) todaySessions.push(sessionObj)
-                else if (sessionStartMs > nowMs) upcomingSessions.push(sessionObj)
-                else pastSessions.push(sessionObj)
             })
+
+        activeSessions.sort(compareSessionItems)
+        todaySessions.sort(compareSessionItems)
+        upcomingSessions.sort(compareSessionItems)
+        pastSessions.sort((a, b) => compareSessionItems(b, a))
 
         const totalVisible = activeSessions.length + todaySessions.length + upcomingSessions.length + pastSessions.length
 
@@ -908,7 +925,7 @@ export default function SessionListPage() {
                         <SessionGroup title="Aktiivne" sessions={activeSessions} defaultOpen={true} />
                         <SessionGroup title="Täna" sessions={todaySessions} defaultOpen={true} />
                         <SessionGroup title="Tulevased" sessions={upcomingSessions} defaultOpen={true} />
-                        <SessionGroup title="Möödunud" sessions={pastSessions.reverse()} defaultOpen={false} />
+                        <SessionGroup title="Möödunud" sessions={pastSessions} defaultOpen={false} />
                     </>
                 )}
             </div>
@@ -932,7 +949,7 @@ export default function SessionListPage() {
         const childOptions = linkedPlayerIds.map(pId => {
             const p = players[pId]
             return { id: pId, name: p ? `${p.firstName} ${p.lastName}` : pId }
-        }).sort((a, b) => a.name.localeCompare(b.name))
+        }).sort((a, b) => compareDisplayNames(a.name, a.id, b.name, b.id))
 
         // Build session cards
         const activeSessions = []
@@ -943,12 +960,6 @@ export default function SessionListPage() {
         const filteredPlayerIds = selectedChild === "all" ? linkedPlayerIds : [selectedChild]
 
         Object.entries(instances)
-            .sort((a, b) => {
-                if (a[1].date !== b[1].date) return a[1].date.localeCompare(b[1].date)
-                const sA = a[1].startTime || ""
-                const sB = b[1].startTime || ""
-                return sA.localeCompare(sB)
-            })
             .forEach(([instId, inst]) => {
                 const def = definitions[inst.definitionId] || null
                 if (!def) return
@@ -958,37 +969,36 @@ export default function SessionListPage() {
                     if (!currentRoster[playerId]) return
                     if (currentRoster[playerId].removedByCoach) return
 
-                    let sessionStartMs = 0
-                    let sessionEndMs = 0
                     try {
-                        const st = inst.startTime || def.startTime || "00:00"
-                        const et = inst.endTime || def.endTime || "00:00"
-                        sessionStartMs = new Date(combineDateAndTime(inst.date, st)).getTime()
-                        sessionEndMs = new Date(combineDateAndTime(inst.date, et)).getTime()
+                        const { startMs: sessionStartMs, endMs: sessionEndMs } = getSessionBounds(inst, def)
+                        const childName = childOptions.find(c => c.id === playerId)?.name || playerId
+
+                        const renderCard = (
+                            <SessionCardParent
+                                key={`${instId}_${playerId}`}
+                                instId={instId} inst={inst} def={def}
+                                attendance={attendance} rosters={rosters} players={players}
+                                sessionMessages={sessionMessages}
+                                sessionFeedback={feedbackData}
+                                childName={childName} playerId={playerId}
+                                nowMs={nowMs} onPreStatus={handleParentPreStatus}
+                            />
+                        )
+
+                        const sessionObj = { instId, inst, def, renderCard, sessionStartMs }
+
+                        if (sessionStartMs <= nowMs && sessionEndMs >= nowMs) activeSessions.push(sessionObj)
+                        else if (sessionStartMs > nowMs && inst.date === localToday) todaySessions.push(sessionObj)
+                        else if (sessionStartMs > nowMs) upcomingSessions.push(sessionObj)
+                        else pastSessions.push(sessionObj)
                     } catch (e) { return }
-
-                    const childName = childOptions.find(c => c.id === playerId)?.name || playerId
-
-                    const renderCard = (
-                        <SessionCardParent
-                            key={`${instId}_${playerId}`}
-                            instId={instId} inst={inst} def={def}
-                            attendance={attendance} rosters={rosters} players={players}
-                            sessionMessages={sessionMessages}
-                            sessionFeedback={feedbackData}
-                            childName={childName} playerId={playerId}
-                            nowMs={nowMs} onPreStatus={handleParentPreStatus}
-                        />
-                    )
-
-                    const sessionObj = { instId, inst, def, renderCard }
-
-                    if (sessionStartMs <= nowMs && sessionEndMs >= nowMs) activeSessions.push(sessionObj)
-                    else if (sessionStartMs > nowMs && inst.date === localToday) todaySessions.push(sessionObj)
-                    else if (sessionStartMs > nowMs) upcomingSessions.push(sessionObj)
-                    else pastSessions.push(sessionObj)
                 })
             })
+
+        activeSessions.sort(compareSessionItems)
+        todaySessions.sort(compareSessionItems)
+        upcomingSessions.sort(compareSessionItems)
+        pastSessions.sort((a, b) => compareSessionItems(b, a))
 
         const totalVisible = activeSessions.length + todaySessions.length + upcomingSessions.length + pastSessions.length
 
@@ -1031,7 +1041,7 @@ export default function SessionListPage() {
                         <SessionGroup title="Aktiivne" sessions={activeSessions} defaultOpen={true} />
                         <SessionGroup title="Täna" sessions={todaySessions} defaultOpen={true} />
                         <SessionGroup title="Tulevased" sessions={upcomingSessions} defaultOpen={true} />
-                        <SessionGroup title="Möödunud" sessions={pastSessions.reverse()} defaultOpen={false} />
+                        <SessionGroup title="Möödunud" sessions={pastSessions} defaultOpen={false} />
                     </>
                 )}
             </div>
@@ -1046,56 +1056,49 @@ export default function SessionListPage() {
 
     Object.entries(instances)
         .filter(([_, inst]) => hasPermissionForInstance(inst))
-        .sort((a, b) => {
-            const startA = a[1].startTime || ""
-            const startB = b[1].startTime || ""
-            if (a[1].date !== b[1].date) return a[1].date.localeCompare(b[1].date)
-            return startA.localeCompare(startB)
-        })
         .forEach(([instId, inst]) => {
             const def = definitions[inst.definitionId] || null
-            let sessionStartMs = 0
-            let sessionEndMs = 0
             try {
-                const startTime = inst.startTime || def?.startTime || "00:00"
-                const endTime = inst.endTime || def?.endTime || "00:00"
-                sessionStartMs = new Date(combineDateAndTime(inst.date, startTime)).getTime()
-                sessionEndMs = new Date(combineDateAndTime(inst.date, endTime)).getTime()
+                const { startMs: sessionStartMs, endMs: sessionEndMs } = getSessionBounds(inst, def)
+                let bucket = "upcoming"
+                let isActive = false
+
+                if (sessionStartMs <= nowMs && sessionEndMs >= nowMs) {
+                    bucket = "active"
+                    isActive = true
+                } else if (sessionStartMs > nowMs && inst.date === localToday) {
+                    bucket = "today"
+                } else if (sessionStartMs > nowMs && inst.date > localToday) {
+                    bucket = "upcoming"
+                } else {
+                    bucket = "past"
+                }
+
+                const renderCard = (
+                    <SessionCardCoach
+                        key={instId}
+                        instId={instId} inst={inst} def={def}
+                        attendance={attendance} rosters={rosters}
+                        isActive={isActive}
+                        onClick={() => {
+                            try { localStorage.setItem("lastSessionId", instId) } catch (e) {}
+                            navigate(`/session/${instId}`)
+                        }}
+                    />
+                )
+
+                const sessionObj = { instId, inst, def, renderCard, sessionStartMs }
+                if (bucket === "active") activeSessions.push(sessionObj)
+                else if (bucket === "today") todaySessions.push(sessionObj)
+                else if (bucket === "upcoming") upcomingSessions.push(sessionObj)
+                else if (bucket === "past") pastSessions.push(sessionObj)
             } catch (e) { return }
-
-            let bucket = "upcoming"
-            let isActive = false
-
-            if (sessionStartMs <= nowMs && sessionEndMs >= nowMs) {
-                bucket = "active"
-                isActive = true
-            } else if (sessionStartMs > nowMs && inst.date === localToday) {
-                bucket = "today"
-            } else if (sessionStartMs > nowMs && inst.date > localToday) {
-                bucket = "upcoming"
-            } else {
-                bucket = "past"
-            }
-
-            const renderCard = (
-                <SessionCardCoach
-                    key={instId}
-                    instId={instId} inst={inst} def={def}
-                    attendance={attendance} rosters={rosters}
-                    isActive={isActive}
-                    onClick={() => {
-                        try { localStorage.setItem("lastSessionId", instId) } catch (e) {}
-                        navigate(`/session/${instId}`)
-                    }}
-                />
-            )
-
-            const sessionObj = { instId, inst, def, renderCard }
-            if (bucket === "active") activeSessions.push(sessionObj)
-            else if (bucket === "today") todaySessions.push(sessionObj)
-            else if (bucket === "upcoming") upcomingSessions.push(sessionObj)
-            else if (bucket === "past") pastSessions.push(sessionObj)
         })
+
+    activeSessions.sort(compareSessionItems)
+    todaySessions.sort(compareSessionItems)
+    upcomingSessions.sort(compareSessionItems)
+    pastSessions.sort((a, b) => compareSessionItems(b, a))
 
     const totalVisible = activeSessions.length + todaySessions.length + upcomingSessions.length + pastSessions.length
 
@@ -1148,7 +1151,7 @@ export default function SessionListPage() {
                     <SessionGroup title="Aktiivne" sessions={activeSessions} defaultOpen={true} />
                     <SessionGroup title="Täna" sessions={todaySessions} defaultOpen={true} />
                     <SessionGroup title="Tulevased" sessions={upcomingSessions} defaultOpen={true} />
-                    <SessionGroup title="Möödunud" sessions={pastSessions.reverse()} defaultOpen={false} />
+                    <SessionGroup title="Möödunud" sessions={pastSessions} defaultOpen={false} />
                 </>
             )}
         </div>
