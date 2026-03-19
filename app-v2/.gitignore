@@ -25,3 +25,6 @@ dist-ssr
 
 # Emulator Data
 emulator-data/
+.env.development
+.env.production
+.env.local

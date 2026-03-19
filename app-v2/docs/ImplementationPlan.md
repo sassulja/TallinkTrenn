@@ -1,7 +1,7 @@
 # Tallink Trenn v2 — Master Implementation Plan
 
 **Schema Version:** Frozen v1.0
-**Last Updated:** 2026-03-19
+**Last Updated:** 2026-03-20
 **Architecture:** React + Firebase RTDB (Single Role Routing, Deterministic IDs)
 
 ## Status Legend
@@ -125,41 +125,79 @@
   sessionEnd+24h → feedback visible, 
   sessionEnd+7d → edit lock.
 
-- [ ] ⬜ **9.8 — Cross-Role Consistency:** 
+- [x] ✅ **9.8 — Cross-Role Consistency:** 
   Same data must look consistent across coach, 
   player, parent, admin. Audit known mismatches.
 
-- [ ] ⬜ **9.9 — Deferred to Phase 10:** List ordering, 
-  write collisions, data fallback safety, session 
-  generation edge cases, mobile layout audit, 
-  security rules audit.
-  
-- [ ] ⬜ **9.9 — List Ordering + Grouping Rules:** 
-  Confirm sorting always correct: today vs future 
-  vs past, multiple children parent view, removed 
-  players at bottom.
+- ## Phase 10 — Production Readiness & Stability
 
-- [ ] ⬜ **9.10 — Write Collision Handling:** 
-  App behaves predictably when two users act 
-  simultaneously. preStatus + coach override 
-  conflict handling.
+- [x] ✅ **10.1 — Security Rules Audit:** Verify all 
+  RTDB rules per role. No cross-player access, no 
+  unintended writes, correct path scoping for 
+  attendance, feedback, roster. Remove permissive 
+  defaults. Test read/write boundaries.
 
-- [ ] ⬜ **9.11 — Data Fallback Safety:** 
-  App must not break if data is missing: no 
-  attendance node, partial feedback node, 
-  missing player link.
+- [x] ✅ **10.2 — Production Environment Setup:** 
+  Separate Firebase production project. Configure 
+  .env for dev vs prod. Correct database URLs, no 
+  emulator dependencies. Verify auth + database 
+  in prod.
 
-- [ ] ⬜ **9.12 — Session Generation Edge Cases:** 
-  Handle sync on definitions with no enrollments, 
-  gaps in date ranges, duplicate instance prevention.
+- [ ] ⬜ **10.3.1 — List Ordering + Grouping Rules:** 
+  Correct sorting today/future/past. Parent view 
+  multiple children handled correctly. Removed 
+  players always at bottom. Stable ordering across 
+  reloads.
 
-- [ ] ⬜ **9.13 — Mobile Layout Audit:** 
-  Audit non-optimized pages for mobile usability. 
-  AdminPage, RosterPage, AttendancePage.
+- [ ] ⬜ **10.3.2 — Write Collision Handling:** 
+  Define behavior for simultaneous updates. 
+  Deterministic outcome, no silent overwrites. 
+  Minimal conflict resolution where needed.
 
-- [ ] ⬜ **9.14 — Security Rules Audit:** 
-  Final security sweep before Phase 10 deployment. 
-  Verify all rules match intended permissions.
+- [ ] ⬜ **10.3.3 — Data Fallback Safety:** App must 
+  not break when attendance node missing, feedback 
+  partially missing, player link missing. Safe 
+  defaults, UI still renders, no runtime errors.
 
-## Phase 10 — Deployment & Lockdown
-- [ ] ⬜ **10.1 Production Rules Tightening:** Final security sweep and release checklist.
+- [ ] ⬜ **10.3.4 — Session Generation Edge Cases:** 
+  Handle definitions with no enrollments, gaps in 
+  date ranges, duplicate instance prevention. 
+  Idempotent generation, no duplicate sessions.
+
+- [ ] ⬜ **10.4 — Deployment:** Build production 
+  bundle, deploy to Firebase Hosting, configure 
+  domain. Verify login, data loads, no console 
+  errors.
+
+- [ ] ⬜ **10.5 — Release Checklist:** Smoke test 
+  all role flows. Verify no crashes, no broken UI 
+  states. Lock Phase 10.
+
+## Phase 11 — UI / UX Polish & Usability
+
+- [ ] ⬜ **11.1 — Mobile Layout Audit:** Review 
+  AdminPage, RosterPage, AttendancePage. Fix 
+  overflow, touch targets, spacing. Usable on 
+  phone without zoom.
+
+- [ ] ⬜ **11.2 — Layout & Visual Consistency:** 
+  Standardize spacing, typography, container 
+  widths. Align headers, sections, cards.
+
+- [ ] ⬜ **11.3 — Component Standardization:** 
+  Replace repeated UI with reusable components. 
+  Buttons, status badges, lists/rows. Reduce 
+  inline styles.
+
+- [ ] ⬜ **11.4 — Visual Hierarchy & Clarity:** 
+  Improve primary vs secondary actions, status 
+  visibility. Feedback easier to scan, statuses 
+  instantly understandable.
+
+- [ ] ⬜ **11.5 — UX Improvements:** Loading states, 
+  empty states, error feedback. Remove confusing 
+  or redundant elements.
+
+- [ ] ⬜ **11.6 — Final UI Cleanup:** Remove leftover 
+  debug/UI inconsistencies. Consistent look across 
+  all pages.
