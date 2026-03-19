@@ -365,3 +365,5 @@ Do not implement now. Document only.
 [2026-03-19] Coach /admin Access: Coach navigating to /admin is silently redirected to /sessions. No explicit access denied page shown — redirect is the correct UX for role mismatch. Explicit access denied messages only shown within permitted pages when specific session permission is missing.
 
 [2026-03-19] Session Default Tab Edge Case: Sessions starting within 60 minutes default to Kohalolek tab, not Staatus tab. This is correct behavior — the active window starts at sessionStart - 60min, and at that point player/parent preStatus is already locked. Coach has no preStatus actions remaining so Kohalolek is the appropriate default.
+
+[2026-03-19] Admin Feedback Real-Time Update: Admin Tagasiside tab does not auto-refresh when player submits feedback from another session. Admin must reload the session page to see newly submitted player feedback. This is acceptable — admin feedback review is not a real-time workflow. Real-time feedback sync deferred to Phase 10 if needed.
