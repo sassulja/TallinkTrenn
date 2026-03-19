@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { ref, get } from "firebase/database";
 import { database } from "../services/firebase";
-import { getTallinnNow } from "../utils/dateUtils";
+import { getTallinnNow, combineDateAndTime } from "../utils/dateUtils";
 import { useNavigate } from "react-router-dom";
 import { LoadingSpinner, ErrorMessage, EmptyState } from "../components/UIHelpers";
 
@@ -130,13 +130,18 @@ export default function FeedbackAnalyticsPage() {
         const validInsts = [];
         Object.entries(instances).forEach(([id, inst]) => {
             if (sportFilter !== "all" && inst.sport !== sportFilter) return;
-            const instEndMs = new Date(`${inst.date}T${inst.endTime || "23:59"}:00+02:00`).getTime();
+            const instEndMs = new Date(combineDateAndTime(inst.date, inst.endTime || "23:59")).getTime();
             if (instEndMs >= cutoffMs) {
-                validInsts.push({ id, ...inst, endMs: instEndMs });
+                const startMs = new Date(combineDateAndTime(inst.date, inst.startTime || "00:00")).getTime();
+                validInsts.push({ id, ...inst, endMs: instEndMs, startMs });
             }
         });
         
-        validInsts.sort((a,b) => new Date(`${a.date}T${a.startTime || "00:00"}`).getTime() - new Date(`${b.date}T${b.startTime || "00:00"}`).getTime());
+        validInsts.sort((a, b) => {
+            const startDiff = a.startMs - b.startMs;
+            if (startDiff !== 0) return startDiff;
+            return a.id.localeCompare(b.id);
+        });
 
         let totalAttended = 0;
         let totalPlayerFb = 0;
@@ -242,7 +247,13 @@ export default function FeedbackAnalyticsPage() {
             });
         });
 
-        playerRows.sort((a,b) => b.attended - a.attended);
+        playerRows.sort((a, b) => {
+            const attendedDiff = b.attended - a.attended;
+            if (attendedDiff !== 0) return attendedDiff;
+            const nameCompare = a.name.localeCompare(b.name, "et");
+            if (nameCompare !== 0) return nameCompare;
+            return a.id.localeCompare(b.id);
+        });
 
         return { avgPEffort, avgCEng, avgCEffort, responseRate, chartData, playerRows };
 

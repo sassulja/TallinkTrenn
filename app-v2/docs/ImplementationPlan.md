@@ -143,7 +143,7 @@
   emulator dependencies. Verify auth + database 
   in prod.
 
-- [ ] ⬜ **10.3.1 — List Ordering + Grouping Rules:** 
+- [x]  ✅ **10.3.1 — List Ordering + Grouping Rules:** 
   Correct sorting today/future/past. Parent view 
   multiple children handled correctly. Removed 
   players always at bottom. Stable ordering across 
