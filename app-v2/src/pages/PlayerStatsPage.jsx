@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { ref, get } from "firebase/database"
 import { database } from "../services/firebase"
-import { getTallinnNow } from "../utils/dateUtils"
+import { getTallinnNow, combineDateAndTime } from "../utils/dateUtils"
 import { LoadingSpinner, ErrorMessage, EmptyState } from "../components/UIHelpers"
 
 function formatEstonianDate(dateStr) {
@@ -124,7 +124,7 @@ export default function PlayerStatsPage() {
                     if (playerRosterData.removedByCoach) return false
                     
                     const endTime = inst.endTime || "00:00"
-                    const sessionEndMs = new Date(`${inst.date}T${endTime}:00+02:00`).getTime() // Approximate TZ
+                    const sessionEndMs = new Date(combineDateAndTime(inst.date, endTime)).getTime()
                     
                     return sessionEndMs < nowMs
                 })
@@ -138,14 +138,17 @@ export default function PlayerStatsPage() {
                     const inst = instances[id]
                     const rData = allRosters[id][playerId]
                     const att = attSnaps[index].val() || null
-                    const startTime = inst.startTime || "00:00"
-                    const startMs = new Date(`${inst.date}T${startTime}:00+02:00`).getTime()
+                    const endTime = inst.endTime || "00:00"
+                    const endMs = new Date(combineDateAndTime(inst.date, endTime)).getTime()
 
-                    return { id, inst, rData, att, startMs }
+                    return { id, inst, rData, att, endMs }
                 })
 
-                // Sort newest first
-                parsedSessions.sort((a, b) => b.startMs - a.startMs)
+                parsedSessions.sort((a, b) => {
+                    const endDiff = b.endMs - a.endMs
+                    if (endDiff !== 0) return endDiff
+                    return a.id.localeCompare(b.id)
+                })
                 setAllPastSessions(parsedSessions)
 
             } catch (err) {
@@ -166,7 +169,7 @@ export default function PlayerStatsPage() {
         const daysToMs = parseInt(dateRange, 10) * 24 * 60 * 60 * 1000
         const cutoffMs = nowMs - daysToMs
         
-        return allPastSessions.filter(s => s.startMs >= cutoffMs)
+        return allPastSessions.filter(s => s.endMs >= cutoffMs)
     }, [allPastSessions, dateRange])
 
     const stats = useMemo(() => {

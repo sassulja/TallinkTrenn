@@ -25,6 +25,12 @@ function formatEstonianDate(dateStr) {
     return `${d}.${m}.${y} (${days[dateObj.getDay()]})`
 }
 
+function compareRosterNames(nameA, idA, nameB, idB) {
+    const nameCompare = nameA.localeCompare(nameB, "et")
+    if (nameCompare !== 0) return nameCompare
+    return idA.localeCompare(idB)
+}
+
 // ─── Tab Bar ────────────────────────────────────────────
 function TabBar({ activeTab, onTabChange }) {
     const tabs = [
@@ -551,19 +557,13 @@ export default function SessionPage() {
         const removedB = rB.removedByCoach === true
         if (removedA && !removedB) return 1
         if (!removedA && removedB) return -1
-        if (!removedA && !removedB) {
-            const psA = localAtt[pIdA]?.preStatus || "null"
-            const psB = localAtt[pIdB]?.preStatus || "null"
-            const order = { kinnitatud: 1, eiOsale: 2, null: 3 }
-            if ((order[psA] || 4) !== (order[psB] || 4)) return (order[psA] || 4) - (order[psB] || 4)
-        }
         const nA = players[pIdA] ? `${players[pIdA].firstName} ${players[pIdA].lastName}` : pIdA
         const nB = players[pIdB] ? `${players[pIdB].firstName} ${players[pIdB].lastName}` : pIdB
-        return nA.localeCompare(nB)
+        return compareRosterNames(nA, pIdA, nB, pIdB)
     })
 
     const availableForWalkIn = Object.entries(allPlayers).filter(([pId, p]) => p.active && !roster[pId])
-        .sort((a, b) => `${a[1].firstName} ${a[1].lastName}`.localeCompare(`${b[1].firstName} ${b[1].lastName}`))
+        .sort((a, b) => compareRosterNames(`${a[1].firstName} ${a[1].lastName}`, a[0], `${b[1].firstName} ${b[1].lastName}`, b[0]))
     const availableForRosterAdd = availableForWalkIn // same list
 
     const pendingReqs = Object.entries(extraRequests).filter(([, r]) => r.status === "pending")

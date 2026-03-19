@@ -207,19 +207,23 @@ export default function HistoryPage() {
                 if (!currentRoster[targetPlayerId]) return
                 if (currentRoster[targetPlayerId].removedByCoach) return
 
-                let sessionEndMs = 0
+                let sessionStartMs = 0
                 try {
+                    const startTime = inst.startTime || def.startTime || "00:00"
                     const endTime = inst.endTime || def.endTime || "00:00"
-                    sessionEndMs = new Date(combineDateAndTime(inst.date, endTime)).getTime()
+                    sessionStartMs = new Date(combineDateAndTime(inst.date, startTime)).getTime()
+                    const sessionEndMs = new Date(combineDateAndTime(inst.date, endTime)).getTime()
+                    if (sessionEndMs >= nowMs) return
                 } catch (e) { return }
 
-                // Only past sessions
-                if (sessionEndMs >= nowMs) return
-
-                historySessions.push({ instId, inst, def, sessionEndMs })
+                historySessions.push({ instId, inst, def, sessionStartMs })
             })
 
-        historySessions.sort((a, b) => b.sessionEndMs - a.sessionEndMs) // Descending (newest first)
+        historySessions.sort((a, b) => {
+            const startDiff = b.sessionStartMs - a.sessionStartMs
+            if (startDiff !== 0) return startDiff
+            return a.instId.localeCompare(b.instId)
+        })
     }
 
     // Parent UI
@@ -229,7 +233,11 @@ export default function HistoryPage() {
         const childOptions = linkedPlayerIds.map(pId => {
             const p = players[pId]
             return { id: pId, name: p ? `${p.firstName} ${p.lastName}` : pId }
-        }).sort((a, b) => a.name.localeCompare(b.name))
+        }).sort((a, b) => {
+            const nameCompare = a.name.localeCompare(b.name, "et")
+            if (nameCompare !== 0) return nameCompare
+            return a.id.localeCompare(b.id)
+        })
 
         if (childOptions.length === 0) {
             return <div style={{ padding: "20px", maxWidth: "600px", margin: "0 auto" }}>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { ref, get } from "firebase/database"
 import { database } from "../services/firebase"
-import { getTallinnNow } from "../utils/dateUtils"
+import { getTallinnNow, combineDateAndTime } from "../utils/dateUtils"
 import { PRESTATUS_LABELS, REALSTATUS_LABELS } from "../utils/displayUtils"
 import { LoadingSpinner, ErrorMessage } from "../components/UIHelpers"
 
@@ -139,25 +139,23 @@ export default function AdminAttendancePage() {
         // Filter instances
         let processable = Object.entries(instances).map(([id, inst]) => {
             const startTime = inst.startTime || "00:00"
-            const startMs = new Date(`${inst.date}T${startTime}:00+02:00`).getTime() // rough
-            return { id, inst, startMs }
+            const endTime = inst.endTime || "00:00"
+            const startMs = new Date(combineDateAndTime(inst.date, startTime)).getTime()
+            const endMs = new Date(combineDateAndTime(inst.date, endTime)).getTime()
+            return { id, inst, startMs, endMs }
         }).filter(item => {
-            // Must be past session
-            const endTime = item.inst.endTime || "00:00"
-            const endMs = new Date(`${item.inst.date}T${endTime}:00+02:00`).getTime()
-            if (endMs >= nowMs) return false
+            if (item.endMs >= nowMs) return false
             
-            // Must be within date range
             if (item.startMs < cutoffMs) return false
-
-            // Must match sport
             if (selectedSport !== "all" && item.inst.sport !== selectedSport) return false
-            
             return true
         })
 
-        // Sort ascending (oldest to newest)
-        processable.sort((a, b) => a.startMs - b.startMs)
+        processable.sort((a, b) => {
+            const startDiff = a.startMs - b.startMs
+            if (startDiff !== 0) return startDiff
+            return a.id.localeCompare(b.id)
+        })
 
         // Limit to max 60 columns (taking newest 60)
         let maxColsHit = false
@@ -168,7 +166,11 @@ export default function AdminAttendancePage() {
 
         // Filter players
         let pList = Object.entries(players).map(([id, p]) => ({ id, name: `${p.firstName} ${p.lastName}` }))
-        pList.sort((a, b) => a.name.localeCompare(b.name, "et-EE"))
+        pList.sort((a, b) => {
+            const nameCompare = a.name.localeCompare(b.name, "et")
+            if (nameCompare !== 0) return nameCompare
+            return a.id.localeCompare(b.id)
+        })
         if (selectedPlayer !== "all") pList = pList.filter(p => p.id === selectedPlayer)
 
         // Compute Stats
@@ -244,7 +246,13 @@ export default function AdminAttendancePage() {
 
                 <select value={selectedPlayer} onChange={e => setSelectedPlayer(e.target.value)} style={{ padding: "8px", borderRadius: "4px", border: "1px solid #d1d5db", minWidth: "200px" }}>
                     <option value="all">Kõik mängijad</option>
-                    {Object.entries(players).sort((a,b) => a[1].firstName.localeCompare(b[1].firstName)).map(([id, p]) => (
+                    {Object.entries(players).sort((a, b) => {
+                        const nameA = `${a[1].firstName} ${a[1].lastName}`
+                        const nameB = `${b[1].firstName} ${b[1].lastName}`
+                        const nameCompare = nameA.localeCompare(nameB, "et")
+                        if (nameCompare !== 0) return nameCompare
+                        return a[0].localeCompare(b[0])
+                    }).map(([id, p]) => (
                         <option key={id} value={id}>{p.firstName} {p.lastName}</option>
                     ))}
                 </select>
