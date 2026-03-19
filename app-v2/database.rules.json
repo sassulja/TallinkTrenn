@@ -1,0 +1,107 @@
+{
+  "rules": {
+    "users": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      "$uid": {
+        ".read": "auth != null && $uid === auth.uid",
+        ".write": "(auth != null && $uid === auth.uid && !data.exists()) || (auth != null && $uid === auth.uid && (!newData.hasChild('role') || newData.child('role').val() === data.child('role').val()))"
+      }
+    },
+    "players": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'coach' || root.child('users').child(auth.uid).child('role').val() === 'player' || root.child('users').child(auth.uid).child('role').val() === 'parent')",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      "$playerId": {
+        ".read": "auth != null && ((root.child('users').child(auth.uid).child('role').val() === 'player' && $playerId === root.child('users').child(auth.uid).child('playerId').val()) || (root.child('users').child(auth.uid).child('role').val() === 'parent' && root.child('parentLinks').child(auth.uid).child($playerId).exists()))"
+      }
+    },
+    "sessionDefinitions": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'coach' || root.child('users').child(auth.uid).child('role').val() === 'player' || root.child('users').child(auth.uid).child('role').val() === 'parent')",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    },
+    "sessionInstances": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'coach' || root.child('users').child(auth.uid).child('role').val() === 'player' || root.child('users').child(auth.uid).child('role').val() === 'parent')",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    },
+    "rosters": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'coach' || root.child('users').child(auth.uid).child('role').val() === 'player' || root.child('users').child(auth.uid).child('role').val() === 'parent')",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      "$instanceId": {
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'coach' && (root.child('coachPermissions').child(auth.uid).child('global').val() === true || root.child('coachPermissions').child(auth.uid).child('sessionDefinitions').child(root.child('sessionInstances').child($instanceId).child('definitionId').val()).val() === true || root.child('sessionInstances').child($instanceId).child('assignedCoachIds').child(auth.uid).val() === true))"
+      }
+    },
+    "recurringEnrollments": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    },
+    "recurringChanges": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    },
+    "coachPermissions": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      "$uid": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (root.child('users').child(auth.uid).child('role').val() === 'coach' && $uid === auth.uid))"
+      }
+    },
+    "parentLinks": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      "$parentId": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (root.child('users').child(auth.uid).child('role').val() === 'parent' && $parentId === auth.uid))"
+      }
+    },
+    "attendance": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'coach' || root.child('users').child(auth.uid).child('role').val() === 'player' || root.child('users').child(auth.uid).child('role').val() === 'parent')",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      "$instanceId": {
+        ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'coach' && (root.child('coachPermissions').child(auth.uid).child('global').val() === true || root.child('coachPermissions').child(auth.uid).child('sessionDefinitions').child(root.child('sessionInstances').child($instanceId).child('definitionId').val()).val() === true || root.child('sessionInstances').child($instanceId).child('assignedCoachIds').child(auth.uid).val() === true)",
+        "$playerId": {
+          ".read": "auth != null && ((root.child('users').child(auth.uid).child('role').val() === 'player' && $playerId === root.child('users').child(auth.uid).child('playerId').val()) || (root.child('users').child(auth.uid).child('role').val() === 'parent' && root.child('parentLinks').child(auth.uid).child($playerId).exists()))",
+          ".write": "auth != null && ((root.child('users').child(auth.uid).child('role').val() === 'player' && $playerId === root.child('users').child(auth.uid).child('playerId').val()) || (root.child('users').child(auth.uid).child('role').val() === 'parent' && root.child('parentLinks').child(auth.uid).child($playerId).exists())) && newData.child('realStatus').val() === data.child('realStatus').val() && (newData.child('lateCancel').val() === data.child('lateCancel').val() || (!data.exists() && newData.child('lateCancel').val() === false))"
+        }
+      }
+    },
+    "extraRequests": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'coach' || root.child('users').child(auth.uid).child('role').val() === 'player' || root.child('users').child(auth.uid).child('role').val() === 'parent')",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      "$instanceId": {
+        ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'coach' && (root.child('coachPermissions').child(auth.uid).child('global').val() === true || root.child('coachPermissions').child(auth.uid).child('sessionDefinitions').child(root.child('sessionInstances').child($instanceId).child('definitionId').val()).val() === true || root.child('sessionInstances').child($instanceId).child('assignedCoachIds').child(auth.uid).val() === true)",
+        "$playerId": {
+          ".read": "auth != null && ((root.child('users').child(auth.uid).child('role').val() === 'player' && $playerId === root.child('users').child(auth.uid).child('playerId').val()) || (root.child('users').child(auth.uid).child('role').val() === 'parent' && root.child('parentLinks').child(auth.uid).child($playerId).exists()))",
+          ".write": "auth != null && ((root.child('users').child(auth.uid).child('role').val() === 'player' && $playerId === root.child('users').child(auth.uid).child('playerId').val()) || (root.child('users').child(auth.uid).child('role').val() === 'parent' && root.child('parentLinks').child(auth.uid).child($playerId).exists()))"
+        }
+      }
+    },
+    "invitations": {
+      ".read": "true",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      "$inviteId": {
+        ".read": "true",
+        ".write": "auth != null && data.child('status').val() === 'pending' && newData.child('status').val() === 'accepted' && newData.child('acceptedByUid').val() === auth.uid"
+      }
+    },
+    "sessionMessages": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      "$instanceId": {
+        ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'coach' && (root.child('coachPermissions').child(auth.uid).child('global').val() === true || root.child('coachPermissions').child(auth.uid).child('sessionDefinitions').child(root.child('sessionInstances').child($instanceId).child('definitionId').val()).val() === true || root.child('sessionInstances').child($instanceId).child('assignedCoachIds').child(auth.uid).val() === true)"
+      }
+    },
+    "feedback": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      "$instanceId": {
+        "$playerId": {
+          "coach": {
+            ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (root.child('users').child(auth.uid).child('role').val() === 'coach' && (root.child('coachPermissions').child(auth.uid).child('global').val() === true || root.child('coachPermissions').child(auth.uid).child('sessionDefinitions').child(root.child('sessionInstances').child($instanceId).child('definitionId').val()).val() === true || root.child('sessionInstances').child($instanceId).child('assignedCoachIds').child(auth.uid).val() === true)))"
+          },
+          "player": {
+            ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (root.child('users').child(auth.uid).child('role').val() === 'player' && root.child('users').child(auth.uid).child('playerId').val() === $playerId))"
+          }
+        }
+      }
+    }
+  }
+}
