@@ -209,7 +209,24 @@ export default function PreStatusPage() {
                 }
                 return updatedAtt
             })
-            setMsg("Success: Eelstaatus salvestatud.")
+
+            if (newStatus === "kinnitatud") {
+                const latestAttendanceSnap = await get(ref(database, `attendance/${instId}`))
+                const latestAttendance = latestAttendanceSnap.val() || {}
+                let latestKinnitatudCount = 0
+                Object.keys(latestAttendance).forEach(pid => {
+                    const rosterData = currentRoster[pid] || {}
+                    if (rosterData.removedByCoach || rosterData.walkIn) return
+                    if (latestAttendance[pid]?.preStatus === "kinnitatud") latestKinnitatudCount++
+                })
+                if (latestKinnitatudCount > capacity) {
+                    setMsg("Treening on täis. Palun kontrollige oma kinnitust.")
+                } else {
+                    setMsg("Eelstaatus salvestatud.")
+                }
+            } else {
+                setMsg("Eelstaatus salvestatud.")
+            }
         } catch (err) {
             console.error(err)
             setMsg(`Error: ${err.message}`)
