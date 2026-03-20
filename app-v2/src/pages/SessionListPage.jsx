@@ -702,8 +702,25 @@ export default function SessionListPage() {
                 }
                 return updatedAtt
             })
-            
-            setParentMsg("Eelstaatus salvestatud.")
+
+            if (newStatus === "kinnitatud") {
+                const latestAttendanceSnap = await get(ref(database, `attendance/${instId}`))
+                const latestAttendance = latestAttendanceSnap.val() || {}
+                const latestRoster = rosters[instId] || {}
+                let latestKinnitatudCount = 0
+                Object.keys(latestAttendance).forEach(pid => {
+                    const rd = latestRoster[pid] || {}
+                    if (rd.removedByCoach || rd.walkIn) return
+                    if (latestAttendance[pid]?.preStatus === "kinnitatud") latestKinnitatudCount++
+                })
+                if (latestKinnitatudCount > capacity) {
+                    setParentMsg("Treening on täis. Palun kontrollige oma kinnitust.")
+                } else {
+                    setParentMsg("Eelstaatus salvestatud.")
+                }
+            } else {
+                setParentMsg("Eelstaatus salvestatud.")
+            }
         } catch (err) {
             console.error("Parent preStatus write failed", err)
             setParentMsg(`Viga: ${err.message}`)
@@ -770,8 +787,25 @@ export default function SessionListPage() {
                 }
                 return updatedAtt
             })
-            
-            setParentMsg("Eelstaatus salvestatud.")
+
+            if (newStatus === "kinnitatud") {
+                const latestAttendanceSnap = await get(ref(database, `attendance/${instId}`))
+                const latestAttendance = latestAttendanceSnap.val() || {}
+                const latestRoster = rosters[instId] || {}
+                let latestKinnitatudCount = 0
+                Object.keys(latestAttendance).forEach(pid => {
+                    const rd = latestRoster[pid] || {}
+                    if (rd.removedByCoach || rd.walkIn) return
+                    if (latestAttendance[pid]?.preStatus === "kinnitatud") latestKinnitatudCount++
+                })
+                if (latestKinnitatudCount > capacity) {
+                    setParentMsg("Treening on täis. Palun kontrollige oma kinnitust.")
+                } else {
+                    setParentMsg("Eelstaatus salvestatud.")
+                }
+            } else {
+                setParentMsg("Eelstaatus salvestatud.")
+            }
         } catch (err) {
             console.error("Player preStatus write failed", err)
             setParentMsg(`Viga: ${err.message}`)
