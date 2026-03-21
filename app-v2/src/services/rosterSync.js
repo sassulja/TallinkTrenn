@@ -6,6 +6,28 @@ import { addDays, format } from "date-fns";
 
 const TALLINN_TZ = "Europe/Tallinn";
 
+function hasValidDateRange(record) {
+    if (!record || !record.effectiveFrom) {
+        return false;
+    }
+
+    const from = new Date(record.effectiveFrom);
+    if (isNaN(from)) {
+        return false;
+    }
+
+    if (!record.effectiveTo) {
+        return true;
+    }
+
+    const to = new Date(record.effectiveTo);
+    if (isNaN(to)) {
+        return false;
+    }
+
+    return from <= to;
+}
+
 /**
  * Synchronizes the rosters for sessionInstances within the 30-day horizon.
  * Additive and protective rules. Applies enrollments and individual date changes.
@@ -33,14 +55,16 @@ export async function syncRostersForNext30Days(runByUserId) {
 
     // 2. Read only required tables
     const dbRef = ref(database);
-    const [instancesSnap, enrollmentsSnap, changesSnap, rostersSnap] = await Promise.all([
+    const [instancesSnap, definitionsSnap, enrollmentsSnap, changesSnap, rostersSnap] = await Promise.all([
         get(ref(database, 'sessionInstances')),
+        get(ref(database, 'sessionDefinitions')),
         get(ref(database, 'recurringEnrollments')),
         get(ref(database, 'recurringChanges')),
         get(ref(database, 'rosters'))
     ]);
 
     const instances = instancesSnap.exists() ? instancesSnap.val() : {};
+    const definitions = definitionsSnap.exists() ? definitionsSnap.val() : {};
     const enrollments = enrollmentsSnap.exists() ? enrollmentsSnap.val() : {};
     const changes = changesSnap.exists() ? changesSnap.val() : {};
     const existingRosters = rostersSnap.exists() ? rostersSnap.val() : {};
@@ -62,6 +86,9 @@ export async function syncRostersForNext30Days(runByUserId) {
         instancesProcessedCount++;
         const dateD = instanceData.date;
         const defId = instanceData.definitionId;
+        if (!definitions[defId]) {
+            continue;
+        }
 
         // Build Expected Players Set based on Policy
         const expectedPlayers = new Set();
@@ -69,6 +96,10 @@ export async function syncRostersForNext30Days(runByUserId) {
         // A) Process base recurring enrollments for this definition
         const defEnrollments = enrollments[defId] || {};
         for (const [playerId, enrollData] of Object.entries(defEnrollments)) {
+            if (!hasValidDateRange(enrollData)) {
+                continue;
+            }
+
             if (enrollData.active) {
                 const effFrom = enrollData.effectiveFrom;
                 const effTo = enrollData.effectiveTo;
@@ -85,6 +116,10 @@ export async function syncRostersForNext30Days(runByUserId) {
         // B) Apply recurringChanges (Precedence over base)
         const defChanges = changes[defId] || {};
         for (const [, changeData] of Object.entries(defChanges)) {
+            if (!hasValidDateRange(changeData)) {
+                continue;
+            }
+
             // Check if change applies to Date D
             const cFrom = changeData.effectiveFrom;
             const cTo = changeData.effectiveTo;
@@ -107,6 +142,10 @@ export async function syncRostersForNext30Days(runByUserId) {
         // Re-process changes accurately prioritizing REMOVE over ADD.
         const playerChangesForDate = {}; // { playerId: "add" | "remove" }
         for (const [, changeData] of Object.entries(defChanges)) {
+            if (!hasValidDateRange(changeData) || !changeData.playerId || (changeData.action !== "add" && changeData.action !== "remove")) {
+                continue;
+            }
+
             const cFrom = changeData.effectiveFrom;
             const cTo = changeData.effectiveTo;
 
