@@ -228,7 +228,7 @@ export default function RosterPage() {
                             <tbody>
                                 {Object.entries(currentRoster).map(([pId, rData]) => {
                                     const p = players[pId]
-                                    const pName = p ? `${p.firstName} ${p.lastName}` : pId
+                                    const pName = p ? `${p.firstName} ${p.lastName}` : "Tundmatu mängija"
                                     const isRemoved = rData.removedByCoach === true
                                     const canRemove = hasPermForSelected && (
                                         role === "admin" ||

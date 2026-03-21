@@ -392,7 +392,7 @@ export default function AttendancePage() {
                                     })
                                     .map(([pId, rData]) => {
                                         const p = players[pId]
-                                        const pName = p ? `${p.firstName} ${p.lastName}` : pId
+                                        const pName = p ? `${p.firstName} ${p.lastName}` : "Tundmatu mängija"
                                         const isRemoved = rData.removedByCoach === true
                                         const attRecord = attendance[selectedInstanceId]?.[pId] || {}
 

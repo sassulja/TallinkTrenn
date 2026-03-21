@@ -188,7 +188,7 @@ export default function HistoryPage() {
     if (role === "player" && !targetPlayerId) {
         return <div style={{ padding: "20px", maxWidth: "600px", margin: "0 auto" }}>
             <h2 style={{ marginBottom: "16px" }}>Ajalugu</h2>
-            <EmptyState message="Ajalugu tühi." />
+            <EmptyState message="Mängija andmed puuduvad." />
         </div>
     }
 
@@ -232,7 +232,7 @@ export default function HistoryPage() {
         const linkedPlayerIds = Object.keys(parentLinks).filter(id => parentLinks[id] === true)
         const childOptions = linkedPlayerIds.map(pId => {
             const p = players[pId]
-            return { id: pId, name: p ? `${p.firstName} ${p.lastName}` : pId }
+            return { id: pId, name: p ? `${p.firstName} ${p.lastName}` : "Tundmatu mängija" }
         }).sort((a, b) => {
             const nameCompare = a.name.localeCompare(b.name, "et")
             if (nameCompare !== 0) return nameCompare
