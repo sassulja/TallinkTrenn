@@ -2,7 +2,7 @@ import { Outlet } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
 
 export default function AppLayout() {
-    const { isAuthed, logout, role } = useAuth()
+    const { isAuthed, logout, role, displayName } = useAuth()
 
     return (
         <div>
@@ -21,7 +21,7 @@ export default function AppLayout() {
                 {isAuthed && (
                     <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
                         <span style={{ fontSize: "14px", opacity: 0.7 }}>
-                            {role}
+                            {displayName || role}
                         </span>
                         <button
                             onClick={logout}

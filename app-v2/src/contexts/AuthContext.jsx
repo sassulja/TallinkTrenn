@@ -8,6 +8,7 @@ const AuthContext = createContext(null)
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null)
     const [role, setRole] = useState(null)
+    const [displayName, setDisplayName] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
@@ -15,18 +16,27 @@ export function AuthProvider({ children }) {
             if (firebaseUser) {
                 setUser(firebaseUser)
 
-                // 🔥 Load role from database
-                const roleRef = ref(database, `users/${firebaseUser.uid}/role`)
-                const snapshot = await get(roleRef)
+                // 🔥 Load role and display name from database
+                const [roleSnapshot, displayNameSnapshot] = await Promise.all([
+                    get(ref(database, `users/${firebaseUser.uid}/role`)),
+                    get(ref(database, `users/${firebaseUser.uid}/displayName`))
+                ])
 
-                if (snapshot.exists()) {
-                    setRole(snapshot.val())
+                if (roleSnapshot.exists()) {
+                    setRole(roleSnapshot.val())
                 } else {
                     setRole(null)
+                }
+
+                if (displayNameSnapshot.exists()) {
+                    setDisplayName(displayNameSnapshot.val())
+                } else {
+                    setDisplayName(null)
                 }
             } else {
                 setUser(null)
                 setRole(null)
+                setDisplayName(null)
             }
 
             setIsLoading(false)
@@ -43,11 +53,12 @@ export function AuthProvider({ children }) {
         () => ({
             user,
             role,
+            displayName,
             isLoading,
             isAuthed: !!user,
             logout,
         }),
-        [user, role, isLoading]
+        [user, role, displayName, isLoading]
     )
 
     return (
