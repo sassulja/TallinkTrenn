@@ -158,7 +158,7 @@ export default function ExportPage() {
 
                 playersInRoster.forEach(pId => {
                     const p = players[pId];
-                    const pName = p ? `${p.firstName} ${p.lastName}` : pId;
+                    const pName = p ? `${p.firstName} ${p.lastName}` : "Tundmatu mängija";
                     
                     const att = attData[pId] || {};
                     const psMatch = PRE_STATUS_MAP[att.preStatus];

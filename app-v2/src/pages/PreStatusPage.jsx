@@ -396,8 +396,6 @@ export default function PreStatusPage() {
                         }
                     }
 
-                    if (playersToShow.length === 0) return null
-
                     return (
                         <div key={instId} style={{ border: "1px solid #ccc", padding: "15px", marginBottom: "15px", borderRadius: "5px" }}>
                             <h3>{formatDate(inst.date)} ({getDayOfWeek(inst.date)}) | {startTime} - {endTime}</h3>
@@ -419,51 +417,55 @@ export default function PreStatusPage() {
                                 </p>
                             )}
 
-                            <table border="1" cellPadding="6" style={{ borderCollapse: "collapse", width: "100%", marginTop: "10px" }}>
-                                <thead>
-                                    <tr style={{ backgroundColor: "#f5f5f5" }}>
-                                        <th>Mängija</th>
-                                        <th>Eelstaatus</th>
-                                        <th>Tegevused</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {playersToShow.map(pId => {
-                                        const p = players[pId]
-                                        const pName = p ? `${p.firstName} ${p.lastName}` : pId
-                                        const attRecord = attendance[instId]?.[pId] || {}
-                                        const preStat = attRecord.preStatus
+                            {playersToShow.length === 0 ? (
+                                <div style={{ marginTop: "10px", color: "#666" }}>Nimekiri on tühi.</div>
+                            ) : (
+                                <table border="1" cellPadding="6" style={{ borderCollapse: "collapse", width: "100%", marginTop: "10px" }}>
+                                    <thead>
+                                        <tr style={{ backgroundColor: "#f5f5f5" }}>
+                                            <th>Mängija</th>
+                                            <th>Eelstaatus</th>
+                                            <th>Tegevused</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {playersToShow.map(pId => {
+                                            const p = players[pId]
+                                            const pName = p ? `${p.firstName} ${p.lastName}` : "Tundmatu mängija"
+                                        const attRecord = attendance[instId]?.[pId] || { lateCancel: false }
+                                            const preStat = attRecord.preStatus
 
-                                        let preStatDisplay = "Vastamata"
-                                        if (preStat === "kinnitatud") preStatDisplay = "Kinnitatud"
-                                        if (preStat === "eiOsale") preStatDisplay = "Ei osale"
+                                            let preStatDisplay = "Vastamata"
+                                            if (preStat === "kinnitatud") preStatDisplay = "Kinnitatud"
+                                            if (preStat === "eiOsale") preStatDisplay = "Ei osale"
 
-                                        return (
-                                            <tr key={pId}>
-                                                <td>{pName}</td>
-                                                <td style={{ fontWeight: "bold" }}>{preStatDisplay}</td>
-                                                <td>
-                                                    <button
-                                                        disabled={appliesLock}
-                                                        onClick={() => handleSetPreStatus(instId, pId, "kinnitatud")}
-                                                        style={{ backgroundColor: preStat === 'kinnitatud' ? '#4caf50' : '', color: preStat === 'kinnitatud' ? 'white' : '' }}
-                                                    >
-                                                        Kinnitatud
-                                                    </button>
-                                                    {' '}
-                                                    <button
-                                                        disabled={appliesLock}
-                                                        onClick={() => handleSetPreStatus(instId, pId, "eiOsale")}
-                                                        style={{ backgroundColor: preStat === 'eiOsale' ? '#f44336' : '', color: preStat === 'eiOsale' ? 'white' : '' }}
-                                                    >
-                                                        Ei osale
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        )
-                                    })}
-                                </tbody>
-                            </table>
+                                            return (
+                                                <tr key={pId}>
+                                                    <td>{pName}</td>
+                                                    <td style={{ fontWeight: "bold" }}>{preStatDisplay}</td>
+                                                    <td>
+                                                        <button
+                                                            disabled={appliesLock}
+                                                            onClick={() => handleSetPreStatus(instId, pId, "kinnitatud")}
+                                                            style={{ backgroundColor: preStat === 'kinnitatud' ? '#4caf50' : '', color: preStat === 'kinnitatud' ? 'white' : '' }}
+                                                        >
+                                                            Kinnitatud
+                                                        </button>
+                                                        {' '}
+                                                        <button
+                                                            disabled={appliesLock}
+                                                            onClick={() => handleSetPreStatus(instId, pId, "eiOsale")}
+                                                            style={{ backgroundColor: preStat === 'eiOsale' ? '#f44336' : '', color: preStat === 'eiOsale' ? 'white' : '' }}
+                                                        >
+                                                            Ei osale
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            )
+                                        })}
+                                    </tbody>
+                                </table>
+                            )}
 
                             {/* Session Messages */}
                             {(() => {
@@ -653,7 +655,7 @@ export default function PreStatusPage() {
                     {applicableItems.map(item => {
                         const { instId, inst, def, startTime, endTime, pId } = item
                         const pData = players[pId]
-                        const pName = pData ? `${pData.firstName} ${pData.lastName}` : pId
+                        const pName = pData ? `${pData.firstName} ${pData.lastName}` : "Tundmatu mängija"
 
                         const existingReq = extraRequests[instId]?.[pId]
 
@@ -701,7 +703,9 @@ export default function PreStatusPage() {
             {msg && <p style={{ color: msg.startsWith("Error") ? "red" : "green", fontWeight: "bold" }}>{msg}</p>}
 
             {role === "player" && myPlayerId === null ? (
-                <EmptyState message="Eelstaatused puuduvad." />
+                <EmptyState message="Mängija andmed puuduvad." />
+            ) : role === "parent" && Object.keys(parentLinks || {}).filter(id => parentLinks[id] === true).length === 0 ? (
+                <EmptyState message="Ühtegi last ei leitud." />
             ) : visibleInstances.length === 0 ? (
                 <EmptyState message="Eelstaatused puuduvad." />
             ) : (

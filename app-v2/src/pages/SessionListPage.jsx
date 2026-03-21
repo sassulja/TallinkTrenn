@@ -895,7 +895,7 @@ export default function SessionListPage() {
 
     // ─── PLAYER VIEW ───────────────────────────
     if (role === "player") {
-        if (!myPlayerId) return <div style={{ maxWidth: "600px", margin: "0 auto", padding: "20px" }}><h2>Treeningud</h2><EmptyState message="Treeninguid ei leitud." /></div>
+        if (!myPlayerId) return <div style={{ maxWidth: "600px", margin: "0 auto", padding: "20px" }}><h2>Treeningud</h2><EmptyState message="Mängija andmed puuduvad." /></div>
 
         const activeSessions = []
         const todaySessions = []
@@ -982,7 +982,7 @@ export default function SessionListPage() {
         // Build child list for filter
         const childOptions = linkedPlayerIds.map(pId => {
             const p = players[pId]
-            return { id: pId, name: p ? `${p.firstName} ${p.lastName}` : pId }
+            return { id: pId, name: p ? `${p.firstName} ${p.lastName}` : "Tundmatu mängija" }
         }).sort((a, b) => compareDisplayNames(a.name, a.id, b.name, b.id))
 
         // Build session cards
@@ -1005,7 +1005,7 @@ export default function SessionListPage() {
 
                     try {
                         const { startMs: sessionStartMs, endMs: sessionEndMs } = getSessionBounds(inst, def)
-                        const childName = childOptions.find(c => c.id === playerId)?.name || playerId
+                        const childName = childOptions.find(c => c.id === playerId)?.name || "Tundmatu mängija"
 
                         const renderCard = (
                             <SessionCardParent
@@ -1092,6 +1092,7 @@ export default function SessionListPage() {
         .filter(([_, inst]) => hasPermissionForInstance(inst))
         .forEach(([instId, inst]) => {
             const def = definitions[inst.definitionId] || null
+            if (!def) return
             try {
                 const { startMs: sessionStartMs, endMs: sessionEndMs } = getSessionBounds(inst, def)
                 let bucket = "upcoming"

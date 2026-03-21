@@ -101,7 +101,7 @@ export default function PlayerStatsPage() {
                     const p = pSnap.val()
                     setPlayerName(`${p.firstName} ${p.lastName}`)
                 } else {
-                    setPlayerName(playerId)
+                    setPlayerName("Tundmatu mängija")
                 }
 
                 // 2. Load instances and rosters

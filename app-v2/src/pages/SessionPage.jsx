@@ -57,7 +57,7 @@ function TabBar({ activeTab, onTabChange }) {
 
 // ─── Kohalolek: RosterRow ───────────────────────────────
 function RosterRow({ playerId, rData, playerData, att, sessionStarted, onTapCycle, isMobile }) {
-    const pName = playerData ? `${playerData.firstName} ${playerData.lastName}` : playerId
+    const pName = playerData ? `${playerData.firstName} ${playerData.lastName}` : "Tundmatu mängija"
     const isRemoved = rData.removedByCoach === true
     const preStatus = att?.preStatus || null
     const realStatus = att?.realStatus || null
@@ -496,7 +496,7 @@ export default function SessionPage() {
         rosterEntries.forEach(([pId, rData]) => {
             if (rData.removedByCoach) return;
             const p = players[pId];
-            const pName = p ? `${p.firstName} ${p.lastName}` : pId;
+            const pName = p ? `${p.firstName} ${p.lastName}` : "Tundmatu mängija";
             const att = localAtt[pId] || {};
             const psMatch = PRE_STATUS_MAP[att.preStatus];
             const preStatusLabel = psMatch ? psMatch : PRESTATUS_LABELS.null;
@@ -622,7 +622,7 @@ export default function SessionPage() {
                     <div style={{ marginBottom: "20px" }}>
                         {rosterEntries.filter(([, rData]) => !rData.removedByCoach).map(([pId, rData]) => {
                             const p = players[pId]
-                            const pName = p ? `${p.firstName} ${p.lastName}` : pId
+                            const pName = p ? `${p.firstName} ${p.lastName}` : "Tundmatu mängija"
                             const ps = localAtt[pId]?.preStatus || null
                             const psLabel = PRESTATUS_LABELS[ps] || PRESTATUS_LABELS.null
                             const psColor = PRE_STATUS_COLORS[ps] || "#999"
@@ -651,7 +651,7 @@ export default function SessionPage() {
                                 <div style={{ fontSize: "13px", fontWeight: "bold", color: "#999", marginBottom: "8px" }}>Eemaldatud</div>
                                 {rosterEntries.filter(([, rData]) => rData.removedByCoach).map(([pId]) => {
                                     const p = players[pId]
-                                    const pName = p ? `${p.firstName} ${p.lastName}` : pId
+                                    const pName = p ? `${p.firstName} ${p.lastName}` : "Tundmatu mängija"
                                     return (
                                         <div key={pId} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid #f5f5f5", color: "#aaa" }}>
                                             <span style={{ textDecoration: "line-through" }}>{pName}</span>
@@ -676,7 +676,7 @@ export default function SessionPage() {
                         {showExtraReqs && (<>
                             {pendingReqs.map(([pId, req]) => {
                                 const p = players[pId]
-                                const pName = p ? `${p.firstName} ${p.lastName}` : pId
+                                const pName = p ? `${p.firstName} ${p.lastName}` : "Tundmatu mängija"
                                 return (
                                     <div key={pId} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px", borderBottom: "1px solid #eee" }}>
                                         <span>{pName}</span>
@@ -692,7 +692,7 @@ export default function SessionPage() {
                                     <summary style={{ cursor: "pointer", fontWeight: "bold" }}>Lahendatud ({resolvedReqs.length})</summary>
                                     {resolvedReqs.map(([pId, req]) => {
                                         const p = players[pId]
-                                        const pName = p ? `${p.firstName} ${p.lastName}` : pId
+                                        const pName = p ? `${p.firstName} ${p.lastName}` : "Tundmatu mängija"
                                         return (
                                             <div key={pId} style={{ display: "flex", justifyContent: "space-between", padding: "8px", borderBottom: "1px solid #eee" }}>
                                                 <span>{pName}</span>
@@ -844,7 +844,7 @@ export default function SessionPage() {
 
                         {feedbackPlayers.length === 0 ? <EmptyState message="Nimekiri tühi." /> : feedbackPlayers.map(([pId]) => {
                             const p = players[pId]
-                            const pName = p ? `${p.firstName} ${p.lastName}` : pId
+                            const pName = p ? `${p.firstName} ${p.lastName}` : "Tundmatu mängija"
                             const local = feedbackLocal[pId] || { effort: 3, note: "" }
                             const saved = feedbackSaved[pId]
 
@@ -937,7 +937,7 @@ export default function SessionPage() {
                                         })}
                                         {noFbPlayers.map(pId => {
                                             const p = players[pId]
-                                            const pName = p ? `${p.firstName} ${p.lastName}` : pId
+                                            const pName = p ? `${p.firstName} ${p.lastName}` : "Tundmatu mängija"
                                             return (
                                                 <div key={pId} style={{ marginBottom: "12px", paddingBottom: "12px", borderBottom: "1px solid #f5f5f5" }}>
                                                     <div style={{ fontWeight: "bold", fontSize: "14px", color: "#999", marginBottom: "2px" }}>{pName}</div>
