@@ -1,5 +1,7 @@
 {
-  "projects": {},
+  "projects": {
+    "default": "tallink-trenn"
+  },
   "targets": {},
   "etags": {}
 }
