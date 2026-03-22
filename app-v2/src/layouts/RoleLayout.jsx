@@ -5,7 +5,7 @@ export default function RoleLayout() {
     const { role } = useAuth()
 
     return (
-        <div style={{ display: "flex" }}>
+        <div style={{ display: "flex", backgroundColor: "var(--color-bg)" }}>
             <nav
                 style={{
                     width: "200px",
