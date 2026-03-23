@@ -649,6 +649,7 @@ export default function SessionListPage() {
         const startTime = currentInst.startTime ?? def.startTime
         const sessionStartIso = combineDateAndTime(currentInst.date, startTime)
         const sessionStartMs = new Date(sessionStartIso).getTime()
+        const capacity = currentInst.capacity || 0
 
         if (nowMs >= sessionStartMs - 60 * 60 * 1000) {
             setParentMsg("Lukustatud — eelstaatust ei saa enam muuta.")
@@ -657,7 +658,6 @@ export default function SessionListPage() {
 
         // Capacity check for kinnitatud
         if (newStatus === "kinnitatud") {
-            const capacity = currentInst.capacity || 0
             const currentAttendance = attendance[instId] || {}
             const currentRoster = rosters[instId] || {}
             let kinnitatudCount = 0
@@ -738,6 +738,7 @@ export default function SessionListPage() {
         const startTime = currentInst.startTime ?? def.startTime
         const sessionStartIso = combineDateAndTime(currentInst.date, startTime)
         const sessionStartMs = new Date(sessionStartIso).getTime()
+        const capacity = currentInst.capacity || 0
 
         if (nowMsLocal >= sessionStartMs - 60 * 60 * 1000) {
             setParentMsg("Lukustatud — eelstaatust ei saa enam muuta.")
@@ -745,7 +746,6 @@ export default function SessionListPage() {
         }
 
         if (newStatus === "kinnitatud") {
-            const capacity = currentInst.capacity || 0
             const currentAttendance = attendance[instId] || {}
             const currentRoster = rosters[instId] || {}
             let kCount = 0
