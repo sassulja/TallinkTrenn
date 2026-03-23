@@ -1,4 +1,5 @@
 console.log("🔥 firebase.js loaded")
+
 import { initializeApp } from "firebase/app"
 import { getAuth, connectAuthEmulator } from "firebase/auth"
 import { getDatabase, connectDatabaseEmulator } from "firebase/database"
@@ -18,10 +19,5 @@ const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
 export const database = getDatabase(app)
 
-const useEmulator = import.meta.env.VITE_USE_EMULATOR === "true"
-
-if (useEmulator) {
-    connectAuthEmulator(auth, "http://127.0.0.1:9099")
-    connectDatabaseEmulator(database, "127.0.0.1", 9000)
-    console.log("🔥 Emulator forced")
-}
+/// Emulator disabled completely
+// (temporary to verify production works)

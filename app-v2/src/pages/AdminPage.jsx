@@ -76,6 +76,15 @@ export default function AdminPage() {
     const [defCapacity, setDefCapacity] = useState("")
     const [isSavingDef, setIsSavingDef] = useState(false)
 
+    // --- One-off Session Form State ---
+    const [oneOffDate, setOneOffDate] = useState(new Date().toISOString().split("T")[0])
+    const [oneOffStartTime, setOneOffStartTime] = useState("")
+    const [oneOffEndTime, setOneOffEndTime] = useState("")
+    const [oneOffSport, setOneOffSport] = useState("tennis")
+    const [oneOffCapacity, setOneOffCapacity] = useState("")
+    const [oneOffCoachId, setOneOffCoachId] = useState("")
+    const [isCreatingOneOffSession, setIsCreatingOneOffSession] = useState(false)
+
     useEffect(() => {
         const handleErr = () => setError("Andmete laadimine ebaõnnestus.")
 
@@ -613,7 +622,7 @@ export default function AdminPage() {
                 createdBy: currentUser?.uid || "admin_test"
             })
             setMsg(`Success: Session definition created.`)
-            
+
             setDefStartTime("")
             setDefEndTime("")
             setDefCapacity("")
@@ -625,13 +634,80 @@ export default function AdminPage() {
         }
     }
 
+    const handleCreateOneOffSession = async () => {
+        setMsg("")
+        setErrors({})
+
+        const newErrors = {}
+        if (!oneOffDate) {
+            newErrors.oneOffDate = "Kuupäev on kohustuslik"
+        }
+        if (!oneOffStartTime || !oneOffEndTime) {
+            newErrors.oneOffTime = "Kellaaeg on kohustuslik"
+        } else if (oneOffEndTime <= oneOffStartTime) {
+            newErrors.oneOffTime = "Lõpuaeg peab olema pärast algusaega"
+        }
+        if (!oneOffSport) {
+            newErrors.oneOffSport = "Spordiala on kohustuslik"
+        }
+
+        const capacityNum = Number(oneOffCapacity)
+        if (!oneOffCapacity || Number.isNaN(capacityNum) || capacityNum <= 0) {
+            newErrors.oneOffCapacity = "Mahtuvus peab olema positiivne arv"
+        }
+        if (!oneOffCoachId) {
+            newErrors.oneOffCoachId = "Treener on kohustuslik"
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors)
+            return
+        }
+
+        setIsCreatingOneOffSession(true)
+        try {
+            const pushKey = push(ref(database, "sessionInstances")).key
+            const instanceId = `${oneOffDate}__${pushKey}`
+
+            const updatePayload = {
+                [`sessionInstances/${instanceId}`]: {
+                    date: oneOffDate,
+                    startTime: oneOffStartTime,
+                    endTime: oneOffEndTime,
+                    sport: oneOffSport,
+                    capacity: Number(oneOffCapacity),
+                    assignedCoachIds: { [oneOffCoachId]: true },
+                    status: "scheduled",
+                    createdBy: currentUser.uid,
+                    createdAt: Date.now()
+                },
+                [`rosters/${instanceId}`]: {}
+            }
+
+            await update(ref(database), updatePayload)
+
+            setOneOffDate(new Date().toISOString().split("T")[0])
+            setOneOffStartTime("")
+            setOneOffEndTime("")
+            setOneOffSport("tennis")
+            setOneOffCapacity("")
+            setOneOffCoachId("")
+            setMsg("Success: One-off session created.")
+        } catch (err) {
+            console.error("❌ One-off session creation failed", err)
+            setMsg(`Error: ${err?.message || "One-off session creation failed"}`)
+        } finally {
+            setIsCreatingOneOffSession(false)
+        }
+    }
+
     // --- Invitation Handlers ---
     const handleCreateInvitation = async () => {
         setMsg("")
         setGeneratedInviteLink("")
         setErrors({})
         const email = inviteEmail.trim()
-        
+
         const newErrors = {}
 
         if (!email) {
@@ -726,6 +802,8 @@ export default function AdminPage() {
         }
     }
 
+    const coachUsers = users.filter(u => u.role === "coach")
+
     return (
         <div style={{ padding: "20px" }}>
             <h2>Admin Page</h2>
@@ -762,6 +840,118 @@ export default function AdminPage() {
             </div>
 
             <div style={{ display: "flex", gap: "40px", flexWrap: "wrap" }}>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px", minWidth: "350px", padding: "16px", border: "1px solid #ddd", borderRadius: "8px", background: "#fafafa" }}>
+                    <h3 style={{ margin: 0 }}>Lisa üksiktreening</h3>
+
+                    <div>
+                        <label style={{ display: "block", marginBottom: "4px" }}>Kuupäev *</label>
+                        <input
+                            type="date"
+                            value={oneOffDate}
+                            onChange={e => {
+                                setOneOffDate(e.target.value)
+                                if (errors.oneOffDate) setErrors({ ...errors, oneOffDate: null })
+                            }}
+                            style={{ width: "100%", padding: "8px" }}
+                        />
+                        {errors.oneOffDate && <div style={{ color: "#ef4444", fontSize: "13px", marginTop: "4px" }}>{errors.oneOffDate}</div>}
+                    </div>
+
+                    <div style={{ display: "flex", gap: "12px" }}>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: "block", marginBottom: "4px" }}>Algusaeg *</label>
+                            <input
+                                type="time"
+                                value={oneOffStartTime}
+                                onChange={e => {
+                                    setOneOffStartTime(e.target.value)
+                                    if (errors.oneOffTime) setErrors({ ...errors, oneOffTime: null })
+                                }}
+                                style={{ width: "100%", padding: "8px" }}
+                            />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: "block", marginBottom: "4px" }}>Lõpuaeg *</label>
+                            <input
+                                type="time"
+                                value={oneOffEndTime}
+                                onChange={e => {
+                                    setOneOffEndTime(e.target.value)
+                                    if (errors.oneOffTime) setErrors({ ...errors, oneOffTime: null })
+                                }}
+                                style={{ width: "100%", padding: "8px" }}
+                            />
+                        </div>
+                    </div>
+                    {errors.oneOffTime && <div style={{ color: "#ef4444", fontSize: "13px" }}>{errors.oneOffTime}</div>}
+
+                    <div>
+                        <label style={{ display: "block", marginBottom: "4px" }}>Spordiala *</label>
+                        <select
+                            value={oneOffSport}
+                            onChange={e => {
+                                setOneOffSport(e.target.value)
+                                if (errors.oneOffSport) setErrors({ ...errors, oneOffSport: null })
+                            }}
+                            style={{ width: "100%", padding: "8px" }}
+                        >
+                            <option value="tennis">tennis</option>
+                            <option value="fitness">fitness</option>
+                        </select>
+                        {errors.oneOffSport && <div style={{ color: "#ef4444", fontSize: "13px", marginTop: "4px" }}>{errors.oneOffSport}</div>}
+                    </div>
+
+                    <div>
+                        <label style={{ display: "block", marginBottom: "4px" }}>Mahtuvus *</label>
+                        <input
+                            type="number"
+                            min="1"
+                            value={oneOffCapacity}
+                            onChange={e => {
+                                setOneOffCapacity(e.target.value)
+                                if (errors.oneOffCapacity) setErrors({ ...errors, oneOffCapacity: null })
+                            }}
+                            style={{ width: "100%", padding: "8px" }}
+                        />
+                        {errors.oneOffCapacity && <div style={{ color: "#ef4444", fontSize: "13px", marginTop: "4px" }}>{errors.oneOffCapacity}</div>}
+                    </div>
+
+                    <div>
+                        <label style={{ display: "block", marginBottom: "4px" }}>Treener *</label>
+                        <select
+                            value={oneOffCoachId}
+                            onChange={e => {
+                                setOneOffCoachId(e.target.value)
+                                if (errors.oneOffCoachId) setErrors({ ...errors, oneOffCoachId: null })
+                            }}
+                            style={{ width: "100%", padding: "8px" }}
+                        >
+                            <option value="">Vali treener</option>
+                            {coachUsers.map(coach => (
+                                <option key={coach.uid} value={coach.uid}>
+                                    {coach.displayName || coach.email || coach.uid}
+                                </option>
+                            ))}
+                        </select>
+                        {errors.oneOffCoachId && <div style={{ color: "#ef4444", fontSize: "13px", marginTop: "4px" }}>{errors.oneOffCoachId}</div>}
+                    </div>
+
+                    <button
+                        onClick={handleCreateOneOffSession}
+                        disabled={isCreatingOneOffSession}
+                        style={{
+                            padding: "10px",
+                            cursor: isCreatingOneOffSession ? "not-allowed" : "pointer",
+                            background: isCreatingOneOffSession ? "#a0c4ff" : "#007bff",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px"
+                        }}
+                    >
+                        {isCreatingOneOffSession ? "Loon..." : "Loo treening"}
+                    </button>
+                </div>
 
                 {/* ---------- PLAYERS ---------- */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px", minWidth: "350px" }}>
