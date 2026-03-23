@@ -776,12 +776,6 @@ export default function AdminPage() {
                                     Cancel Edit
                                 </button>
                             )}
-                            <button
-                                onClick={handleSeedPlayers}
-                                style={{ padding: "4px 8px", fontSize: "12px", background: "#6c757d", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
-                            >
-                                Seed 3 test players
-                            </button>
                         </div>
                     </div>
 
