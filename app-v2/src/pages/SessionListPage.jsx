@@ -44,6 +44,15 @@ const REAL_STATUS_DISPLAY = {
     vabastatud: { icon: "⚪", label: REALSTATUS_LABELS.vabastatud }
 }
 
+function getCoachFeedbackSummary(coachFb) {
+    const effortItem = EFFORT_SCALE.find(item => item.value === coachFb?.effort)
+    if (!effortItem) return null
+    return {
+        collapsed: `${effortItem.emoji} ${effortItem.label}`.split(" ")[0],
+        expanded: `${effortItem.emoji} ${effortItem.label}`
+    }
+}
+
 // ─── Coach/Admin Session Card ───────────────────────────
 function SessionCardCoach({ instId, inst, def, attendance, rosters, isActive, onClick }) {
     const startTime = inst.startTime || def?.startTime || ""
@@ -102,6 +111,7 @@ function SessionCardCoach({ instId, inst, def, attendance, rosters, isActive, on
 
 // ─── Parent Session Card ────────────────────────────────
 function SessionCardParent({ instId, inst, def, attendance, rosters, players, sessionMessages, sessionFeedback, childName, playerId, nowMs, onPreStatus, msg }) {
+    const [isExpanded, setIsExpanded] = useState(false)
     const startTime = inst.startTime || def?.startTime || ""
     const endTime = inst.endTime || def?.endTime || ""
     const timeDisplay = endTime ? `${startTime} - ${endTime}` : startTime
@@ -149,36 +159,62 @@ function SessionCardParent({ instId, inst, def, attendance, rosters, players, se
     if (msgs) {
         msgArr = Object.entries(msgs).map(([id, m]) => ({ id, ...m })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     }
+    const coachFeedbackSummary = feedbackVisible ? getCoachFeedbackSummary(coachFb) : null
 
     return (
         <div style={{
-            border: "1px solid " + (isActive ? "#22c55e" : "#ccc"),
-            borderRadius: "8px", padding: "16px", marginBottom: "12px",
-            background: isActive ? "#f0fdf4" : "white"
+            border: "1px solid var(--color-border)",
+            borderRadius: "var(--radius)",
+            padding: "var(--spacing-md)",
+            marginBottom: "var(--spacing-sm)",
+            background: "var(--color-surface)",
+            maxWidth: "480px",
+            marginLeft: "auto",
+            marginRight: "auto"
         }}>
-            {/* Child name */}
-            <div style={{ fontWeight: "bold", fontSize: "15px", color: "#3b82f6", marginBottom: "8px" }}>{childName}</div>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "flex-start" }}>
+                <div>
+                    <div style={{ fontWeight: "var(--font-weight-bold)", fontSize: "15px", color: "var(--color-primary-dark)", marginBottom: "4px" }}>{childName}</div>
+                    <div style={{ fontWeight: "var(--font-weight-bold)", fontSize: "16px" }}>{timeDisplay}</div>
+                    <div style={{ fontSize: "13px", color: "var(--color-text-secondary)" }}>
+                        {formatEstonianDate(inst.date)}
+                    </div>
+                    <div style={{ fontSize: "13px", color: "var(--color-text-muted)", textTransform: "capitalize" }}>
+                        {sport}
+                    </div>
+                </div>
+                <button
+                    onClick={() => setIsExpanded(prev => !prev)}
+                    style={{ background: "transparent", border: "none", color: "var(--color-text-secondary)", padding: 0, fontSize: "18px" }}
+                >
+                    {isExpanded ? "▴" : "▾"}
+                </button>
+            </div>
 
-            {/* Session info */}
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                <div style={{ fontWeight: "bold", fontSize: "16px" }}>{timeDisplay}</div>
-                {isActive && (
-                    <div style={{ background: "#22c55e", color: "white", padding: "2px 8px", borderRadius: "12px", fontSize: "12px", fontWeight: "bold" }}>AKTIIVNE</div>
+            <div style={{ marginTop: "var(--spacing-sm)", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
+                <div style={{ fontSize: "14px", fontWeight: "var(--font-weight-medium)" }}>
+                    {sessionStarted ? (
+                        <>
+                            <span style={{ color: "var(--color-text-muted)" }}>Kohalolek:</span>{" "}
+                            <span style={{ fontWeight: "var(--font-weight-bold)" }}>{realStatus ? `${REAL_STATUS_DISPLAY[realStatus]?.icon} ${REAL_STATUS_DISPLAY[realStatus]?.label || REALSTATUS_LABELS.null}` : REALSTATUS_LABELS.null}</span>
+                        </>
+                    ) : (
+                        <>
+                            <span style={{ color: "var(--color-text-muted)" }}>Staatus:</span>{" "}
+                            <span style={{ fontWeight: "var(--font-weight-bold)" }}>{PRESTATUS_LABELS[preStatus] || PRESTATUS_LABELS.null}</span>
+                        </>
+                    )}
+                </div>
+                {coachFeedbackSummary && (
+                    <div style={{ fontSize: "18px", lineHeight: 1 }}>{coachFeedbackSummary.collapsed}</div>
                 )}
             </div>
-            <div style={{ color: "#555", marginBottom: "4px" }}>{formatEstonianDate(inst.date)}</div>
-            <div style={{ color: "#333", marginBottom: "12px", textTransform: "capitalize" }}>{sport}</div>
 
-            {/* Capacity */}
-            <div style={{ fontSize: "13px", color: "#666", marginBottom: "12px" }}>
-                Kinnitatud: <span style={{ fontWeight: "bold", color: kinnitatudCount + (preStatus === "kinnitatud" ? 1 : 0) >= capacity ? "orange" : "green" }}>
-                    {kinnitatudCount + (preStatus === "kinnitatud" ? 1 : 0)} / {capacity}
-                </span>
-            </div>
-
+            {isExpanded && (
+                <>
             {/* preStatus section */}
             {!sessionStarted ? (
-                <div style={{ marginBottom: "12px" }}>
+                <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
                     {isLocked ? (
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                             <span style={{ fontWeight: "bold", color: preStatus === "kinnitatud" ? "#22c55e" : preStatus === "eiOsale" ? "#ef4444" : "#999" }}>
@@ -207,18 +243,18 @@ function SessionCardParent({ instId, inst, def, attendance, rosters, players, se
                         <div style={{ display: "flex", gap: "8px" }}>
                             <button onClick={() => onPreStatus(instId, playerId, "kinnitatud")}
                                 disabled={isFull}
-                                style={{ padding: "6px 16px", background: isFull ? "#ccc" : "#22c55e", color: "white", border: "none", borderRadius: "6px", cursor: isFull ? "not-allowed" : "pointer", fontWeight: "bold" }}>
+                                style={{ padding: "6px 16px", background: isFull ? "#ccc" : "var(--color-primary)", color: "white", border: "none", borderRadius: "6px", cursor: isFull ? "not-allowed" : "pointer", fontWeight: "bold" }}>
                                 {isFull ? "Treening on täis" : "Kinnitan"}
                             </button>
                             <button onClick={() => onPreStatus(instId, playerId, "eiOsale")}
-                                style={{ padding: "6px 16px", background: "#ef4444", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>
+                                style={{ padding: "6px 16px", background: "var(--color-danger)", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>
                                 Ei osale
                             </button>
                         </div>
                     )}
                 </div>
             ) : (
-                <div style={{ marginBottom: "12px" }}>
+                <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
                     <span style={{ fontWeight: "bold", color: preStatus === "kinnitatud" ? "#22c55e" : preStatus === "eiOsale" ? "#ef4444" : "#999", fontSize: "13px" }}>
                         {PRESTATUS_LABELS[preStatus] || PRESTATUS_LABELS.null}
                     </span>
@@ -241,30 +277,27 @@ function SessionCardParent({ instId, inst, def, attendance, rosters, players, se
 
             {/* Feedback section */}
             {sessionEnded && (realStatus === "kohal" || realStatus === "hilines") && (
-                <div style={{ borderTop: "1px solid #eee", marginTop: "12px", paddingTop: "8px" }}>
-                    <div style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "6px" }}>Tagasiside</div>
+                <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
                     
                     {/* Coach Feedback */}
+                    {coachFb && (
                     <div style={{ marginBottom: "8px" }}>
-                        <span style={{ fontSize: "13px", fontWeight: "bold", color: "#555" }}>Treener: </span>
-                        {!coachFb ? (
-                            <span style={{ fontSize: "13px", color: "#999" }}>Puudub</span>
-                        ) : feedbackVisible ? (
+                        <div style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "6px" }}>Treeneri tagasiside</div>
+                        {feedbackVisible ? (
                             <span style={{ fontSize: "13px" }}>
-                                {(() => {
-                                    const effortItem = EFFORT_SCALE.find(item => item.value === coachFb.effort)
-                                    return effortItem ? `${effortItem.label} ${effortItem.emoji}` : coachFb.effort
-                                })()}
+                                {coachFeedbackSummary?.expanded || coachFb.effort}
                                 {coachFb.note && <span style={{ marginLeft: "8px", fontStyle: "italic", color: "#666" }}>"{coachFb.note}"</span>}
                             </span>
                         ) : (
                             <span style={{ fontSize: "13px", color: "#f59e0b", fontStyle: "italic" }}>Treeneri tagasiside on varsti saadaval</span>
                         )}
                     </div>
+                    )}
 
                     {/* Player Feedback / Reminder */}
+                    {playerFb && (
                     <div>
-                        <span style={{ fontSize: "13px", fontWeight: "bold", color: "#555" }}>Mängija: </span>
+                        <div style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "6px" }}>Mängija tagasiside</div>
                         {playerFb ? (
                             <span style={{ fontSize: "13px" }}>
                                 {(() => {
@@ -272,18 +305,15 @@ function SessionCardParent({ instId, inst, def, attendance, rosters, players, se
                                     return effortItem ? `Pingutus: ${effortItem.label} ${effortItem.emoji}` : `Pingutus: ${playerFb.effort}`
                                 })()}
                             </span>
-                        ) : feedbackWindowOpen && (realStatus === "kohal" || realStatus === "hilines") ? (
-                            <span style={{ fontSize: "13px", color: "#f59e0b", fontWeight: "bold" }}>📝 Anna tagasiside</span>
-                        ) : (
-                            <span style={{ fontSize: "13px", color: "#999" }}>Puudub</span>
-                        )}
+                        ) : null}
                     </div>
+                    )}
                 </div>
             )}
 
             {/* Session messages */}
             {msgArr.length > 0 && (
-                <div style={{ borderTop: "1px solid #eee", marginTop: "8px", paddingTop: "8px" }}>
+                <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
                     <div style={{ fontSize: "13px", fontWeight: "bold", marginBottom: "6px" }}>Teated</div>
                     {msgArr.map(m => (
                         <div key={m.id} style={{ marginBottom: "6px", fontSize: "12px" }}>
@@ -296,12 +326,15 @@ function SessionCardParent({ instId, inst, def, attendance, rosters, players, se
                     ))}
                 </div>
             )}
+                </>
+            )}
         </div>
     )
 }
 
 // ─── Player Session Card ─────────────────────────────────
 function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMessages, playerId, nowMs, onPreStatus, feedbackData, feedbackLocal, feedbackSaved, feedbackEditing, onFeedbackLocalChange, onFeedbackSave, onFeedbackEdit, msg }) {
+    const [isExpanded, setIsExpanded] = useState(false)
     const startTime = inst.startTime || def?.startTime || ""
     const endTime = inst.endTime || def?.endTime || ""
     const timeDisplay = endTime ? `${startTime} - ${endTime}` : startTime
@@ -352,33 +385,61 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
     const coachFb = feedbackData?.[instId]?.[playerId]?.coach
     const hasFeedback = !!existingFb
     const isEditingFb = feedbackEditing[key]
+    const coachFeedbackSummary = feedbackVisible ? getCoachFeedbackSummary(coachFb) : null
 
     return (
         <div style={{
-            border: "1px solid " + (isActive ? "#22c55e" : "#ccc"),
-            borderRadius: "8px", padding: "16px", marginBottom: "12px",
-            background: isActive ? "#f0fdf4" : "white"
+            border: "1px solid var(--color-border)",
+            borderRadius: "var(--radius)",
+            padding: "var(--spacing-md)",
+            marginBottom: "var(--spacing-sm)",
+            background: "var(--color-surface)",
+            maxWidth: "480px",
+            marginLeft: "auto",
+            marginRight: "auto"
         }}>
-            {/* Session info */}
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                <div style={{ fontWeight: "bold", fontSize: "16px" }}>{timeDisplay}</div>
-                {isActive && (
-                    <div style={{ background: "#22c55e", color: "white", padding: "2px 8px", borderRadius: "12px", fontSize: "12px", fontWeight: "bold" }}>AKTIIVNE</div>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "flex-start" }}>
+                <div>
+                    <div style={{ fontWeight: "var(--font-weight-bold)", fontSize: "16px" }}>{timeDisplay}</div>
+                    <div style={{ fontSize: "13px", color: "var(--color-text-secondary)" }}>
+                        {formatEstonianDate(inst.date)}
+                    </div>
+                    <div style={{ fontSize: "13px", color: "var(--color-text-muted)", textTransform: "capitalize" }}>
+                        {sport}
+                    </div>
+                </div>
+                <button
+                    onClick={() => setIsExpanded(prev => !prev)}
+                    style={{ background: "transparent", border: "none", color: "var(--color-text-secondary)", padding: 0, fontSize: "18px" }}
+                >
+                    {isExpanded ? "▴" : "▾"}
+                </button>
+            </div>
+
+            <div style={{ marginTop: "var(--spacing-sm)", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
+                <div style={{ fontSize: "14px", fontWeight: "var(--font-weight-medium)" }}>
+                    {sessionStarted ? (
+                        <>
+                            <span style={{ color: "var(--color-text-muted)" }}>Kohalolek:</span>{" "}
+                            <span style={{ fontWeight: "var(--font-weight-bold)" }}>{realStatus ? `${REAL_STATUS_DISPLAY[realStatus]?.icon} ${REAL_STATUS_DISPLAY[realStatus]?.label || REALSTATUS_LABELS.null}` : REALSTATUS_LABELS.null}</span>
+                        </>
+                    ) : (
+                        <>
+                            <span style={{ color: "var(--color-text-muted)" }}>Staatus:</span>{" "}
+                            <span style={{ fontWeight: "var(--font-weight-bold)" }}>{PRESTATUS_LABELS[preStatus] || PRESTATUS_LABELS.null}</span>
+                        </>
+                    )}
+                </div>
+                {coachFeedbackSummary && (
+                    <div style={{ fontSize: "18px", lineHeight: 1 }}>{coachFeedbackSummary.collapsed}</div>
                 )}
             </div>
-            <div style={{ color: "#555", marginBottom: "4px" }}>{formatEstonianDate(inst.date)}</div>
-            <div style={{ color: "#333", marginBottom: "12px", textTransform: "capitalize" }}>{sport}</div>
 
-            {/* Capacity */}
-            <div style={{ fontSize: "13px", color: "#666", marginBottom: "12px" }}>
-                Kinnitatud: <span style={{ fontWeight: "bold", color: kinnitatudCount + (preStatus === "kinnitatud" ? 1 : 0) >= capacity ? "orange" : "green" }}>
-                    {kinnitatudCount + (preStatus === "kinnitatud" ? 1 : 0)} / {capacity}
-                </span>
-            </div>
-
+            {isExpanded && (
+                <>
             {/* preStatus section */}
             {!sessionStarted ? (
-                <div style={{ marginBottom: "12px" }}>
+                <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
                     {isLocked ? (
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                             <span style={{ fontWeight: "bold", color: preStatus === "kinnitatud" ? "#22c55e" : preStatus === "eiOsale" ? "#ef4444" : "#999" }}>
@@ -407,18 +468,18 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
                         <div style={{ display: "flex", gap: "8px" }}>
                             <button onClick={() => onPreStatus(instId, playerId, "kinnitatud")}
                                 disabled={isFull}
-                                style={{ padding: "6px 16px", background: isFull ? "#ccc" : "#22c55e", color: "white", border: "none", borderRadius: "6px", cursor: isFull ? "not-allowed" : "pointer", fontWeight: "bold" }}>
+                                style={{ padding: "6px 16px", background: isFull ? "#ccc" : "var(--color-primary)", color: "white", border: "none", borderRadius: "6px", cursor: isFull ? "not-allowed" : "pointer", fontWeight: "bold" }}>
                                 {isFull ? "Treening on täis" : "Kinnitan"}
                             </button>
                             <button onClick={() => onPreStatus(instId, playerId, "eiOsale")}
-                                style={{ padding: "6px 16px", background: "#ef4444", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>
+                                style={{ padding: "6px 16px", background: "var(--color-danger)", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>
                                 Ei osale
                             </button>
                         </div>
                     )}
                 </div>
             ) : (
-                <div style={{ marginBottom: "12px" }}>
+                <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
                     <span style={{ fontWeight: "bold", color: preStatus === "kinnitatud" ? "#22c55e" : preStatus === "eiOsale" ? "#ef4444" : "#999", fontSize: "13px" }}>
                         {PRESTATUS_LABELS[preStatus] || PRESTATUS_LABELS.null}
                     </span>
@@ -440,17 +501,12 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
             )}
 
             {/* Coach Feedback Display */}
-            {canFeedback && (
-                <div style={{ marginBottom: "12px" }}>
+            {canFeedback && coachFb && (
+                <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
                     <div style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "4px" }}>Treeneri tagasiside</div>
-                    {!coachFb ? (
-                        <div style={{ fontSize: "13px", color: "#999" }}>Puudub</div>
-                    ) : feedbackVisible ? (
+                    {feedbackVisible ? (
                         <div style={{ fontSize: "13px" }}>
-                            {(() => {
-                                const effortItem = EFFORT_SCALE.find(item => item.value === coachFb.effort)
-                                return effortItem ? `${effortItem.label} ${effortItem.emoji}` : coachFb.effort
-                            })()}
+                            {coachFeedbackSummary?.expanded || coachFb.effort}
                             {coachFb.note && <div style={{ marginTop: "4px", fontStyle: "italic", color: "#666" }}>"{coachFb.note}"</div>}
                         </div>
                     ) : (
@@ -468,7 +524,7 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
                     const effortItem = PLAYER_EFFORT_SCALE.find(e => e.value === existingFb.effort)
                     const engItem = COACH_ENGAGEMENT_SCALE.find(e => e.value === existingFb.coachEngagement)
                     return (
-                        <div style={{ borderTop: "1px solid #eee", marginTop: "8px", paddingTop: "8px" }}>
+                        <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
                             <div style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "6px" }}>Minu tagasiside</div>
                             <div style={{ fontSize: "13px", marginBottom: "4px" }}>Pingutus: {effortItem?.emoji} {effortItem?.label}</div>
                             <div style={{ fontSize: "13px", marginBottom: "4px" }}>Treener: {engItem?.emoji} {engItem?.label}</div>
@@ -486,8 +542,8 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
                 const local = feedbackLocal[key] || { effort: null, coachEngagement: null, note: "" }
                 const canSave = local.effort && local.coachEngagement
                 return (
-                    <div style={{ borderTop: "1px solid #eee", marginTop: "8px", paddingTop: "8px" }}>
-                        <div style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "8px" }}>📝 Anna tagasiside</div>
+                    <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
+                        <div style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "8px" }}>Minu tagasiside</div>
                         <div style={{ fontSize: "13px", fontWeight: "bold", marginBottom: "6px" }}>Minu pingutus</div>
                         <div style={{ display: "flex", gap: "4px", marginBottom: "12px", flexWrap: "wrap" }}>
                             {PLAYER_EFFORT_SCALE.map(e => (
@@ -495,8 +551,8 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
                                     onClick={() => onFeedbackLocalChange(key, { ...(feedbackLocal[key] || { effort: null, coachEngagement: null, note: "" }), effort: e.value })}
                                     style={{
                                         padding: "5px 8px", borderRadius: "8px", cursor: "pointer",
-                                        border: local.effort === e.value ? "2px solid #3b82f6" : "1px solid #ddd",
-                                        background: local.effort === e.value ? "#eff6ff" : "white",
+                                        border: local.effort === e.value ? "2px solid var(--color-primary)" : "1px solid var(--color-border)",
+                                        background: local.effort === e.value ? "var(--color-primary-light)" : "var(--color-muted)",
                                         fontSize: "12px", transition: "all 0.1s"
                                     }}>
                                     {e.emoji} {e.label}
@@ -510,8 +566,8 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
                                     onClick={() => onFeedbackLocalChange(key, { ...(feedbackLocal[key] || { effort: null, coachEngagement: null, note: "" }), coachEngagement: e.value })}
                                     style={{
                                         padding: "5px 8px", borderRadius: "8px", cursor: "pointer",
-                                        border: local.coachEngagement === e.value ? "2px solid #3b82f6" : "1px solid #ddd",
-                                        background: local.coachEngagement === e.value ? "#eff6ff" : "white",
+                                        border: local.coachEngagement === e.value ? "2px solid var(--color-primary)" : "1px solid var(--color-border)",
+                                        background: local.coachEngagement === e.value ? "var(--color-primary-light)" : "var(--color-muted)",
                                         fontSize: "12px", transition: "all 0.1s"
                                     }}>
                                     {e.emoji} {e.label}
@@ -523,9 +579,9 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
                             placeholder="Märkus (vabatahtlik)" maxLength={200}
                             style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #ccc", marginBottom: "8px", boxSizing: "border-box", fontSize: "13px" }}
                         />
-                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
                             <button onClick={() => onFeedbackSave(instId, playerId)} disabled={!canSave}
-                                style={{ padding: "6px 16px", background: canSave ? "#3b82f6" : "#ccc", color: "white", border: "none", borderRadius: "6px", cursor: canSave ? "pointer" : "not-allowed", fontWeight: "bold", fontSize: "13px" }}>
+                                style={{ width: "100%", padding: "6px 16px", background: canSave ? "var(--color-primary)" : "#ccc", color: "white", border: "none", borderRadius: "6px", cursor: canSave ? "pointer" : "not-allowed", fontWeight: "bold", fontSize: "13px" }}>
                                 Salvesta
                             </button>
                             {feedbackSaved[key] && <span style={{ color: "#22c55e", fontWeight: "bold", fontSize: "13px" }}>Salvestatud ✓</span>}
@@ -534,16 +590,9 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
                 )
             })()}
 
-            {/* Feedback reminder */}
-            {canFeedback && !hasFeedback && !isExpired && !(feedbackLocal[key]?.effort) && (
-                <div style={{ fontSize: "13px", color: "#f59e0b", fontWeight: "bold", marginBottom: "8px" }}>
-                    📝 Anna tagasiside
-                </div>
-            )}
-
             {/* Session messages */}
             {msgArr.length > 0 && (
-                <div style={{ borderTop: "1px solid #eee", marginTop: "8px", paddingTop: "8px" }}>
+                <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
                     <div style={{ fontSize: "13px", fontWeight: "bold", marginBottom: "6px" }}>Teated</div>
                     {msgArr.map(m => (
                         <div key={m.id} style={{ marginBottom: "6px", fontSize: "12px" }}>
@@ -555,6 +604,8 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
                         </div>
                     ))}
                 </div>
+            )}
+                </>
             )}
         </div>
     )
@@ -1092,7 +1143,7 @@ export default function SessionListPage() {
         .filter(([_, inst]) => hasPermissionForInstance(inst))
         .forEach(([instId, inst]) => {
             const def = definitions[inst.definitionId] || null
-            if (!def) return
+            if (!def && inst.definitionId) return
             try {
                 const { startMs: sessionStartMs, endMs: sessionEndMs } = getSessionBounds(inst, def)
                 let bucket = "upcoming"

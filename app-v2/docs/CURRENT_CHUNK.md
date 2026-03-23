@@ -1,155 +1,92 @@
 # Current Task Directives
 
-**Target Phase:** Phase 9 — UX Hardening
-**Active Chunk:** 9.6 — Time-Based Transition Verification
+**Target Phase:** Phase 10.5 — Session Management & Recovery  
+**Active Chunk:** 10.5.2 — One-off Session Creation (Admin)
 
 ---
 
-## 1. The Objective
-Verify all time-based rules switch correctly.
-These are the most common source of subtle bugs.
-Fix any that are not working correctly.
+## 1. Objective
+
+Allow admin to create a single standalone session instance
+that is not linked to any recurring definition.
 
 ---
 
-## 2. Time Rules to Verify
+## 2. Scope
 
-### Rule 1 — preStatus lock (sessionStart - 60min)
-When: now >= sessionStart - 60 minutes
-Effect: player/parent cannot change preStatus
-UI: "Lukustatud" badge shown, buttons hidden
-Pages: SessionListPage (player card, parent card),
-  PreStatusPage
-
-### Rule 2 — Session default tab
-(sessionStart - 60min to sessionEnd + 1h)
-When: now >= sessionStart AND
-  now <= sessionEnd + 1h
-Effect: SessionPage defaults to Kohalolek tab
-Before: defaults to Staatus tab
-After: defaults to Tagasiside tab
-Page: SessionPage
-
-### Rule 3 — Coach feedback visibility to player
-(sessionEnd + 24h)
-When: now >= sessionEnd + 24h
-Effect: player/parent can see coach feedback
-Before: "Treeneri tagasiside on varsti saadaval"
-Pages: SessionListPage (player/parent cards),
-  HistoryPage
-
-### Rule 4 — Feedback edit window
-(sessionEnd + 7 days)
-When: now > sessionEnd + 7 days
-Effect: feedback edit controls hidden
-Both coach feedback (SessionPage) and
-player feedback (SessionListPage, PreStatusPage)
-Pages: SessionPage Tagasiside tab,
-  SessionListPage player/parent cards,
-  HistoryPage
-
-### Rule 5 — Feedback reminder window
-When: sessionEnd < now <= sessionEnd + 7 days
-AND player has not submitted feedback
-AND realStatus === kohal or hilines
-Effect: "📝 Anna tagasiside" reminder shown
-Pages: SessionListPage player card,
-  SessionListPage parent card
+- src/pages/AdminPage.jsx ONLY
 
 ---
 
-## 3. Verification Approach
+## 3. Architecture rule (DO NOT VIOLATE)
 
-For each rule, verify by:
-1. Checking the code logic is correct
-2. Manually testing with emulator data
-   that has sessions at the right time boundaries
-
-For rules that are hard to test with real time
-(e.g. sessionEnd + 24h), use this approach:
-- Find a past session in emulator
-- Temporarily adjust the threshold in code
-  to verify the toggle works
-- Then restore correct threshold
-- Document result
+- Write ONLY to sessionInstances/{instanceId}
+- DO NOT create or reference sessionDefinitions
+- DO NOT call instanceGenerator.js
+- DO NOT touch rosterSync.js
+- NO definitionId field in the created object
 
 ---
 
-## 4. Known Time Utility
+## 4. Implementation
 
-All time computations must use:
-- getTallinnNow() for current time
-- combineDateAndTime(date, time) for session times
+### 4.1 instanceId format
 
-These are already in src/utils/dateUtils.js.
-Do not use new Date() directly for session
-time comparisons — always use these utils.
+const pushKey = push(ref(database, "sessionInstances")).key
+const instanceId = `${date}__${pushKey}`
+
+### 4.2 Fields to write
+
+{
+  date,                                    // "YYYY-MM-DD"
+  startTime,                               // "HH:mm"
+  endTime,                                 // "HH:mm"
+  sport,                                   // "tennis" | "fitness"
+  capacity: Number(capacity),              // must be number, not string
+  assignedCoachIds: { [selectedCoachId]: true },  // object, NOT array
+  status: "scheduled",
+  createdBy: currentUser.uid,
+  createdAt: Date.now()
+  // NO definitionId
+}
+
+### 4.3 UI
+
+- Add a clearly labeled section in AdminPage:
+  "Lisa üksiktreening" (Add one-off session)
+- Form fields:
+  - date (date input)
+  - startTime (time input)
+  - endTime (time input)
+  - sport (select: tennis / fitness)
+  - capacity (number input)
+  - assignedCoachIds (select from existing coaches)
+- Submit button: "Loo treening"
+- On success: clear form, show confirmation
 
 ---
 
-## 5. Fix Scope
+## 5. Guardrails
 
-For each failing rule:
-- Fix the time comparison logic
-- Ensure consistent use of getTallinnNow()
-  and combineDateAndTime()
-- Do not change the rule thresholds unless
-  they are provably wrong
-
----
-
-## 6. Strict Guardrails
-* **Do not change rule thresholds**
-* **Always use getTallinnNow() and
-  combineDateAndTime() for time comparisons**
-* **Fix logic only — no UI redesign**
-* **No schema changes**
-* **Document any rule that cannot be verified
-  due to lack of test data**
+- NO changes to sessionDefinitions
+- NO changes to instanceGenerator.js
+- NO changes to rosterSync.js
+- NO new components — inline in AdminPage.jsx
+- ONLY AdminPage.jsx modified
+- capacity must be stored as Number(capacity), not a string
+- assignedCoachIds must use shape { coachId: true }, not an array
 
 ---
 
-## 7. Definition of Done (Verification)
+## 6. Definition of Done
 
-**Test A — preStatus lock:**
-- Session starting in < 60 minutes
-- Log in as player
-- Expected: Lukustatud badge, no preStatus buttons
-- Log in as parent
-- Expected: same behavior on parent card
+- Admin can create a one-off session via form
+- Instance appears in sessionInstances with correct fields
+- No definitionId present on created instance
+- Session visible in SessionListPage immediately
+- No console errors
 
-**Test B — Session default tab:**
-- Open a future session (not started)
-- Expected: Staatus tab active by default
-- Open an active session (started, not ended)
-- Expected: Kohalolek tab active by default
-- Open a past session (ended > 1h ago)
-- Expected: Tagasiside tab active by default
+---
 
-**Test C — Coach feedback visibility:**
-- Find past session with coach feedback
-- Session ended > 24h ago
-- Log in as player
-- Expected: coach feedback visible
-- Find session ended < 24h ago
-- Expected: "Treeneri tagasiside on varsti
-  saadaval" shown
-
-**Test D — Feedback edit window:**
-- Find session ended > 7 days ago
-- Log in as coach
-- Expected: feedback shown read-only
-- Expected: "Muutmisaeg lõppenud" shown
-- Log in as admin
-- Expected: edit controls still visible
-
-**Test E — Feedback reminder:**
-- Past session within 7 days, realStatus kohal,
-  no player feedback submitted
-- Log in as player
-- Expected: "📝 Anna tagasiside" shown
-
-1. No console errors.
-2. Do NOT update docs/ImplementationPlan.md until I
-   reply "Verified ✅". Then STOP. Do not proceed to
-   any other task. Show exact diffs.
+STOP after completion.
+Show exact diff only.

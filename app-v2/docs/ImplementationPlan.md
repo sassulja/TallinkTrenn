@@ -1,7 +1,7 @@
 # Tallink Trenn v2 — Master Implementation Plan
 
 **Schema Version:** Frozen v1.0
-**Last Updated:** 2026-03-20
+**Last Updated:** 2026-03-21
 **Architecture:** React + Firebase RTDB (Single Role Routing, Deterministic IDs)
 
 ## Status Legend
@@ -149,33 +149,84 @@
   players always at bottom. Stable ordering across 
   reloads.
 
-- [ ] ⬜ **10.3.2 — Write Collision Handling:** 
+- [x] ✅ **10.3.2 — Write Collision Handling:** 
   Define behavior for simultaneous updates. 
   Deterministic outcome, no silent overwrites. 
   Minimal conflict resolution where needed.
 
-- [ ] ⬜ **10.3.3 — Data Fallback Safety:** App must 
+- [x] ✅ **10.3.3 — Data Fallback Safety:** App must 
   not break when attendance node missing, feedback 
   partially missing, player link missing. Safe 
   defaults, UI still renders, no runtime errors.
 
-- [ ] ⬜ **10.3.4 — Session Generation Edge Cases:** 
+- [x] ✅ **10.3.4 — Session Generation Edge Cases:** 
   Handle definitions with no enrollments, gaps in 
   date ranges, duplicate instance prevention. 
   Idempotent generation, no duplicate sessions.
 
-- [ ] ⬜ **10.4 — Deployment:** Build production 
+- [x] ✅ **10.4 — Deployment:** Build production 
   bundle, deploy to Firebase Hosting, configure 
   domain. Verify login, data loads, no console 
   errors.
 
-- [ ] ⬜ **10.5 — Release Checklist:** Smoke test 
+- [x] ✅ **10.5 — Release Checklist:** Smoke test 
   all role flows. Verify no crashes, no broken UI 
   states. Lock Phase 10.
 
+---
+
+## Phase 10.5 — Session Management & Feature Recovery
+
+- [x] ✅ **10.5.0 — Audit Existing Functionality:**
+  Audit current codebase before implementing anything new.
+  Identify whether the following already exist (fully or partially):
+  - Session instance editing (coach/admin)
+  - One-off session creation (admin)
+  - Player extra session requests
+  - Map actual Firebase data model:
+    - How sessions are stored
+    - Whether instances are separate or generated
+    - Any overrides / exceptions structure
+    - Where data is read vs written
+  Output must clearly state FOUND / NOT FOUND and file locations.
+
+---
+
+- [x] ✅ **10.5.1 — Edit Session Instance (Coach/Admin):**
+  Enable modifying a single session instance:
+  - Change time (date/start)
+  - Cancel session
+  Must NOT break recurring session logic.
+  Use existing data model (no duplication).
+  **Depends on: 10.5.0 audit findings — data model must be confirmed first.**
+
+---
+
+- [ ] ⬜ **10.5.2 — One-off Session Creation (Admin):**
+  Allow admin to create a single (non-recurring) session:
+  - Define time, players, coach
+  - Reuse existing AdminPage functionality if present
+  - Avoid duplicate flows
+  **Depends on: 10.5.0 audit findings — reuse vs rebuild decision required.**
+
+---
+
+- [ ] ⬜ **10.5.3 — Extra Session Requests (Player):**
+  Allow player to request participation in additional sessions.
+  Introduce entity:
+  extraRequests/{requestId}:
+  - playerId
+  - sessionId
+  - status (pending / approved / rejected)
+  - requestedAt
+  Include basic approval flow (coach/admin).
+  **Depends on: 10.5.0 audit findings — schema must align with existing session model.**
+
+---
+
 ## Phase 11 — UI / UX Polish & Usability
 
-- [ ] ⬜ **11.1 — Mobile Layout Audit:** Review 
+- [x] ✅ **11.1 — Mobile Layout Audit:** Review 
   AdminPage, RosterPage, AttendancePage. Fix 
   overflow, touch targets, spacing. Usable on 
   phone without zoom.

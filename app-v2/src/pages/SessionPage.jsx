@@ -56,7 +56,7 @@ function TabBar({ activeTab, onTabChange }) {
 }
 
 // ─── Kohalolek: RosterRow ───────────────────────────────
-function RosterRow({ playerId, rData, playerData, att, sessionStarted, onTapCycle, isMobile }) {
+function RosterRow({ playerId, rData, playerData, att, sessionStarted, onTapCycle, isMobile, attendanceDisabled }) {
     const pName = playerData ? `${playerData.firstName} ${playerData.lastName}` : "Tundmatu mängija"
     const isRemoved = rData.removedByCoach === true
     const preStatus = att?.preStatus || null
@@ -82,9 +82,9 @@ function RosterRow({ playerId, rData, playerData, att, sessionStarted, onTapCycl
     }
 
     if (isMobile) return (
-        <div onClick={() => onTapCycle(playerId)}
-            style={{ padding: "10px 0", borderBottom: "1px solid #eee", cursor: "pointer", userSelect: "none", transition: "background 0.15s" }}
-            onPointerDown={e => e.currentTarget.style.background = "#f3f4f6"}
+        <div onClick={() => !attendanceDisabled && onTapCycle(playerId)}
+            style={{ padding: "10px 0", borderBottom: "1px solid #eee", cursor: attendanceDisabled ? "default" : "pointer", userSelect: "none", transition: "background 0.15s", opacity: attendanceDisabled ? 0.7 : 1 }}
+            onPointerDown={e => { if (!attendanceDisabled) e.currentTarget.style.background = "#f3f4f6" }}
             onPointerUp={e => e.currentTarget.style.background = ""}
             onPointerLeave={e => e.currentTarget.style.background = ""}>
             <div style={{ fontWeight: "bold", marginBottom: "4px" }}>
@@ -108,9 +108,9 @@ function RosterRow({ playerId, rData, playerData, att, sessionStarted, onTapCycl
                 {rData.walkIn && <span style={{ marginLeft: "8px", backgroundColor: "#e0f2f1", color: "#00796b", padding: "2px 6px", borderRadius: "4px", fontSize: "12px", fontWeight: "bold" }}>🚶</span>}
             </td>
             <td style={{ padding: "10px 8px", color: sessionStarted ? "#999" : "#333", fontSize: sessionStarted ? "13px" : "14px" }}>{preLabel}</td>
-            <td onClick={() => onTapCycle(playerId)}
-                style={{ padding: "10px 8px", cursor: "pointer", userSelect: "none", fontWeight: "bold", transition: "background 0.15s", minHeight: "44px" }}
-                onMouseDown={e => e.currentTarget.style.background = "#e5e7eb"}
+            <td onClick={() => !attendanceDisabled && onTapCycle(playerId)}
+                style={{ padding: "10px 8px", cursor: attendanceDisabled ? "default" : "pointer", userSelect: "none", fontWeight: "bold", transition: "background 0.15s", minHeight: "44px", opacity: attendanceDisabled ? 0.7 : 1 }}
+                onMouseDown={e => { if (!attendanceDisabled) e.currentTarget.style.background = "#e5e7eb" }}
                 onMouseUp={e => e.currentTarget.style.background = ""}
                 onMouseLeave={e => e.currentTarget.style.background = ""}>
                 {realInfo.icon} {realInfo.label}
@@ -147,6 +147,10 @@ export default function SessionPage() {
     const [feedbackData, setFeedbackData] = useState(null) // null = not loaded, {} = loaded
     const [feedbackLocal, setFeedbackLocal] = useState({}) // { playerId: { effort, note } }
     const [feedbackSaved, setFeedbackSaved] = useState({}) // { playerId: true } for "Salvestatud" flash
+    const [isEditingSessionTime, setIsEditingSessionTime] = useState(false)
+    const [editStartTime, setEditStartTime] = useState("")
+    const [editEndTime, setEditEndTime] = useState("")
+    const [isSavingSession, setIsSavingSession] = useState(false)
     const feedbackLoaded = useRef(false)
 
     const debounceTimer = useRef(null)
@@ -257,6 +261,11 @@ export default function SessionPage() {
         return unsub
     }, [inst?.definitionId])
 
+    useEffect(() => {
+        setEditStartTime(inst?.startTime || "")
+        setEditEndTime(inst?.endTime || "")
+    }, [inst?.startTime, inst?.endTime])
+
     // Read display name from RTDB
     useEffect(() => {
         if (!currentUser) return
@@ -269,8 +278,8 @@ export default function SessionPage() {
     useEffect(() => {
         if (!inst || !def || activeTab !== null) return
         const nowMs = getTallinnNow().getTime()
-        const startTime = inst.startTime || def.startTime || "00:00"
-        const endTime = inst.endTime || def.endTime || "00:00"
+        const startTime = inst.startTime || "00:00"
+        const endTime = inst.endTime || "00:00"
         const sessionStartMs = new Date(combineDateAndTime(inst.date, startTime)).getTime()
         const sessionEndMs = new Date(combineDateAndTime(inst.date, endTime)).getTime()
         const oneHourAfterEnd = sessionEndMs + 60 * 60 * 1000
@@ -292,7 +301,7 @@ export default function SessionPage() {
 
     // ─── Tap cycle ──────────────────────────────────
     const handleTapCycle = (playerId) => {
-        if (!hasPermission()) return
+        if (!hasPermission() || inst?.status === "cancelled") return
         const currentAtt = localAtt[playerId] || {}
         const currentReal = currentAtt.realStatus || null
         const idx = REAL_STATUS_CYCLE.indexOf(currentReal)
@@ -309,7 +318,7 @@ export default function SessionPage() {
 
     // ─── Mark All Present ───────────────────────────
     const handleMarkAllPresent = () => {
-        if (!hasPermission()) return
+        if (!hasPermission() || inst?.status === "cancelled") return
         const nowIso = new Date().toISOString()
         Object.entries(roster).forEach(([playerId, rData]) => {
             if (rData.removedByCoach) return
@@ -338,7 +347,7 @@ export default function SessionPage() {
             const attSnap = await get(attRef)
             let isPast = false
             if (inst && def) {
-                try { isPast = new Date(combineDateAndTime(inst.date, def.startTime)).getTime() <= Date.now() } catch (e) { console.error(e) }
+                try { isPast = new Date(combineDateAndTime(inst.date, inst.startTime || "00:00")).getTime() <= Date.now() } catch (e) { console.error(e) }
             }
             const attUpdates = { preStatus: "kinnitatud" }
             if (isPast) { attUpdates.realStatus = "kohal"; attUpdates.markedBy = currentUser.uid; attUpdates.markedAt = new Date().toISOString() }
@@ -363,7 +372,7 @@ export default function SessionPage() {
 
     // ─── Walk-in add (Kohalolek) ────────────────────
     const handleAddWalkIn = async () => {
-        if (!walkInPlayerId || !hasPermission()) return
+        if (!walkInPlayerId || !hasPermission() || inst?.status === "cancelled") return
         setMsg("")
         const nowIso = new Date().toISOString()
         try {
@@ -408,6 +417,43 @@ export default function SessionPage() {
             })
             setMsgText("")
         } catch (err) { console.error("Send message failed", err); setMsg(`Error: ${err.message}`) }
+    }
+
+    const handleSaveSessionTime = async () => {
+        if (!hasPermission() || !editStartTime || !editEndTime) return
+        setMsg("")
+        setIsSavingSession(true)
+        try {
+            await update(ref(database, `sessionInstances/${instanceId}`), {
+                startTime: editStartTime,
+                endTime: editEndTime
+            })
+            setIsEditingSessionTime(false)
+            setMsg("Treeningu aeg uuendatud.")
+        } catch (err) {
+            console.error("Session time save failed", err)
+            setMsg(`Error: ${err.message}`)
+        } finally {
+            setIsSavingSession(false)
+        }
+    }
+
+    const handleCancelSession = async () => {
+        if (!hasPermission() || inst?.status === "cancelled") return
+        if (!window.confirm("Kas tühistada see treening?")) return
+        setMsg("")
+        setIsSavingSession(true)
+        try {
+            await update(ref(database, `sessionInstances/${instanceId}`), {
+                status: "cancelled"
+            })
+            setMsg("Treening tühistatud.")
+        } catch (err) {
+            console.error("Session cancel failed", err)
+            setMsg(`Error: ${err.message}`)
+        } finally {
+            setIsSavingSession(false)
+        }
     }
 
     // ─── Feedback: lazy load via useEffect ────────────
@@ -545,12 +591,13 @@ export default function SessionPage() {
     }
 
     // ─── Computed values ────────────────────────────
-    const startTime = inst.startTime || def?.startTime || "00:00"
+    const startTime = inst.startTime || "00:00"
     const sessionStartMs = new Date(combineDateAndTime(inst.date, startTime)).getTime()
     const sessionStarted = sessionStartMs <= getTallinnNow().getTime()
-    const sport = inst.sport || def?.sport || ""
-    const endTime = inst.endTime || def?.endTime || ""
+    const sport = inst.sport || ""
+    const endTime = inst.endTime || ""
     const timeDisplay = endTime ? `${startTime} - ${endTime}` : startTime
+    const isCancelled = inst.status === "cancelled"
 
     const rosterEntries = Object.entries(roster).sort(([pIdA, rA], [pIdB, rB]) => {
         const removedA = rA.removedByCoach === true
@@ -599,8 +646,48 @@ export default function SessionPage() {
             <div style={{ marginBottom: "16px" }}>
                 <h2 style={{ marginBottom: "4px" }}>{formatEstonianDate(inst.date)}</h2>
                 <div style={{ fontSize: "18px", fontWeight: "bold" }}>{timeDisplay}</div>
+                {isCancelled && (
+                    <div style={{ display: "inline-block", marginTop: "8px", padding: "4px 8px", borderRadius: "999px", background: "#fee2e2", color: "#b91c1c", fontSize: "12px", fontWeight: "bold" }}>
+                        Tühistatud
+                    </div>
+                )}
                 <div style={{ textTransform: "capitalize", color: "#555", marginTop: "4px" }}>{sport}</div>
                 <div style={{ fontSize: "12px", color: "#999", marginTop: "4px" }}>{instanceId}</div>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap", marginTop: "12px" }}>
+                    {!isEditingSessionTime ? (
+                        <button onClick={() => setIsEditingSessionTime(true)}
+                            style={{ padding: "8px 12px", background: "#f3f4f6", color: "#111827", border: "1px solid #d1d5db", borderRadius: "6px", cursor: "pointer" }}>
+                            Muuda aega
+                        </button>
+                    ) : (
+                        <>
+                            <input
+                                type="time"
+                                value={editStartTime}
+                                onChange={e => setEditStartTime(e.target.value)}
+                                style={{ padding: "8px", borderRadius: "6px", border: "1px solid #ccc" }}
+                            />
+                            <input
+                                type="time"
+                                value={editEndTime}
+                                onChange={e => setEditEndTime(e.target.value)}
+                                style={{ padding: "8px", borderRadius: "6px", border: "1px solid #ccc" }}
+                            />
+                            <button onClick={handleSaveSessionTime} disabled={!editStartTime || !editEndTime || isSavingSession}
+                                style={{ padding: "8px 12px", background: !editStartTime || !editEndTime || isSavingSession ? "#ccc" : "#3b82f6", color: "white", border: "none", borderRadius: "6px", cursor: !editStartTime || !editEndTime || isSavingSession ? "not-allowed" : "pointer" }}>
+                                Salvesta
+                            </button>
+                            <button onClick={() => { setIsEditingSessionTime(false); setEditStartTime(inst.startTime || ""); setEditEndTime(inst.endTime || "") }}
+                                style={{ padding: "8px 12px", background: "white", color: "#111827", border: "1px solid #d1d5db", borderRadius: "6px", cursor: "pointer" }}>
+                                Loobu
+                            </button>
+                        </>
+                    )}
+                    <button onClick={handleCancelSession} disabled={isCancelled || isSavingSession}
+                        style={{ padding: "8px 12px", background: isCancelled ? "#e5e7eb" : "#dc2626", color: "white", border: "none", borderRadius: "6px", cursor: isCancelled || isSavingSession ? "not-allowed" : "pointer" }}>
+                        Tühista treening
+                    </button>
+                </div>
             </div>
 
             {msg && <p style={{ color: msg.startsWith("Error") ? "red" : "green", fontWeight: "bold", marginBottom: "12px" }}>{msg}</p>}
@@ -765,6 +852,12 @@ export default function SessionPage() {
 
             {/* ═══════════ KOHALOLEK TAB ═══════════ */}
             {activeTab === "kohalolek" && (<>
+                {isCancelled && (
+                    <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", color: "#b91c1c", borderRadius: "8px", padding: "10px 16px", marginBottom: "16px", fontSize: "13px", fontWeight: "bold" }}>
+                        Treening on tühistatud. Kohaloleku tegevused on keelatud.
+                    </div>
+                )}
+
                 {/* realStatus summary */}
                 <div style={{ background: "#f8f9fa", padding: "12px 16px", borderRadius: "8px", marginBottom: "20px", fontSize: "14px", display: "flex", flexWrap: "wrap", gap: "16px" }}>
                     <span>🟢 Kohal: <b>{rosterEntries.filter(([pId, r]) => !r.removedByCoach && (localAtt[pId]?.realStatus || null) === "kohal").length}</b></span>
@@ -776,8 +869,8 @@ export default function SessionPage() {
 
                 {/* Mark All Present */}
                 {rosterEntries.length > 0 && (
-                    <button onClick={handleMarkAllPresent} disabled={allKohal}
-                        style={{ width: "100%", padding: "12px", marginBottom: "16px", border: "none", borderRadius: "8px", cursor: allKohal ? "default" : "pointer", fontWeight: "bold", fontSize: "15px", background: allKohal ? "#d1d5db" : "#22c55e", color: "white", transition: "background 0.2s" }}>
+                    <button onClick={handleMarkAllPresent} disabled={allKohal || isCancelled}
+                        style={{ width: "100%", padding: "12px", marginBottom: "16px", border: "none", borderRadius: "8px", cursor: allKohal || isCancelled ? "default" : "pointer", fontWeight: "bold", fontSize: "15px", background: allKohal || isCancelled ? "#d1d5db" : "#22c55e", color: "white", transition: "background 0.2s" }}>
                         {allKohal ? "Kõik märgitud kohal" : "Märgi kõik kohal"}
                     </button>
                 )}
@@ -787,7 +880,7 @@ export default function SessionPage() {
                     <div style={{ marginBottom: "20px" }}>
                         {rosterEntries.map(([pId, rData]) => (
                             <RosterRow key={pId} playerId={pId} rData={rData} playerData={players[pId]}
-                                att={localAtt[pId]} sessionStarted={sessionStarted} onTapCycle={handleTapCycle} isMobile={true} />
+                                att={localAtt[pId]} sessionStarted={sessionStarted} onTapCycle={handleTapCycle} isMobile={true} attendanceDisabled={isCancelled} />
                         ))}
                     </div>
                 ) : (
@@ -800,7 +893,7 @@ export default function SessionPage() {
                         <tbody>
                             {rosterEntries.map(([pId, rData]) => (
                                 <RosterRow key={pId} playerId={pId} rData={rData} playerData={players[pId]}
-                                    att={localAtt[pId]} sessionStarted={sessionStarted} onTapCycle={handleTapCycle} isMobile={false} />
+                                    att={localAtt[pId]} sessionStarted={sessionStarted} onTapCycle={handleTapCycle} isMobile={false} attendanceDisabled={isCancelled} />
                             ))}
                         </tbody>
                     </table>
@@ -814,8 +907,8 @@ export default function SessionPage() {
                             <option value="">-- Vali mängija --</option>
                             {availableForWalkIn.map(([pId, p]) => (<option key={pId} value={pId}>{p.firstName} {p.lastName}</option>))}
                         </select>
-                        <button onClick={handleAddWalkIn} disabled={!walkInPlayerId}
-                            style={{ padding: "8px 16px", background: walkInPlayerId ? "#22c55e" : "#ccc", color: "white", border: "none", borderRadius: "6px", cursor: walkInPlayerId ? "pointer" : "not-allowed" }}>
+                        <button onClick={handleAddWalkIn} disabled={!walkInPlayerId || isCancelled}
+                            style={{ padding: "8px 16px", background: walkInPlayerId && !isCancelled ? "#22c55e" : "#ccc", color: "white", border: "none", borderRadius: "6px", cursor: walkInPlayerId && !isCancelled ? "pointer" : "not-allowed" }}>
                             Lisa
                         </button>
                     </div>
@@ -824,7 +917,7 @@ export default function SessionPage() {
 
             {/* ═══════════ TAGASISIDE TAB ═══════════ */}
             {activeTab === "tagasiside" && (() => {
-                const endTime = inst.endTime || def?.endTime || "00:00"
+                const endTime = inst.endTime || "00:00"
                 const sessionEndMs = new Date(combineDateAndTime(inst.date, endTime)).getTime()
                 const editDeadlineMs = sessionEndMs + 7 * 24 * 60 * 60 * 1000
                 const nowMsFb = getTallinnNow().getTime()

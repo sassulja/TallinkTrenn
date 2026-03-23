@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react"
 import { useSearchParams, useNavigate } from "react-router-dom"
 import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth"
-import { ref, update } from "firebase/database"
+import { ref, get, update } from "firebase/database"
 import { database } from "../services/firebase"
 import { useAuth } from "../contexts/AuthContext"
 import { LoadingSpinner } from "../components/UIHelpers"
@@ -36,15 +36,12 @@ export default function AcceptInvitePage() {
 
         const fetchInvite = async () => {
             try {
-                const response = await fetch(
-                    `http://127.0.0.1:9000/invitations/${inviteId}.json?ns=tallink-trenn-default-rtdb`
-                )
-                const data = await response.json()
-
-                if (!data) {
+                const snap = await get(ref(database, `invitations/${inviteId}`))
+                if (!snap.exists()) {
                     setStatus("invalid")
                     return
                 }
+                const data = snap.val()
 
                 if (data.token !== inviteToken) {
                     setStatus("invalid")
