@@ -1,92 +1,167 @@
 # Current Task Directives
 
 **Target Phase:** Phase 10.5 — Session Management & Recovery  
-**Active Chunk:** 10.5.2 — One-off Session Creation (Admin)
+**Active Chunk:** 10.5.10 — Extra Requests Consistency & Player UI Finalization
 
 ---
 
 ## 1. Objective
 
-Allow admin to create a single standalone session instance
-that is not linked to any recurring definition.
+Finalize extra session request system:
+
+1. Player UI:
+   - Show correct request status
+   - Allow cancel (optimistic update)
+   - Use isLocked as ONLY gate
+
+2. Data consistency:
+   - roster = source of truth
+   - extraRequests must reflect roster changes
 
 ---
 
 ## 2. Scope
 
-- src/pages/AdminPage.jsx ONLY
+- src/pages/SessionListPage.jsx
+- src/pages/SessionPage.jsx
 
 ---
 
-## 3. Architecture rule (DO NOT VIOLATE)
+## 3. Player Rules
 
-- Write ONLY to sessionInstances/{instanceId}
-- DO NOT create or reference sessionDefinitions
-- DO NOT call instanceGenerator.js
-- DO NOT touch rosterSync.js
-- NO definitionId field in the created object
+- isLocked = (sessionStartMs - nowMs) < 60 * 60 * 1000
+- isLocked is the ONLY gate for player actions
+- Do NOT use sessionStarted for player logic
 
----
+### Player states:
 
-## 4. Implementation
-
-### 4.1 instanceId format
-
-const pushKey = push(ref(database, "sessionInstances")).key
-const instanceId = `${date}__${pushKey}`
-
-### 4.2 Fields to write
-
-{
-  date,                                    // "YYYY-MM-DD"
-  startTime,                               // "HH:mm"
-  endTime,                                 // "HH:mm"
-  sport,                                   // "tennis" | "fitness"
-  capacity: Number(capacity),              // must be number, not string
-  assignedCoachIds: { [selectedCoachId]: true },  // object, NOT array
-  status: "scheduled",
-  createdBy: currentUser.uid,
-  createdAt: Date.now()
-  // NO definitionId
-}
-
-### 4.3 UI
-
-- Add a clearly labeled section in AdminPage:
-  "Lisa üksiktreening" (Add one-off session)
-- Form fields:
-  - date (date input)
-  - startTime (time input)
-  - endTime (time input)
-  - sport (select: tennis / fitness)
-  - capacity (number input)
-  - assignedCoachIds (select from existing coaches)
-- Submit button: "Loo treening"
-- On success: clear form, show confirmation
+| Status | UI |
+|------|----|
+| none / cancelled | Soovin osaleda |
+| pending | Taotlus on ootel + Tühista |
+| rejected | Taotlus tagasi lükatud |
+| approved | not shown (player in roster) |
+| isLocked | no actions |
 
 ---
 
-## 5. Guardrails
+## 4. Coach/Admin Rules
 
-- NO changes to sessionDefinitions
-- NO changes to instanceGenerator.js
-- NO changes to rosterSync.js
-- NO new components — inline in AdminPage.jsx
-- ONLY AdminPage.jsx modified
-- capacity must be stored as Number(capacity), not a string
-- assignedCoachIds must use shape { coachId: true }, not an array
+- NEVER time-locked
+- sessionStarted is informational only
+- Coach/admin can:
+  - approve anytime
+  - add players manually anytime
+  - override rejected requests
 
 ---
 
-## 6. Definition of Done
+## 5. Data Consistency Rule (CRITICAL)
 
-- Admin can create a one-off session via form
-- Instance appears in sessionInstances with correct fields
-- No definitionId present on created instance
-- Session visible in SessionListPage immediately
+Roster is the source of truth.
+
+When a player is added to roster:
+
+IF extraRequests/{instanceId}/{playerId} exists →
+SET status = "approved"
+
+This must be done in SAME logical action using multi-path update.
+
+Example:
+
+update(ref(database), {
+  [`rosters/${instanceId}/${playerId}`]: rosterData,
+  [`extraRequests/${instanceId}/${playerId}/status`]: "approved"
+})
+
+---
+
+## 6. SessionListPage
+
+### 6.1 extraRequests subscription
+
+- Add global subscription for extraRequests
+
+### 6.2 Cancel handler
+
+- Optimistic update:
+  - Save previous status
+  - Set status = "cancelled"
+  - On error → revert
+
+### 6.3 Props to SessionCardPlayer
+
+- myExtraRequest
+- onCancelExtraRequest
+
+---
+
+## 7. SessionCardPlayer
+
+### Props
+
+- myExtraRequest
+- onCancelExtraRequest
+
+### UI Logic
+
+Use ONLY isLocked.
+
+if (isLocked) → return null
+
+if (status === "pending") → label + cancel button
+if (status === "rejected") → label only
+if (status === null || status === "cancelled") → request button
+
+### Buttons
+
+- type="button"
+- e.stopPropagation()
+
+---
+
+## 8. SessionPage (Player View)
+
+### Cancel handler
+
+- Same optimistic logic as SessionListPage
+
+### UI Logic
+
+if (isLocked) → return null
+
+if (status === "pending") → label + cancel
+if (status === "rejected") → label
+if (status === null || status === "cancelled") → request button
+
+### Safety
+
+- Use optional chaining:
+  extraRequests?.[myPlayerId]
+
+- Remove unused sessionStarted from player logic
+
+- All buttons:
+  - type="button"
+  - e.stopPropagation()
+
+---
+
+## 9. Guardrails
+
+- DO NOT touch coach/admin views
+- DO NOT modify approval logic structure
+- DO NOT introduce new components
+- DO NOT re-enable re-request after rejected
+- DO NOT use sessionStarted as gate
+
+---
+
+## 10. Definition of Done
+
+- Player sees correct status everywhere
+- Cancel works instantly (optimistic)
+- No re-request after rejected
+- No stale pending requests after roster update
 - No console errors
-
----
-
-STOP after completion.
-Show exact diff only.
+- Data always consistent

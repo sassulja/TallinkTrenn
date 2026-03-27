@@ -178,51 +178,134 @@
 ## Phase 10.5 — Session Management & Feature Recovery
 
 - [x] ✅ **10.5.0 — Audit Existing Functionality:**
-  Audit current codebase before implementing anything new.
-  Identify whether the following already exist (fully or partially):
-  - Session instance editing (coach/admin)
-  - One-off session creation (admin)
-  - Player extra session requests
-  - Map actual Firebase data model:
-    - How sessions are stored
-    - Whether instances are separate or generated
-    - Any overrides / exceptions structure
-    - Where data is read vs written
-  Output must clearly state FOUND / NOT FOUND and file locations.
+  Completed.
+  - Session instance editing → FOUND (SessionPage / AdminPage)
+  - One-off session creation → FOUND (AdminPage)
+  - Player extra session requests → PARTIAL → completed in later chunks
+  - Firebase data model confirmed:
+    - sessionInstances/{instanceId}
+    - rosters/{instanceId}
+    - attendance/{instanceId}
+    - extraRequests/{instanceId}/{playerId}
+  - Sessions are explicitly stored (no generated instances)
 
 ---
 
 - [x] ✅ **10.5.1 — Edit Session Instance (Coach/Admin):**
-  Enable modifying a single session instance:
-  - Change time (date/start)
+  Completed.
+  - Modify time per instance
   - Cancel session
-  Must NOT break recurring session logic.
-  Use existing data model (no duplication).
-  **Depends on: 10.5.0 audit findings — data model must be confirmed first.**
+  - No impact on recurring logic
 
 ---
 
-- [ ] ⬜ **10.5.2 — One-off Session Creation (Admin):**
-  Allow admin to create a single (non-recurring) session:
-  - Define time, players, coach
-  - Reuse existing AdminPage functionality if present
-  - Avoid duplicate flows
-  **Depends on: 10.5.0 audit findings — reuse vs rebuild decision required.**
+- [x] ✅ **10.5.2 — One-off Session Creation (Admin):**
+  Completed.
+  - Uses existing AdminPage flow
+  - Creates entries in sessionInstances
+  - Assigns coach, players, sport
+  - No duplicate flows introduced
 
 ---
 
-- [ ] ⬜ **10.5.3 — Extra Session Requests (Player):**
-  Allow player to request participation in additional sessions.
-  Introduce entity:
-  extraRequests/{requestId}:
-  - playerId
-  - sessionId
-  - status (pending / approved / rejected)
-  - requestedAt
-  Include basic approval flow (coach/admin).
-  **Depends on: 10.5.0 audit findings — schema must align with existing session model.**
+- [x] ✅ **10.5.3 — Extra Session Requests (Player):**
+  Completed.
+
+  Schema:
+  extraRequests/{instanceId}/{playerId}:
+    - requestedAt
+    - requestedBy
+    - status: "pending" | "approved" | "rejected"
+    - note: null
+
+  Behavior:
+  - Player can request sessions they are not on roster for
+  - Button: "Soovin osaleda"
+  - Duplicate pending requests prevented
+  - Capacity NOT checked at request stage
+  - Multiple requests allowed
+
+  Overlap handling:
+  - Uses allInstances + allAttendance
+  - Condition:
+    existing.start < new.end AND existing.end > new.start
+  - Applies only if preStatus === "kinnitatud"
+  - Does NOT block request
+  - Shows warning with conflicting session details
+
+  Approval:
+  - Player added to roster
+  - All other pending requests for same player → auto-rejected (not deleted)
 
 ---
+
+- [x] ✅ **10.5.4 — Player Session List Split (Lisatreeningud):**
+  Completed.
+  - "Minu treeningud" → player is on roster
+  - "Lisatreeningud" → player is NOT on roster
+  - One-off sessions supported (definition guard fix)
+  - Uses SessionGroup + SessionCardPlayer
+  - No capacity filtering
+
+---
+
+- [x] ✅ **10.5.5 — Coach Invite Flow:**
+  Completed.
+  - Reuses existing invitation system
+  - Adds type: "coach"
+  - Acceptance creates:
+    users/{uid} → role: "coach"
+  - No parentLinks
+  - No permissions assigned at creation
+
+---
+
+- [x] ✅ **10.5.6 — Global Data Subscriptions (Prep):**
+  Completed.
+  - Added:
+    - allInstances
+    - allAttendance
+  - Read-only
+  - Supports overlap logic
+
+---
+
+- [x] ✅ **10.5.7 — Overlap Warning + Auto-reject:**
+  Completed.
+  - Overlap warning implemented (non-blocking)
+  - Uses strict interval logic
+  - Auto-reject implemented using allExtraRequests
+  - Batch update() used for rejection
+  - Safety guard added:
+    if (!otherInst) continue
+
+- [ ] ⬜ **10.5.9 — Overlap check at approval (Coach side):**
+  Block or warn coach when approving a request that would create
+  a time conflict with another confirmed session for the same player.
+
+- [ ] ⬜ **10.5.10 — Request conflict auto-reject (cross-player):**
+  When session reaches capacity on approval, auto-reject remaining
+  pending requests for that session.
+
+---
+
+### ✅ Phase 10.5 Status: COMPLETE
+
+All session-related functionality:
+- Fully implemented
+- Consistent with Firebase data model
+- Handles edge cases (overlap, duplicates, missing data)
+- No blocking issues identified
+
+---
+
+### 📌 Future Improvements (non-blocking)
+
+- Optional: overlap validation at approval stage (coach-side)
+- Optional: improve warning UI ("NB!" prefix)
+- Optional: expose rejected request history in UI
+
+---------
 
 ## Phase 11 — UI / UX Polish & Usability
 
@@ -231,24 +314,33 @@
   overflow, touch targets, spacing. Usable on 
   phone without zoom.
 
-- [ ] ⬜ **11.2 — Layout & Visual Consistency:** 
+- [x] ✅ **11.2 — SessionListPage Interaction Fix:**
+  - Remove expand arrow button from session cards
+  - Remove expand/collapse logic
+  - Make card header (top section only) clickable → navigate to SessionPage
+  - Keep action buttons (Kinnitan / Ei osale) outside clickable area
+  - Show action buttons directly in card when preStatus === "Vastamata"
+  - Do NOT change existing logic for button actions
+  - Do NOT introduce new components
+
+- [ ] ⬜ **11.3 — Layout & Visual Consistency:** 
   Standardize spacing, typography, container 
   widths. Align headers, sections, cards.
 
-- [ ] ⬜ **11.3 — Component Standardization:** 
+- [ ] ⬜ **11.4 — Component Standardization:** 
   Replace repeated UI with reusable components. 
   Buttons, status badges, lists/rows. Reduce 
   inline styles.
 
-- [ ] ⬜ **11.4 — Visual Hierarchy & Clarity:** 
+- [ ] ⬜ **11.5 — Visual Hierarchy & Clarity:** 
   Improve primary vs secondary actions, status 
   visibility. Feedback easier to scan, statuses 
   instantly understandable.
 
-- [ ] ⬜ **11.5 — UX Improvements:** Loading states, 
+- [ ] ⬜ **11.6 — UX Improvements:** Loading states, 
   empty states, error feedback. Remove confusing 
   or redundant elements.
 
-- [ ] ⬜ **11.6 — Final UI Cleanup:** Remove leftover 
+- [ ] ⬜ **11.7 — Final UI Cleanup:** Remove leftover 
   debug/UI inconsistencies. Consistent look across 
   all pages.

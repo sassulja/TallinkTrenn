@@ -19,6 +19,7 @@ export default function AcceptInvitePage() {
     const [password, setPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
     const [parentName, setParentName] = useState("")
+    const [coachName, setCoachName] = useState("")
     const [playerName, setPlayerName] = useState("")
     const [errors, setErrors] = useState({})
     const [errorMsg, setErrorMsg] = useState("")
@@ -95,6 +96,9 @@ export default function AcceptInvitePage() {
         if (invitation.type === "parent" && !parentName.trim()) {
             newErrors.parentName = "Nimi on kohustuslik"
         }
+        if (invitation.type === "coach" && !coachName.trim()) {
+            newErrors.coachName = "Nimi on kohustuslik"
+        }
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors)
@@ -149,18 +153,24 @@ export default function AcceptInvitePage() {
                         updates[`parentLinks/${uid}/${pId}`] = true
                     })
                 }
+            } else if (invitation.type === "coach") {
+                updates[`users/${uid}`] = {
+                    role: "coach",
+                    email: invitation.email,
+                    displayName: coachName.trim(),
+                    createdAt: nowIso
+                }
             }
 
             // Execute user/parentLinks updates first
             await update(ref(database), updates)
 
             // 3. Mark invite accepted
-            const inviteUpdates = {
+            await update(ref(database, `invitations/${inviteId}`), {
                 status: "accepted",
                 acceptedAt: nowIso,
-                acceptedByUid: uid
-            }
-            await update(ref(database, `invitations/${inviteId}`), inviteUpdates)
+                acceptedByUid: auth.currentUser.uid
+            })
 
             setStatus("success")
             setTimeout(async () => {
@@ -207,7 +217,7 @@ export default function AcceptInvitePage() {
         <div style={{ padding: "40px", maxWidth: "400px", margin: "0 auto", border: "1px solid #ddd", borderRadius: "8px", background: "#fdfdfd" }}>
             <h2>Loo konto</h2>
             <p style={{ color: "#555", marginBottom: "20px" }}>
-                {invitation.type === "player" ? "Mängija konto loomine" : "Lapsevanema konto loomine"}
+                {invitation.type === "player" ? "Mängija konto loomine" : invitation.type === "coach" ? "Treeneri konto loomine" : "Lapsevanema konto loomine"}
             </p>
 
             {errorMsg && (
@@ -233,6 +243,27 @@ export default function AcceptInvitePage() {
                         {errors.parentName && (
                             <div style={{ color: "#ef4444", fontSize: "13px", marginTop: "4px" }}>
                                 {errors.parentName}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {invitation.type === "coach" && (
+                    <div>
+                        <label style={{ display: "block", marginBottom: "5px" }}>Nimi (Ees- ja perekonnanimi)</label>
+                        <input
+                            type="text"
+                            value={coachName}
+                            onChange={e => {
+                                setCoachName(e.target.value)
+                                if (errors.coachName) setErrors({ ...errors, coachName: null })
+                            }}
+                            style={{ width: "100%", padding: "8px" }}
+                            autoFocus
+                        />
+                        {errors.coachName && (
+                            <div style={{ color: "#ef4444", fontSize: "13px", marginTop: "4px" }}>
+                                {errors.coachName}
                             </div>
                         )}
                     </div>

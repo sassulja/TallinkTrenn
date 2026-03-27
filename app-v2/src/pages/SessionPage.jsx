@@ -144,6 +144,10 @@ export default function SessionPage() {
     const [sessionMessages, setSessionMessages] = useState([])
     const [msgText, setMsgText] = useState("")
     const [myDisplayName, setMyDisplayName] = useState(null)
+    const [myPlayerId, setMyPlayerId] = useState(null)
+    const [allInstances, setAllInstances] = useState({})
+    const [allAttendance, setAllAttendance] = useState({})
+    const [allExtraRequests, setAllExtraRequests] = useState({})
     const [feedbackData, setFeedbackData] = useState(null) // null = not loaded, {} = loaded
     const [feedbackLocal, setFeedbackLocal] = useState({}) // { playerId: { effort, note } }
     const [feedbackSaved, setFeedbackSaved] = useState({}) // { playerId: true } for "Salvestatud" flash
@@ -222,8 +226,18 @@ export default function SessionPage() {
 
     // ─── Data subscriptions ─────────────────────────
     useEffect(() => {
-        if (!currentUser || !instanceId) return
+        if (!currentUser) return
         const handleErr = () => setError("Andmete laadimine ebaõnnestus.")
+        const unsubAllInstances = onValue(ref(database, "sessionInstances"), snap => {
+            setAllInstances(snap.val() || {})
+        }, handleErr)
+        const unsubAllAttendance = onValue(ref(database, "attendance"), snap => {
+            setAllAttendance(snap.val() || {})
+        }, handleErr)
+        const unsubAllExtraReqs = onValue(ref(database, "extraRequests"), snap => {
+            setAllExtraRequests(snap.val() || {})
+        }, handleErr)
+        if (!instanceId) return () => { unsubAllInstances(); unsubAllAttendance(); unsubAllExtraReqs() }
         const unsubInst = onValue(ref(database, `sessionInstances/${instanceId}`), snap => setInst(snap.val()), handleErr)
         const unsubRoster = onValue(ref(database, `rosters/${instanceId}`), snap => setRoster(snap.val() || {}), handleErr)
         const unsubAtt = onValue(ref(database, `attendance/${instanceId}`), snap => {
@@ -251,7 +265,7 @@ export default function SessionPage() {
         if (role === "coach") {
             unsubCoachPerms = onValue(ref(database, `coachPermissions/${currentUser.uid}`), snap => setCoachPerms(snap.val() || {}), handleErr)
         }
-        return () => { unsubInst(); unsubRoster(); unsubAtt(); unsubPlayers(); unsubExtraReqs(); unsubMessages(); unsubCoachPerms() }
+        return () => { unsubAllInstances(); unsubAllAttendance(); unsubAllExtraReqs(); unsubInst(); unsubRoster(); unsubAtt(); unsubPlayers(); unsubExtraReqs(); unsubMessages(); unsubCoachPerms() }
     }, [currentUser, instanceId, role])
 
     useEffect(() => {
@@ -273,6 +287,13 @@ export default function SessionPage() {
             if (snap.exists()) setMyDisplayName(snap.val())
         }).catch(() => {})
     }, [currentUser])
+
+    useEffect(() => {
+        if (!currentUser || role !== "player") return
+        get(ref(database, `users/${currentUser.uid}/playerId`)).then(snap => {
+            if (snap.exists()) setMyPlayerId(snap.val())
+        }).catch(() => {})
+    }, [currentUser, role])
 
     // ─── Compute default tab once def + inst available ──
     useEffect(() => {
@@ -355,6 +376,18 @@ export default function SessionPage() {
             else { attUpdates.lateCancel = false; if (!isPast) attUpdates.realStatus = null; await set(attRef, attUpdates) }
             
             setLocalAtt(prev => ({ ...prev, [playerId]: { ...(prev[playerId] || {}), ...attUpdates } }))
+
+            const rejectUpdates = {}
+            for (const otherInstId in allExtraRequests) {
+                if (otherInstId === instanceId) continue
+                const req = allExtraRequests[otherInstId]?.[playerId]
+                if (req?.status === "pending") {
+                    rejectUpdates[`extraRequests/${otherInstId}/${playerId}/status`] = "rejected"
+                }
+            }
+            if (Object.keys(rejectUpdates).length > 0) {
+                await update(ref(database), rejectUpdates)
+            }
             
             setMsg("Taotlus kinnitatud.")
         } catch (err) { console.error("Approve failed", err); setMsg(`Error: ${err.message}`) }
@@ -376,10 +409,20 @@ export default function SessionPage() {
         setMsg("")
         const nowIso = new Date().toISOString()
         try {
-            await update(ref(database), { [`rosters/${instanceId}/${walkInPlayerId}`]: { source: "walkIn", addedBy: currentUser.uid, addedAt: nowIso, walkIn: true, removedByCoach: false } })
+            const extraReqSnap = await get(ref(database, `extraRequests/${instanceId}/${walkInPlayerId}`))
+            const updates = {
+                [`rosters/${instanceId}/${walkInPlayerId}`]: { source: "walkIn", addedBy: currentUser.uid, addedAt: nowIso, walkIn: true, removedByCoach: false }
+            }
+            if (extraReqSnap.exists()) {
+                updates[`extraRequests/${instanceId}/${walkInPlayerId}/status`] = "approved"
+            }
+            await update(ref(database), updates)
             await set(ref(database, `attendance/${instanceId}/${walkInPlayerId}`), { preStatus: null, realStatus: "kohal", lateCancel: false, markedBy: currentUser.uid, markedAt: nowIso })
             
             setRoster(prev => ({ ...prev, [walkInPlayerId]: { source: "walkIn", addedBy: currentUser.uid, addedAt: nowIso, walkIn: true, removedByCoach: false } }))
+            if (extraReqSnap.exists()) {
+                setExtraRequests(prev => ({ ...prev, [walkInPlayerId]: { ...(prev[walkInPlayerId] || {}), status: "approved" } }))
+            }
             setLocalAtt(prev => ({ ...prev, [walkInPlayerId]: { preStatus: null, realStatus: "kohal", lateCancel: false, markedBy: currentUser.uid, markedAt: nowIso } }))
             
             setMsg("Walk-in lisatud.")
@@ -392,13 +435,22 @@ export default function SessionPage() {
         if (!rosterAddPlayerId || !hasPermission()) return
         setMsg("")
         try {
-            await update(ref(database), {
-                [`rosters/${instanceId}/${rosterAddPlayerId}`]: { addedAt: new Date().toISOString(), addedBy: currentUser.uid, source: "manual_add", walkIn: false, removedByCoach: false }
-            })
+            const nowIso = new Date().toISOString()
+            const extraReqSnap = await get(ref(database, `extraRequests/${instanceId}/${rosterAddPlayerId}`))
+            const updates = {
+                [`rosters/${instanceId}/${rosterAddPlayerId}`]: { addedAt: nowIso, addedBy: currentUser.uid, source: "manual_add", walkIn: false, removedByCoach: false }
+            }
+            if (extraReqSnap.exists()) {
+                updates[`extraRequests/${instanceId}/${rosterAddPlayerId}/status`] = "approved"
+            }
+            await update(ref(database), updates)
             setRoster(prev => ({
                 ...prev,
-                [rosterAddPlayerId]: { addedAt: new Date().toISOString(), addedBy: currentUser.uid, source: "manual_add", walkIn: false, removedByCoach: false }
+                [rosterAddPlayerId]: { addedAt: nowIso, addedBy: currentUser.uid, source: "manual_add", walkIn: false, removedByCoach: false }
             }))
+            if (extraReqSnap.exists()) {
+                setExtraRequests(prev => ({ ...prev, [rosterAddPlayerId]: { ...(prev[rosterAddPlayerId] || {}), status: "approved" } }))
+            }
             setMsg("Mängija lisatud nimekirja.")
             setRosterAddPlayerId("")
         } catch (err) { console.error("Roster add failed", err); setMsg(`Error: ${err.message}`) }
@@ -417,6 +469,82 @@ export default function SessionPage() {
             })
             setMsgText("")
         } catch (err) { console.error("Send message failed", err); setMsg(`Error: ${err.message}`) }
+    }
+
+    const handleRequestExtraSession = async () => {
+        if (role !== "player" || !myPlayerId || inst?.status === "cancelled") return
+        if (roster[myPlayerId] && roster[myPlayerId].removedByCoach !== true) return
+
+        try {
+            const requestRef = ref(database, `extraRequests/${instanceId}/${myPlayerId}`)
+            const snap = await get(requestRef)
+            const existing = snap.val()
+
+            if (existing?.status === "pending") {
+                setMsg("Taotlus juba saadetud")
+                return
+            }
+
+            let overlapWarning = null
+            const newStart = combineDateAndTime(inst.date, inst.startTime)
+            const newEnd = combineDateAndTime(inst.date, inst.endTime)
+
+            for (const otherInstId in allInstances) {
+                if (otherInstId === instanceId) continue
+                const otherInst = allInstances[otherInstId]
+                if (!otherInst) continue
+                const playerAtt = allAttendance[otherInstId]?.[myPlayerId]
+                if (playerAtt?.preStatus !== "kinnitatud") continue
+
+                const existingStart = combineDateAndTime(otherInst.date, otherInst.startTime)
+                const existingEnd = combineDateAndTime(otherInst.date, otherInst.endTime)
+                if (existingStart < newEnd && existingEnd > newStart) {
+                    overlapWarning = `Sa oled juba samal ajal kinnitanud osalemise trennis ${otherInst.sport} ${otherInst.date} ${otherInst.startTime}–${otherInst.endTime}`
+                    break
+                }
+            }
+
+            await set(requestRef, {
+                requestedAt: new Date().toISOString(),
+                requestedBy: currentUser.uid,
+                status: "pending",
+                note: null
+            })
+            setMsg(overlapWarning ? `Taotlus saadetud. ${overlapWarning}` : "Taotlus saadetud")
+        } catch (err) {
+            console.error("Extra request failed", err)
+            setMsg(`Error: ${err.message}`)
+        }
+    }
+
+    const handleCancelExtraRequest = async () => {
+        if (!myPlayerId) return
+
+        const prevStatus = extraRequests?.[myPlayerId]?.status || null
+
+        setExtraRequests(prev => ({
+            ...prev,
+            [myPlayerId]: {
+                ...(prev[myPlayerId] || {}),
+                status: "cancelled"
+            }
+        }))
+
+        try {
+            await update(ref(database, `extraRequests/${instanceId}/${myPlayerId}`), {
+                status: "cancelled"
+            })
+        } catch (err) {
+            console.error("Cancel failed", err)
+
+            setExtraRequests(prev => ({
+                ...prev,
+                [myPlayerId]: {
+                    ...(prev[myPlayerId] || {}),
+                    status: prevStatus
+                }
+            }))
+        }
     }
 
     const handleSaveSessionTime = async () => {
@@ -581,7 +709,22 @@ export default function SessionPage() {
     if (isLoading) return <LoadingSpinner />
     if (error) return <ErrorMessage message={error} />
     if (!inst) return <EmptyState message="Treeningut ei leitud." />
-    if (!hasPermission()) {
+
+    const startTime = inst.startTime || "00:00"
+    const nowMs = getTallinnNow().getTime()
+    const sessionStartMs = new Date(combineDateAndTime(inst.date, startTime)).getTime()
+    const sessionStarted = sessionStartMs <= nowMs
+    const isLocked = (sessionStartMs - nowMs) < 60 * 60 * 1000
+    const sport = inst.sport || ""
+    const endTime = inst.endTime || ""
+    const timeDisplay = endTime ? `${startTime} - ${endTime}` : startTime
+    const isCancelled = inst.status === "cancelled"
+    const playerRosterEntry = myPlayerId ? roster[myPlayerId] : null
+    const playerOnRoster = !!playerRosterEntry && playerRosterEntry.removedByCoach !== true
+    const myRequest = extraRequests?.[myPlayerId] || null
+    const status = myRequest?.status || null
+
+    if (role !== "player" && !hasPermission()) {
         return (
             <div style={{ padding: "20px", maxWidth: "600px", margin: "0 auto" }}>
                 <button onClick={() => navigate("/sessions")} style={{ marginBottom: "16px", cursor: "pointer" }}>← Tagasi</button>
@@ -590,14 +733,97 @@ export default function SessionPage() {
         )
     }
 
-    // ─── Computed values ────────────────────────────
-    const startTime = inst.startTime || "00:00"
-    const sessionStartMs = new Date(combineDateAndTime(inst.date, startTime)).getTime()
-    const sessionStarted = sessionStartMs <= getTallinnNow().getTime()
-    const sport = inst.sport || ""
-    const endTime = inst.endTime || ""
-    const timeDisplay = endTime ? `${startTime} - ${endTime}` : startTime
-    const isCancelled = inst.status === "cancelled"
+    if (role === "player") {
+        return (
+            <div style={{ maxWidth: "600px", margin: "0 auto", padding: "20px" }}>
+                <button onClick={() => navigate("/sessions")}
+                    style={{ marginBottom: "16px", cursor: "pointer", background: "none", border: "1px solid #ccc", borderRadius: "6px", padding: "6px 12px" }}>
+                    ← Tagasi
+                </button>
+
+                <div style={{ marginBottom: "16px" }}>
+                    <h2 style={{ marginBottom: "4px" }}>{formatEstonianDate(inst.date)}</h2>
+                    <div style={{ fontSize: "18px", fontWeight: "bold" }}>{timeDisplay}</div>
+                    {isCancelled && (
+                        <div style={{ display: "inline-block", marginTop: "8px", padding: "4px 8px", borderRadius: "999px", background: "#fee2e2", color: "#b91c1c", fontSize: "12px", fontWeight: "bold" }}>
+                            Tühistatud
+                        </div>
+                    )}
+                    <div style={{ textTransform: "capitalize", color: "#555", marginTop: "4px" }}>{sport}</div>
+                    <div style={{ fontSize: "12px", color: "#999", marginTop: "4px" }}>{instanceId}</div>
+                </div>
+
+                {msg && <p style={{ color: msg.startsWith("Error") ? "red" : "green", fontWeight: "bold", marginBottom: "12px" }}>{msg}</p>}
+
+                {!isCancelled && !playerOnRoster && (() => {
+                    if (isLocked) return null
+
+                    if (status === "pending") {
+                        return (
+                            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                                <span style={{ color: "#f59e0b", fontWeight: "bold" }}>
+                                    Taotlus on ootel
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={e => {
+                                        e.stopPropagation()
+                                        handleCancelExtraRequest()
+                                    }}
+                                    style={{ padding: "10px 16px", background: "#ef4444", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", width: "fit-content" }}
+                                >
+                                    Tühista taotlus
+                                </button>
+                            </div>
+                        )
+                    }
+
+                    if (status === "rejected") {
+                        return (
+                            <div>
+                                <span style={{ color: "#ef4444", fontWeight: "bold" }}>
+                                    Taotlus tagasi lükatud
+                                </span>
+                            </div>
+                        )
+                    }
+
+                    if (status === "cancelled") {
+                        return (
+                            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                                <span style={{ color: "#6b7280", fontWeight: "bold" }}>
+                                    Taotlus tühistatud
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={e => {
+                                        e.stopPropagation()
+                                        handleRequestExtraSession()
+                                    }}
+                                    style={{ padding: "10px 16px", background: "#3b82f6", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}
+                                >
+                                    Soovin osaleda
+                                </button>
+                            </div>
+                        )
+                    }
+
+                    return (
+                        <button
+                            type="button"
+                            onClick={e => {
+                                e.stopPropagation()
+                                handleRequestExtraSession()
+                            }}
+                            style={{ padding: "10px 16px", background: "#3b82f6", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}
+                        >
+                            Soovin osaleda
+                        </button>
+                    )
+                })()}
+            </div>
+        )
+    }
 
     const rosterEntries = Object.entries(roster).sort(([pIdA, rA], [pIdB, rB]) => {
         const removedA = rA.removedByCoach === true
