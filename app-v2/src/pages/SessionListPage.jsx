@@ -122,7 +122,7 @@ function SessionCardParent({ instId, inst, def, attendance, rosters, players, se
     try {
         sessionStartMs = new Date(combineDateAndTime(inst.date, startTime)).getTime()
         sessionEndMs = new Date(combineDateAndTime(inst.date, endTime)).getTime()
-    } catch (e) {}
+    } catch (e) { }
 
     const isLocked = nowMs >= (sessionStartMs - 60 * 60 * 1000)
     const sessionStarted = nowMs >= sessionStartMs
@@ -130,7 +130,7 @@ function SessionCardParent({ instId, inst, def, attendance, rosters, players, se
     const feedbackVisible = sessionEnded && (nowMs > sessionEndMs + 24 * 60 * 60 * 1000)
     const feedbackWindowOpen = sessionEnded && (nowMs <= sessionEndMs + 7 * 24 * 60 * 60 * 1000)
     const isEditingFb = false // Placholder for Parent
-    
+
     // Check feedbacks
     const coachFb = sessionFeedback?.[instId]?.[playerId]?.coach
     const playerFb = sessionFeedback?.[instId]?.[playerId]?.player
@@ -172,7 +172,10 @@ function SessionCardParent({ instId, inst, def, attendance, rosters, players, se
             marginLeft: "auto",
             marginRight: "auto"
         }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "flex-start" }}>
+            <div
+                onClick={() => setIsExpanded(prev => !prev)}
+                style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "flex-start", cursor: "pointer" }}
+            >
                 <div>
                     <div style={{ fontWeight: "var(--font-weight-bold)", fontSize: "15px", color: "var(--color-primary-dark)", marginBottom: "4px" }}>{childName}</div>
                     <div style={{ fontWeight: "var(--font-weight-bold)", fontSize: "16px" }}>{timeDisplay}</div>
@@ -183,149 +186,149 @@ function SessionCardParent({ instId, inst, def, attendance, rosters, players, se
                         {sport}
                     </div>
                 </div>
-                <button
-                    onClick={() => setIsExpanded(prev => !prev)}
-                    style={{ background: "transparent", border: "none", color: "var(--color-text-secondary)", padding: 0, fontSize: "18px" }}
-                >
-                    {isExpanded ? "▴" : "▾"}
-                </button>
             </div>
 
-            <div style={{ marginTop: "var(--spacing-sm)", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
-                <div style={{ fontSize: "14px", fontWeight: "var(--font-weight-medium)" }}>
-                    {sessionStarted ? (
-                        <>
-                            <span style={{ color: "var(--color-text-muted)" }}>Kohalolek:</span>{" "}
-                            <span style={{ fontWeight: "var(--font-weight-bold)" }}>{realStatus ? `${REAL_STATUS_DISPLAY[realStatus]?.icon} ${REAL_STATUS_DISPLAY[realStatus]?.label || REALSTATUS_LABELS.null}` : REALSTATUS_LABELS.null}</span>
-                        </>
-                    ) : (
-                        <>
-                            <span style={{ color: "var(--color-text-muted)" }}>Staatus:</span>{" "}
-                            <span style={{ fontWeight: "var(--font-weight-bold)" }}>{PRESTATUS_LABELS[preStatus] || PRESTATUS_LABELS.null}</span>
-                        </>
+            {!isExtraSession && (
+                <div
+                    style={{ marginTop: "var(--spacing-sm)", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}
+                >
+                    <div style={{ fontSize: "14px", fontWeight: "var(--font-weight-medium)" }}>
+                        {sessionStarted ? (
+                            <>
+                                <span style={{ color: "var(--color-text-muted)" }}>Kohalolek:</span>{" "}
+                                <span style={{ fontWeight: "var(--font-weight-bold)" }}>{realStatus ? `${REAL_STATUS_DISPLAY[realStatus]?.icon} ${REAL_STATUS_DISPLAY[realStatus]?.label || REALSTATUS_LABELS.null}` : REALSTATUS_LABELS.null}</span>
+                            </>
+                        ) : (
+                            <>
+                                <span style={{ color: "var(--color-text-muted)" }}>Staatus:</span>{" "}
+                                <span style={{ fontWeight: "var(--font-weight-bold)" }}>{PRESTATUS_LABELS[preStatus] || PRESTATUS_LABELS.null}</span>
+                            </>
+                        )}
+                    </div>
+                    {coachFeedbackSummary && (
+                        <div style={{ fontSize: "18px", lineHeight: 1 }}>{coachFeedbackSummary.collapsed}</div>
                     )}
                 </div>
-                {coachFeedbackSummary && (
-                    <div style={{ fontSize: "18px", lineHeight: 1 }}>{coachFeedbackSummary.collapsed}</div>
-                )}
-            </div>
+            )}
+
+            {!sessionStarted && !isLocked && preStatus !== "kinnitatud" && preStatus !== "eiOsale" && (
+                <div style={{ marginTop: "var(--spacing-sm)", display: "flex", gap: "8px" }}>
+                    <button onClick={e => { e.stopPropagation(); onPreStatus(instId, playerId, "kinnitatud") }}
+                        disabled={isFull}
+                        style={{ padding: "6px 16px", background: isFull ? "#ccc" : "var(--color-primary)", color: "white", border: "none", borderRadius: "6px", cursor: isFull ? "not-allowed" : "pointer", fontWeight: "bold" }}>
+                        {isFull ? "Treening on täis" : "Kinnitan"}
+                    </button>
+                    <button onClick={e => { e.stopPropagation(); onPreStatus(instId, playerId, "eiOsale") }}
+                        style={{ padding: "6px 16px", background: "var(--color-danger)", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>
+                        Ei osale
+                    </button>
+                </div>
+            )}
 
             {isExpanded && (
                 <>
-            {/* preStatus section */}
-            {!sessionStarted ? (
-                <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
-                    {isLocked ? (
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ fontWeight: "bold", color: preStatus === "kinnitatud" ? "#22c55e" : preStatus === "eiOsale" ? "#ef4444" : "#999" }}>
-                                {PRESTATUS_LABELS[preStatus] || PRESTATUS_LABELS.null}
-                            </span>
-                            <span style={{ background: "#fbbf24", color: "#000", padding: "2px 8px", borderRadius: "12px", fontSize: "11px", fontWeight: "bold" }}>🔒 Lukustatud</span>
-                        </div>
-                    ) : preStatus === "kinnitatud" ? (
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ fontWeight: "bold", color: "#22c55e" }}>✅ {PRESTATUS_LABELS.kinnitatud}</span>
-                            <button onClick={() => onPreStatus(instId, playerId, null)}
-                                style={{ padding: "4px 12px", background: "#eee", border: "1px solid #ccc", borderRadius: "6px", cursor: "pointer", fontSize: "13px" }}>
-                                Tühista
-                            </button>
-                        </div>
-                    ) : preStatus === "eiOsale" ? (
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ fontWeight: "bold", color: "#ef4444" }}>❌ {PRESTATUS_LABELS.eiOsale}</span>
-                            <button onClick={() => onPreStatus(instId, playerId, "kinnitatud")}
-                                disabled={isFull}
-                                style={{ padding: "4px 12px", background: isFull ? "#eee" : "#e0f2f1", border: "1px solid #ccc", borderRadius: "6px", cursor: isFull ? "not-allowed" : "pointer", fontSize: "13px" }}>
-                                Muuda
-                            </button>
+                    {/* preStatus section */}
+                    {!sessionStarted ? (
+                        <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
+                            {isLocked ? (
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                    <span style={{ fontWeight: "bold", color: preStatus === "kinnitatud" ? "#22c55e" : preStatus === "eiOsale" ? "#ef4444" : "#999" }}>
+                                        {PRESTATUS_LABELS[preStatus] || PRESTATUS_LABELS.null}
+                                    </span>
+                                    <span style={{ background: "#fbbf24", color: "#000", padding: "2px 8px", borderRadius: "12px", fontSize: "11px", fontWeight: "bold" }}>🔒 Lukustatud</span>
+                                </div>
+                            ) : preStatus === "kinnitatud" ? (
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                    <span style={{ fontWeight: "bold", color: "#22c55e" }}>✅ {PRESTATUS_LABELS.kinnitatud}</span>
+                                    <button onClick={e => { e.stopPropagation(); onPreStatus(instId, playerId, null) }}
+                                        style={{ padding: "4px 12px", background: "#eee", border: "1px solid #ccc", borderRadius: "6px", cursor: "pointer", fontSize: "13px" }}>
+                                        Tühista
+                                    </button>
+                                </div>
+                            ) : preStatus === "eiOsale" ? (
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                    <span style={{ fontWeight: "bold", color: "#ef4444" }}>❌ {PRESTATUS_LABELS.eiOsale}</span>
+                                    <button onClick={e => { e.stopPropagation(); onPreStatus(instId, playerId, "kinnitatud") }}
+                                        disabled={isFull}
+                                        style={{ padding: "4px 12px", background: isFull ? "#eee" : "#e0f2f1", border: "1px solid #ccc", borderRadius: "6px", cursor: isFull ? "not-allowed" : "pointer", fontSize: "13px" }}>
+                                        Muuda
+                                    </button>
+                                </div>
+                            ) : null}
                         </div>
                     ) : (
-                        <div style={{ display: "flex", gap: "8px" }}>
-                            <button onClick={() => onPreStatus(instId, playerId, "kinnitatud")}
-                                disabled={isFull}
-                                style={{ padding: "6px 16px", background: isFull ? "#ccc" : "var(--color-primary)", color: "white", border: "none", borderRadius: "6px", cursor: isFull ? "not-allowed" : "pointer", fontWeight: "bold" }}>
-                                {isFull ? "Treening on täis" : "Kinnitan"}
-                            </button>
-                            <button onClick={() => onPreStatus(instId, playerId, "eiOsale")}
-                                style={{ padding: "6px 16px", background: "var(--color-danger)", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>
-                                Ei osale
-                            </button>
+                        <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
+                            <span style={{ fontWeight: "bold", color: preStatus === "kinnitatud" ? "#22c55e" : preStatus === "eiOsale" ? "#ef4444" : "#999", fontSize: "13px" }}>
+                                {PRESTATUS_LABELS[preStatus] || PRESTATUS_LABELS.null}
+                            </span>
                         </div>
                     )}
-                </div>
-            ) : (
-                <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
-                    <span style={{ fontWeight: "bold", color: preStatus === "kinnitatud" ? "#22c55e" : preStatus === "eiOsale" ? "#ef4444" : "#999", fontSize: "13px" }}>
-                        {PRESTATUS_LABELS[preStatus] || PRESTATUS_LABELS.null}
-                    </span>
-                </div>
-            )}
 
-            {/* realStatus after session start */}
-            {sessionStarted && realStatus && (
-                <div style={{ marginBottom: "12px", fontSize: "14px" }}>
-                    Kohalolek: <span style={{ fontWeight: "bold" }}>
-                        {REAL_STATUS_DISPLAY[realStatus]?.icon} {REAL_STATUS_DISPLAY[realStatus]?.label || REALSTATUS_LABELS.null}
-                    </span>
-                </div>
-            )}
-            {sessionStarted && !realStatus && (
-                <div style={{ marginBottom: "12px", fontSize: "13px", color: "#999" }}>
-                    Kohalolek: {REALSTATUS_LABELS.null}
-                </div>
-            )}
-
-            {/* Feedback section */}
-            {sessionEnded && (realStatus === "kohal" || realStatus === "hilines") && (
-                <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
-                    
-                    {/* Coach Feedback */}
-                    {coachFb && (
-                    <div style={{ marginBottom: "8px" }}>
-                        <div style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "6px" }}>Treeneri tagasiside</div>
-                        {feedbackVisible ? (
-                            <span style={{ fontSize: "13px" }}>
-                                {coachFeedbackSummary?.expanded || coachFb.effort}
-                                {coachFb.note && <span style={{ marginLeft: "8px", fontStyle: "italic", color: "#666" }}>"{coachFb.note}"</span>}
+                    {/* realStatus after session start */}
+                    {sessionStarted && realStatus && (
+                        <div style={{ marginBottom: "12px", fontSize: "14px" }}>
+                            Kohalolek: <span style={{ fontWeight: "bold" }}>
+                                {REAL_STATUS_DISPLAY[realStatus]?.icon} {REAL_STATUS_DISPLAY[realStatus]?.label || REALSTATUS_LABELS.null}
                             </span>
-                        ) : (
-                            <span style={{ fontSize: "13px", color: "#f59e0b", fontStyle: "italic" }}>Treeneri tagasiside on varsti saadaval</span>
-                        )}
-                    </div>
-                    )}
-
-                    {/* Player Feedback / Reminder */}
-                    {playerFb && (
-                    <div>
-                        <div style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "6px" }}>Mängija tagasiside</div>
-                        {playerFb ? (
-                            <span style={{ fontSize: "13px" }}>
-                                {(() => {
-                                    const effortItem = PLAYER_EFFORT_SCALE.find(item => item.value === playerFb.effort)
-                                    return effortItem ? `Pingutus: ${effortItem.label} ${effortItem.emoji}` : `Pingutus: ${playerFb.effort}`
-                                })()}
-                            </span>
-                        ) : null}
-                    </div>
-                    )}
-                </div>
-            )}
-
-            {/* Session messages */}
-            {msgArr.length > 0 && (
-                <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
-                    <div style={{ fontSize: "13px", fontWeight: "bold", marginBottom: "6px" }}>Teated</div>
-                    {msgArr.map(m => (
-                        <div key={m.id} style={{ marginBottom: "6px", fontSize: "12px" }}>
-                            <span style={{ fontWeight: "bold", color: "#333" }}>{m.createdByName}</span>
-                            <span style={{ color: "#999", marginLeft: "6px" }}>
-                                {new Date(m.createdAt).toLocaleString("et-EE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
-                            </span>
-                            <div style={{ color: "#555", marginTop: "2px" }}>{m.text}</div>
                         </div>
-                    ))}
-                </div>
-            )}
+                    )}
+                    {sessionStarted && !realStatus && (
+                        <div style={{ marginBottom: "12px", fontSize: "13px", color: "#999" }}>
+                            Kohalolek: {REALSTATUS_LABELS.null}
+                        </div>
+                    )}
+
+                    {/* Feedback section */}
+                    {sessionEnded && (realStatus === "kohal" || realStatus === "hilines") && (
+                        <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
+
+                            {/* Coach Feedback */}
+                            {coachFb && (
+                                <div style={{ marginBottom: "8px" }}>
+                                    <div style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "6px" }}>Treeneri tagasiside</div>
+                                    {feedbackVisible ? (
+                                        <span style={{ fontSize: "13px" }}>
+                                            {coachFeedbackSummary?.expanded || coachFb.effort}
+                                            {coachFb.note && <span style={{ marginLeft: "8px", fontStyle: "italic", color: "#666" }}>"{coachFb.note}"</span>}
+                                        </span>
+                                    ) : (
+                                        <span style={{ fontSize: "13px", color: "#f59e0b", fontStyle: "italic" }}>Treeneri tagasiside on varsti saadaval</span>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Player Feedback / Reminder */}
+                            {playerFb && (
+                                <div>
+                                    <div style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "6px" }}>Mängija tagasiside</div>
+                                    {playerFb ? (
+                                        <span style={{ fontSize: "13px" }}>
+                                            {(() => {
+                                                const effortItem = PLAYER_EFFORT_SCALE.find(item => item.value === playerFb.effort)
+                                                return effortItem ? `Pingutus: ${effortItem.label} ${effortItem.emoji}` : `Pingutus: ${playerFb.effort}`
+                                            })()}
+                                        </span>
+                                    ) : null}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Session messages */}
+                    {msgArr.length > 0 && (
+                        <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
+                            <div style={{ fontSize: "13px", fontWeight: "bold", marginBottom: "6px" }}>Teated</div>
+                            {msgArr.map(m => (
+                                <div key={m.id} style={{ marginBottom: "6px", fontSize: "12px" }}>
+                                    <span style={{ fontWeight: "bold", color: "#333" }}>{m.createdByName}</span>
+                                    <span style={{ color: "#999", marginLeft: "6px" }}>
+                                        {new Date(m.createdAt).toLocaleString("et-EE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                                    </span>
+                                    <div style={{ color: "#555", marginTop: "2px" }}>{m.text}</div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </>
             )}
         </div>
@@ -333,7 +336,7 @@ function SessionCardParent({ instId, inst, def, attendance, rosters, players, se
 }
 
 // ─── Player Session Card ─────────────────────────────────
-function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMessages, playerId, nowMs, onPreStatus, feedbackData, feedbackLocal, feedbackSaved, feedbackEditing, onFeedbackLocalChange, onFeedbackSave, onFeedbackEdit, msg }) {
+function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMessages, playerId, nowMs, onPreStatus, feedbackData, feedbackLocal, feedbackSaved, feedbackEditing, onFeedbackLocalChange, onFeedbackSave, onFeedbackEdit, msg, isExtraSession = false, onRequestExtra, myExtraRequest = null, onCancelExtraRequest }) {
     const [isExpanded, setIsExpanded] = useState(false)
     const startTime = inst.startTime || def?.startTime || ""
     const endTime = inst.endTime || def?.endTime || ""
@@ -345,7 +348,7 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
     try {
         sessionStartMs = new Date(combineDateAndTime(inst.date, startTime)).getTime()
         sessionEndMs = new Date(combineDateAndTime(inst.date, endTime)).getTime()
-    } catch (e) {}
+    } catch (e) { }
 
     const isLocked = nowMs >= (sessionStartMs - 60 * 60 * 1000)
     const sessionStarted = nowMs >= sessionStartMs
@@ -398,7 +401,10 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
             marginLeft: "auto",
             marginRight: "auto"
         }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "flex-start" }}>
+            <div
+                onClick={() => setIsExpanded(prev => !prev)}
+                style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "flex-start", cursor: "pointer" }}
+            >
                 <div>
                     <div style={{ fontWeight: "var(--font-weight-bold)", fontSize: "16px" }}>{timeDisplay}</div>
                     <div style={{ fontSize: "13px", color: "var(--color-text-secondary)" }}>
@@ -408,203 +414,314 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
                         {sport}
                     </div>
                 </div>
-                <button
+            </div>
+
+            {!isExtraSession && (
+                <div
                     onClick={() => setIsExpanded(prev => !prev)}
-                    style={{ background: "transparent", border: "none", color: "var(--color-text-secondary)", padding: 0, fontSize: "18px" }}
+                    style={{ marginTop: "var(--spacing-sm)", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", cursor: "pointer" }}
                 >
-                    {isExpanded ? "▴" : "▾"}
-                </button>
-            </div>
-
-            <div style={{ marginTop: "var(--spacing-sm)", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
-                <div style={{ fontSize: "14px", fontWeight: "var(--font-weight-medium)" }}>
-                    {sessionStarted ? (
-                        <>
-                            <span style={{ color: "var(--color-text-muted)" }}>Kohalolek:</span>{" "}
-                            <span style={{ fontWeight: "var(--font-weight-bold)" }}>{realStatus ? `${REAL_STATUS_DISPLAY[realStatus]?.icon} ${REAL_STATUS_DISPLAY[realStatus]?.label || REALSTATUS_LABELS.null}` : REALSTATUS_LABELS.null}</span>
-                        </>
-                    ) : (
-                        <>
-                            <span style={{ color: "var(--color-text-muted)" }}>Staatus:</span>{" "}
-                            <span style={{ fontWeight: "var(--font-weight-bold)" }}>{PRESTATUS_LABELS[preStatus] || PRESTATUS_LABELS.null}</span>
-                        </>
-                    )}
-                </div>
-                {coachFeedbackSummary && (
-                    <div style={{ fontSize: "18px", lineHeight: 1 }}>{coachFeedbackSummary.collapsed}</div>
-                )}
-            </div>
-
-            {isExpanded && (
-                <>
-            {/* preStatus section */}
-            {!sessionStarted ? (
-                <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
-                    {isLocked ? (
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ fontWeight: "bold", color: preStatus === "kinnitatud" ? "#22c55e" : preStatus === "eiOsale" ? "#ef4444" : "#999" }}>
-                                {PRESTATUS_LABELS[preStatus] || PRESTATUS_LABELS.null}
-                            </span>
-                            <span style={{ background: "#fbbf24", color: "#000", padding: "2px 8px", borderRadius: "12px", fontSize: "11px", fontWeight: "bold" }}>🔒 Lukustatud</span>
-                        </div>
-                    ) : preStatus === "kinnitatud" ? (
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ fontWeight: "bold", color: "#22c55e" }}>✅ {PRESTATUS_LABELS.kinnitatud}</span>
-                            <button onClick={() => onPreStatus(instId, playerId, null)}
-                                style={{ padding: "4px 12px", background: "#eee", border: "1px solid #ccc", borderRadius: "6px", cursor: "pointer", fontSize: "13px" }}>
-                                Tühista
-                            </button>
-                        </div>
-                    ) : preStatus === "eiOsale" ? (
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ fontWeight: "bold", color: "#ef4444" }}>❌ {PRESTATUS_LABELS.eiOsale}</span>
-                            <button onClick={() => onPreStatus(instId, playerId, "kinnitatud")}
-                                disabled={isFull}
-                                style={{ padding: "4px 12px", background: isFull ? "#eee" : "#e0f2f1", border: "1px solid #ccc", borderRadius: "6px", cursor: isFull ? "not-allowed" : "pointer", fontSize: "13px" }}>
-                                Muuda
-                            </button>
-                        </div>
-                    ) : (
-                        <div style={{ display: "flex", gap: "8px" }}>
-                            <button onClick={() => onPreStatus(instId, playerId, "kinnitatud")}
-                                disabled={isFull}
-                                style={{ padding: "6px 16px", background: isFull ? "#ccc" : "var(--color-primary)", color: "white", border: "none", borderRadius: "6px", cursor: isFull ? "not-allowed" : "pointer", fontWeight: "bold" }}>
-                                {isFull ? "Treening on täis" : "Kinnitan"}
-                            </button>
-                            <button onClick={() => onPreStatus(instId, playerId, "eiOsale")}
-                                style={{ padding: "6px 16px", background: "var(--color-danger)", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>
-                                Ei osale
-                            </button>
-                        </div>
-                    )}
-                </div>
-            ) : (
-                <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
-                    <span style={{ fontWeight: "bold", color: preStatus === "kinnitatud" ? "#22c55e" : preStatus === "eiOsale" ? "#ef4444" : "#999", fontSize: "13px" }}>
-                        {PRESTATUS_LABELS[preStatus] || PRESTATUS_LABELS.null}
-                    </span>
-                </div>
-            )}
-
-            {/* realStatus after session start */}
-            {sessionStarted && realStatus && (
-                <div style={{ marginBottom: "12px", fontSize: "14px" }}>
-                    Kohalolek: <span style={{ fontWeight: "bold" }}>
-                        {REAL_STATUS_DISPLAY[realStatus]?.icon} {REAL_STATUS_DISPLAY[realStatus]?.label || REALSTATUS_LABELS.null}
-                    </span>
-                </div>
-            )}
-            {sessionStarted && !realStatus && (
-                <div style={{ marginBottom: "12px", fontSize: "13px", color: "#999" }}>
-                    Kohalolek: {REALSTATUS_LABELS.null}
-                </div>
-            )}
-
-            {/* Coach Feedback Display */}
-            {canFeedback && coachFb && (
-                <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
-                    <div style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "4px" }}>Treeneri tagasiside</div>
-                    {feedbackVisible ? (
-                        <div style={{ fontSize: "13px" }}>
-                            {coachFeedbackSummary?.expanded || coachFb.effort}
-                            {coachFb.note && <div style={{ marginTop: "4px", fontStyle: "italic", color: "#666" }}>"{coachFb.note}"</div>}
-                        </div>
-                    ) : (
-                        <div style={{ fontSize: "13px", color: "#f59e0b", fontStyle: "italic" }}>Treeneri tagasiside on varsti saadaval</div>
+                    <div style={{ fontSize: "14px", fontWeight: "var(--font-weight-medium)" }}>
+                        {sessionStarted ? (
+                            <>
+                                <span style={{ color: "var(--color-text-muted)" }}>Kohalolek:</span>{" "}
+                                <span style={{ fontWeight: "var(--font-weight-bold)" }}>{realStatus ? `${REAL_STATUS_DISPLAY[realStatus]?.icon} ${REAL_STATUS_DISPLAY[realStatus]?.label || REALSTATUS_LABELS.null}` : REALSTATUS_LABELS.null}</span>
+                            </>
+                        ) : (
+                            <>
+                                <span style={{ color: "var(--color-text-muted)" }}>Staatus:</span>{" "}
+                                <span style={{ fontWeight: "var(--font-weight-bold)" }}>{PRESTATUS_LABELS[preStatus] || PRESTATUS_LABELS.null}</span>
+                            </>
+                        )}
+                    </div>
+                    {coachFeedbackSummary && (
+                        <div style={{ fontSize: "18px", lineHeight: 1 }}>{coachFeedbackSummary.collapsed}</div>
                     )}
                 </div>
             )}
 
-            {/* Player Feedback */}
-            {canFeedback && (() => {
-                if (isExpired && !hasFeedback) {
-                    return <div style={{ fontSize: "13px", color: "#999", marginBottom: "8px" }}>Tagasiside aeg lõppenud</div>
-                }
-                if ((isExpired && hasFeedback) || (hasFeedback && !isEditingFb)) {
-                    const effortItem = PLAYER_EFFORT_SCALE.find(e => e.value === existingFb.effort)
-                    const engItem = COACH_ENGAGEMENT_SCALE.find(e => e.value === existingFb.coachEngagement)
+            {!isExtraSession && !sessionStarted && !isLocked && preStatus !== "kinnitatud" && preStatus !== "eiOsale" && (
+                <div style={{ marginTop: "var(--spacing-sm)", display: "flex", gap: "8px" }}>
+                    <button onClick={e => { e.stopPropagation(); onPreStatus(instId, playerId, "kinnitatud") }}
+                        disabled={isFull}
+                        style={{ padding: "6px 16px", background: isFull ? "#ccc" : "var(--color-primary)", color: "white", border: "none", borderRadius: "6px", cursor: isFull ? "not-allowed" : "pointer", fontWeight: "bold" }}>
+                        {isFull ? "Treening on täis" : "Kinnitan"}
+                    </button>
+                    <button onClick={e => { e.stopPropagation(); onPreStatus(instId, playerId, "eiOsale") }}
+                        style={{ padding: "6px 16px", background: "var(--color-danger)", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>
+                        Ei osale
+                    </button>
+                </div>
+            )}
+
+            {isExtraSession && (() => {
+                const status = myExtraRequest?.status || null
+
+                if (isLocked) return null
+
+                if (status === "pending") {
                     return (
-                        <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
-                            <div style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "6px" }}>Minu tagasiside</div>
-                            <div style={{ fontSize: "13px", marginBottom: "4px" }}>Pingutus: {effortItem?.emoji} {effortItem?.label}</div>
-                            <div style={{ fontSize: "13px", marginBottom: "4px" }}>Treener: {engItem?.emoji} {engItem?.label}</div>
-                            {existingFb.note && <div style={{ fontSize: "13px", color: "#555", fontStyle: "italic", marginBottom: "4px" }}>{existingFb.note}</div>}
-                            {!isExpired && (
-                                <button onClick={() => onFeedbackEdit(key, existingFb)}
-                                    style={{ marginTop: "4px", padding: "4px 12px", background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: "6px", cursor: "pointer", fontSize: "13px", color: "#3b82f6" }}>
-                                    Muuda
-                                </button>
-                            )}
-                            {feedbackSaved[key] && <span style={{ marginLeft: "8px", color: "#22c55e", fontWeight: "bold", fontSize: "13px" }}>Salvestatud ✓</span>}
+                        <div style={{
+                            marginTop: "var(--spacing-sm)",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "8px"
+                        }}>
+                            <span style={{ color: "#f59e0b", fontWeight: "bold" }}>
+                                Taotlus on ootel
+                            </span>
+                            <button
+                                type="button"
+                                onClick={e => {
+                                    e.stopPropagation()
+                                    onCancelExtraRequest && onCancelExtraRequest()
+                                }}
+                                style={{
+                                    padding: "6px 16px",
+                                    background: "#ef4444",
+                                    color: "white",
+                                    border: "none",
+                                    borderRadius: "6px",
+                                    cursor: "pointer",
+                                    fontWeight: "bold",
+                                    width: "fit-content"
+                                }}
+                            >
+                                Tühista taotlus
+                            </button>
                         </div>
                     )
                 }
-                const local = feedbackLocal[key] || { effort: null, coachEngagement: null, note: "" }
-                const canSave = local.effort && local.coachEngagement
-                return (
-                    <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
-                        <div style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "8px" }}>Minu tagasiside</div>
-                        <div style={{ fontSize: "13px", fontWeight: "bold", marginBottom: "6px" }}>Minu pingutus</div>
-                        <div style={{ display: "flex", gap: "4px", marginBottom: "12px", flexWrap: "wrap" }}>
-                            {PLAYER_EFFORT_SCALE.map(e => (
-                                <button key={e.value}
-                                    onClick={() => onFeedbackLocalChange(key, { ...(feedbackLocal[key] || { effort: null, coachEngagement: null, note: "" }), effort: e.value })}
-                                    style={{
-                                        padding: "5px 8px", borderRadius: "8px", cursor: "pointer",
-                                        border: local.effort === e.value ? "2px solid var(--color-primary)" : "1px solid var(--color-border)",
-                                        background: local.effort === e.value ? "var(--color-primary-light)" : "var(--color-muted)",
-                                        fontSize: "12px", transition: "all 0.1s"
-                                    }}>
-                                    {e.emoji} {e.label}
-                                </button>
-                            ))}
+
+                if (status === "rejected") {
+                    return (
+                        <div style={{ marginTop: "var(--spacing-sm)" }}>
+                            <span style={{ color: "#ef4444", fontWeight: "bold" }}>
+                                Taotlus tagasi lükatud
+                            </span>
                         </div>
-                        <div style={{ fontSize: "13px", fontWeight: "bold", marginBottom: "6px" }}>Treeneri toetus</div>
-                        <div style={{ display: "flex", gap: "4px", marginBottom: "12px", flexWrap: "wrap" }}>
-                            {COACH_ENGAGEMENT_SCALE.map(e => (
-                                <button key={e.value}
-                                    onClick={() => onFeedbackLocalChange(key, { ...(feedbackLocal[key] || { effort: null, coachEngagement: null, note: "" }), coachEngagement: e.value })}
-                                    style={{
-                                        padding: "5px 8px", borderRadius: "8px", cursor: "pointer",
-                                        border: local.coachEngagement === e.value ? "2px solid var(--color-primary)" : "1px solid var(--color-border)",
-                                        background: local.coachEngagement === e.value ? "var(--color-primary-light)" : "var(--color-muted)",
-                                        fontSize: "12px", transition: "all 0.1s"
-                                    }}>
-                                    {e.emoji} {e.label}
-                                </button>
-                            ))}
-                        </div>
-                        <input type="text" value={local.note}
-                            onChange={e => onFeedbackLocalChange(key, { ...(feedbackLocal[key] || {}), note: e.target.value.slice(0, 200) })}
-                            placeholder="Märkus (vabatahtlik)" maxLength={200}
-                            style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #ccc", marginBottom: "8px", boxSizing: "border-box", fontSize: "13px" }}
-                        />
-                        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-                            <button onClick={() => onFeedbackSave(instId, playerId)} disabled={!canSave}
-                                style={{ width: "100%", padding: "6px 16px", background: canSave ? "var(--color-primary)" : "#ccc", color: "white", border: "none", borderRadius: "6px", cursor: canSave ? "pointer" : "not-allowed", fontWeight: "bold", fontSize: "13px" }}>
-                                Salvesta
+                    )
+                }
+
+                if (status === "cancelled") {
+                    return (
+                        <div style={{
+                            marginTop: "var(--spacing-sm)",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "8px"
+                        }}>
+                            <span style={{ color: "#6b7280", fontWeight: "bold" }}>
+                                Taotlus tühistatud
+                            </span>
+                            <button
+                                type="button"
+                                onClick={e => {
+                                    e.stopPropagation()
+                                    onRequestExtra && onRequestExtra()
+                                }}
+                                style={{
+                                    padding: "6px 16px",
+                                    background: "var(--color-primary)",
+                                    color: "white",
+                                    border: "none",
+                                    borderRadius: "6px",
+                                    cursor: "pointer",
+                                    fontWeight: "bold"
+                                }}
+                            >
+                                Soovin osaleda
                             </button>
-                            {feedbackSaved[key] && <span style={{ color: "#22c55e", fontWeight: "bold", fontSize: "13px" }}>Salvestatud ✓</span>}
                         </div>
+                    )
+                }
+
+                return (
+                    <div style={{ marginTop: "var(--spacing-sm)" }}>
+                        <button
+                            type="button"
+                            onClick={e => {
+                                e.stopPropagation()
+                                onRequestExtra && onRequestExtra()
+                            }}
+                            style={{
+                                padding: "6px 16px",
+                                background: "var(--color-primary)",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "6px",
+                                cursor: "pointer",
+                                fontWeight: "bold"
+                            }}
+                        >
+                            Soovin osaleda
+                        </button>
                     </div>
                 )
             })()}
 
-            {/* Session messages */}
-            {msgArr.length > 0 && (
-                <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
-                    <div style={{ fontSize: "13px", fontWeight: "bold", marginBottom: "6px" }}>Teated</div>
-                    {msgArr.map(m => (
-                        <div key={m.id} style={{ marginBottom: "6px", fontSize: "12px" }}>
-                            <span style={{ fontWeight: "bold", color: "#333" }}>{m.createdByName}</span>
-                            <span style={{ color: "#999", marginLeft: "6px" }}>
-                                {new Date(m.createdAt).toLocaleString("et-EE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+            {isExpanded && (
+                <>
+                    {/* preStatus section */}
+                    {!isExtraSession && (
+                        <>
+                            {!sessionStarted ? (
+                                <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
+                                    {isLocked ? (
+                                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                            <span style={{ fontWeight: "bold", color: preStatus === "kinnitatud" ? "#22c55e" : preStatus === "eiOsale" ? "#ef4444" : "#999" }}>
+                                                {PRESTATUS_LABELS[preStatus] || PRESTATUS_LABELS.null}
+                                            </span>
+                                            <span style={{ background: "#fbbf24", color: "#000", padding: "2px 8px", borderRadius: "12px", fontSize: "11px", fontWeight: "bold" }}>🔒 Lukustatud</span>
+                                        </div>
+                                    ) : preStatus === "kinnitatud" ? (
+                                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                            <span style={{ fontWeight: "bold", color: "#22c55e" }}>✅ {PRESTATUS_LABELS.kinnitatud}</span>
+                                            <button onClick={e => { e.stopPropagation(); onPreStatus(instId, playerId, null) }}
+                                                style={{ padding: "4px 12px", background: "#eee", border: "1px solid #ccc", borderRadius: "6px", cursor: "pointer", fontSize: "13px" }}>
+                                                Tühista
+                                            </button>
+                                        </div>
+                                    ) : preStatus === "eiOsale" ? (
+                                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                            <span style={{ fontWeight: "bold", color: "#ef4444" }}>❌ {PRESTATUS_LABELS.eiOsale}</span>
+                                            <button onClick={e => { e.stopPropagation(); onPreStatus(instId, playerId, "kinnitatud") }}
+                                                disabled={isFull}
+                                                style={{ padding: "4px 12px", background: isFull ? "#eee" : "#e0f2f1", border: "1px solid #ccc", borderRadius: "6px", cursor: isFull ? "not-allowed" : "pointer", fontSize: "13px" }}>
+                                                Muuda
+                                            </button>
+                                        </div>
+                                    ) : null}
+                                </div>
+                            ) : (
+                                <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
+                                    <span style={{ fontWeight: "bold", color: preStatus === "kinnitatud" ? "#22c55e" : preStatus === "eiOsale" ? "#ef4444" : "#999", fontSize: "13px" }}>
+                                        {PRESTATUS_LABELS[preStatus] || PRESTATUS_LABELS.null}
+                                    </span>
+                                </div>
+                            )}
+                        </>
+                    )}
+
+                    {/* realStatus after session start */}
+                    {sessionStarted && realStatus && (
+                        <div style={{ marginBottom: "12px", fontSize: "14px" }}>
+                            Kohalolek: <span style={{ fontWeight: "bold" }}>
+                                {REAL_STATUS_DISPLAY[realStatus]?.icon} {REAL_STATUS_DISPLAY[realStatus]?.label || REALSTATUS_LABELS.null}
                             </span>
-                            <div style={{ color: "#555", marginTop: "2px" }}>{m.text}</div>
                         </div>
-                    ))}
-                </div>
-            )}
+                    )}
+                    {sessionStarted && !realStatus && (
+                        <div style={{ marginBottom: "12px", fontSize: "13px", color: "#999" }}>
+                            Kohalolek: {REALSTATUS_LABELS.null}
+                        </div>
+                    )}
+
+                    {/* Coach Feedback Display */}
+                    {canFeedback && coachFb && (
+                        <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
+                            <div style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "4px" }}>Treeneri tagasiside</div>
+                            {feedbackVisible ? (
+                                <div style={{ fontSize: "13px" }}>
+                                    {coachFeedbackSummary?.expanded || coachFb.effort}
+                                    {coachFb.note && <div style={{ marginTop: "4px", fontStyle: "italic", color: "#666" }}>"{coachFb.note}"</div>}
+                                </div>
+                            ) : (
+                                <div style={{ fontSize: "13px", color: "#f59e0b", fontStyle: "italic" }}>Treeneri tagasiside on varsti saadaval</div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Player Feedback */}
+                    {canFeedback && (() => {
+                        if (isExpired && !hasFeedback) {
+                            return <div style={{ fontSize: "13px", color: "#999", marginBottom: "8px" }}>Tagasiside aeg lõppenud</div>
+                        }
+                        if ((isExpired && hasFeedback) || (hasFeedback && !isEditingFb)) {
+                            const effortItem = PLAYER_EFFORT_SCALE.find(e => e.value === existingFb.effort)
+                            const engItem = COACH_ENGAGEMENT_SCALE.find(e => e.value === existingFb.coachEngagement)
+                            return (
+                                <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
+                                    <div style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "6px" }}>Minu tagasiside</div>
+                                    <div style={{ fontSize: "13px", marginBottom: "4px" }}>Pingutus: {effortItem?.emoji} {effortItem?.label}</div>
+                                    <div style={{ fontSize: "13px", marginBottom: "4px" }}>Treener: {engItem?.emoji} {engItem?.label}</div>
+                                    {existingFb.note && <div style={{ fontSize: "13px", color: "#555", fontStyle: "italic", marginBottom: "4px" }}>{existingFb.note}</div>}
+                                    {!isExpired && (
+                                        <button onClick={() => onFeedbackEdit(key, existingFb)}
+                                            style={{ marginTop: "4px", padding: "4px 12px", background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: "6px", cursor: "pointer", fontSize: "13px", color: "#3b82f6" }}>
+                                            Muuda
+                                        </button>
+                                    )}
+                                    {feedbackSaved[key] && <span style={{ marginLeft: "8px", color: "#22c55e", fontWeight: "bold", fontSize: "13px" }}>Salvestatud ✓</span>}
+                                </div>
+                            )
+                        }
+                        const local = feedbackLocal[key] || { effort: null, coachEngagement: null, note: "" }
+                        const canSave = local.effort && local.coachEngagement
+                        return (
+                            <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
+                                <div style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "8px" }}>Minu tagasiside</div>
+                                <div style={{ fontSize: "13px", fontWeight: "bold", marginBottom: "6px" }}>Minu pingutus</div>
+                                <div style={{ display: "flex", gap: "4px", marginBottom: "12px", flexWrap: "wrap" }}>
+                                    {PLAYER_EFFORT_SCALE.map(e => (
+                                        <button key={e.value}
+                                            onClick={() => onFeedbackLocalChange(key, { ...(feedbackLocal[key] || { effort: null, coachEngagement: null, note: "" }), effort: e.value })}
+                                            style={{
+                                                padding: "5px 8px", borderRadius: "8px", cursor: "pointer",
+                                                border: local.effort === e.value ? "2px solid var(--color-primary)" : "1px solid var(--color-border)",
+                                                background: local.effort === e.value ? "var(--color-primary-light)" : "var(--color-muted)",
+                                                fontSize: "12px", transition: "all 0.1s"
+                                            }}>
+                                            {e.emoji} {e.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div style={{ fontSize: "13px", fontWeight: "bold", marginBottom: "6px" }}>Treeneri toetus</div>
+                                <div style={{ display: "flex", gap: "4px", marginBottom: "12px", flexWrap: "wrap" }}>
+                                    {COACH_ENGAGEMENT_SCALE.map(e => (
+                                        <button key={e.value}
+                                            onClick={() => onFeedbackLocalChange(key, { ...(feedbackLocal[key] || { effort: null, coachEngagement: null, note: "" }), coachEngagement: e.value })}
+                                            style={{
+                                                padding: "5px 8px", borderRadius: "8px", cursor: "pointer",
+                                                border: local.coachEngagement === e.value ? "2px solid var(--color-primary)" : "1px solid var(--color-border)",
+                                                background: local.coachEngagement === e.value ? "var(--color-primary-light)" : "var(--color-muted)",
+                                                fontSize: "12px", transition: "all 0.1s"
+                                            }}>
+                                            {e.emoji} {e.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                <input type="text" value={local.note}
+                                    onChange={e => onFeedbackLocalChange(key, { ...(feedbackLocal[key] || {}), note: e.target.value.slice(0, 200) })}
+                                    placeholder="Märkus (vabatahtlik)" maxLength={200}
+                                    style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #ccc", marginBottom: "8px", boxSizing: "border-box", fontSize: "13px" }}
+                                />
+                                <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                                    <button onClick={() => onFeedbackSave(instId, playerId)} disabled={!canSave}
+                                        style={{ width: "100%", padding: "6px 16px", background: canSave ? "var(--color-primary)" : "#ccc", color: "white", border: "none", borderRadius: "6px", cursor: canSave ? "pointer" : "not-allowed", fontWeight: "bold", fontSize: "13px" }}>
+                                        Salvesta
+                                    </button>
+                                    {feedbackSaved[key] && <span style={{ color: "#22c55e", fontWeight: "bold", fontSize: "13px" }}>Salvestatud ✓</span>}
+                                </div>
+                            </div>
+                        )
+                    })()}
+
+                    {/* Session messages */}
+                    {msgArr.length > 0 && (
+                        <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
+                            <div style={{ fontSize: "13px", fontWeight: "bold", marginBottom: "6px" }}>Teated</div>
+                            {msgArr.map(m => (
+                                <div key={m.id} style={{ marginBottom: "6px", fontSize: "12px" }}>
+                                    <span style={{ fontWeight: "bold", color: "#333" }}>{m.createdByName}</span>
+                                    <span style={{ color: "#999", marginLeft: "6px" }}>
+                                        {new Date(m.createdAt).toLocaleString("et-EE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                                    </span>
+                                    <div style={{ color: "#555", marginTop: "2px" }}>{m.text}</div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </>
             )}
         </div>
@@ -612,17 +729,20 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
 }
 
 // ─── Session Group ──────────────────────────────────────
-function SessionGroup({ title, sessions, defaultOpen = true }) {
+function SessionGroup({ title, sessions, defaultOpen = true, renderItem }) {
     const [isOpen, setIsOpen] = useState(defaultOpen)
     if (!sessions || sessions.length === 0) return null
     return (
         <div style={{ marginBottom: "24px" }}>
-            <h3 onClick={() => setIsOpen(!isOpen)} style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", borderBottom: "1px solid #eee", paddingBottom: "8px", color: "#333" }}>
+            <h3 onClick={() => setIsOpen(!isOpen)} style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", borderBottom: "1px solid #eee", paddingBottom: "8px", padding: "10px 0", color: "#333" }}>
                 <span>{title} <span style={{ color: "#888", fontSize: "14px" }}>({sessions.length})</span></span>
                 <span>{isOpen ? "▼" : "▶"}</span>
             </h3>
-            {isOpen && <div style={{ marginTop: "12px" }}>{sessions.map(s => s.renderCard)}</div>}
-        </div>
+            {isOpen && <div style={{ marginTop: "12px" }}>{sessions.map(s => {
+                console.log("SG render", !!renderItem, s.instId)
+                return renderItem ? renderItem(s) : s.renderCard
+            })}</div>}
+        </div >
     )
 }
 
@@ -639,6 +759,7 @@ export default function SessionListPage() {
     const [players, setPlayers] = useState({})
     const [parentLinks, setParentLinks] = useState({})
     const [sessionMessages, setSessionMessages] = useState({})
+    const [extraRequests, setExtraRequests] = useState({})
     const [selectedChild, setSelectedChild] = useState("all")
     const [parentMsg, setParentMsg] = useState("")
     const [myPlayerId, setMyPlayerId] = useState(null)
@@ -658,6 +779,7 @@ export default function SessionListPage() {
         unsubs.push(onValue(ref(database, "sessionDefinitions"), (snap) => setDefinitions(snap.val() || {}), handleErr))
         unsubs.push(onValue(ref(database, "attendance"), (snap) => setAttendance(snap.val() || {}), handleErr))
         unsubs.push(onValue(ref(database, "rosters"), (snap) => setRosters(snap.val() || {}), handleErr))
+        unsubs.push(onValue(ref(database, "extraRequests"), (snap) => setExtraRequests(snap.val() || {}), handleErr))
 
         if (role === "coach") {
             unsubs.push(onValue(ref(database, `coachPermissions/${currentUser.uid}`), (snap) => setCoachPerms(snap.val() || {}), handleErr))
@@ -739,7 +861,7 @@ export default function SessionListPage() {
                     await set(attRef, { preStatus: newStatus, realStatus: null, lateCancel: false })
                 }
             }
-            
+
             // Update local state instantly
             setAttendance(prev => {
                 const updatedAtt = { ...prev }
@@ -824,7 +946,7 @@ export default function SessionListPage() {
                     await set(attRef, { preStatus: newStatus, realStatus: null, lateCancel: false })
                 }
             }
-            
+
             // Update local state instantly
             setAttendance(prev => {
                 const updatedAtt = { ...prev }
@@ -860,6 +982,40 @@ export default function SessionListPage() {
         } catch (err) {
             console.error("Player preStatus write failed", err)
             setParentMsg(`Viga: ${err.message}`)
+        }
+    }
+
+    const handleCancelExtraRequest = async (instId, playerId) => {
+        const prevStatus = extraRequests?.[instId]?.[playerId]?.status || null
+
+        setExtraRequests(prev => ({
+            ...prev,
+            [instId]: {
+                ...(prev[instId] || {}),
+                [playerId]: {
+                    ...(prev[instId]?.[playerId] || {}),
+                    status: "cancelled"
+                }
+            }
+        }))
+
+        try {
+            await update(ref(database, `extraRequests/${instId}/${playerId}`), {
+                status: "cancelled"
+            })
+        } catch (err) {
+            console.error("Cancel request failed", err)
+
+            setExtraRequests(prev => ({
+                ...prev,
+                [instId]: {
+                    ...(prev[instId] || {}),
+                    [playerId]: {
+                        ...(prev[instId]?.[playerId] || {}),
+                        status: prevStatus
+                    }
+                }
+            }))
         }
     }
 
@@ -926,11 +1082,13 @@ export default function SessionListPage() {
 
     const handleFeedbackEdit = (key, existingFb) => {
         setFeedbackEditing(prev => ({ ...prev, [key]: true }))
-        setFeedbackLocal(prev => ({ ...prev, [key]: {
-            effort: existingFb.effort,
-            coachEngagement: existingFb.coachEngagement,
-            note: existingFb.note || ""
-        }}))
+        setFeedbackLocal(prev => ({
+            ...prev, [key]: {
+                effort: existingFb.effort,
+                coachEngagement: existingFb.coachEngagement,
+                note: existingFb.note || ""
+            }
+        }))
     }
 
     const handleFeedbackLocalChange = (key, data) => {
@@ -952,36 +1110,19 @@ export default function SessionListPage() {
         const todaySessions = []
         const upcomingSessions = []
         const pastSessions = []
+        const extraSessions = []
 
         Object.entries(instances)
             .forEach(([instId, inst]) => {
                 const def = definitions[inst.definitionId] || null
-                if (!def) return
+                if (!def && inst.definitionId) return
                 const currentRoster = rosters[instId] || {}
                 if (!currentRoster[myPlayerId]) return
                 if (currentRoster[myPlayerId].removedByCoach) return
 
                 try {
                     const { startMs: sessionStartMs, endMs: sessionEndMs } = getSessionBounds(inst, def)
-                    const renderCard = (
-                        <SessionCardPlayer
-                            key={instId}
-                            instId={instId} inst={inst} def={def}
-                            attendance={attendance} rosters={rosters}
-                            sessionMessages={sessionMessages}
-                            playerId={myPlayerId}
-                            nowMs={nowMs} onPreStatus={handlePlayerPreStatus}
-                            feedbackData={feedbackData}
-                            feedbackLocal={feedbackLocal}
-                            feedbackSaved={feedbackSaved}
-                            feedbackEditing={feedbackEditing}
-                            onFeedbackLocalChange={handleFeedbackLocalChange}
-                            onFeedbackSave={handlePlayerFeedbackSave}
-                            onFeedbackEdit={handleFeedbackEdit}
-                        />
-                    )
-
-                    const sessionObj = { instId, inst, def, renderCard, sessionStartMs }
+                    const sessionObj = { instId, inst, def, sessionStartMs }
 
                     if (sessionStartMs <= nowMs && sessionEndMs >= nowMs) activeSessions.push(sessionObj)
                     else if (sessionStartMs > nowMs && inst.date === localToday) todaySessions.push(sessionObj)
@@ -990,12 +1131,30 @@ export default function SessionListPage() {
                 } catch (e) { return }
             })
 
+        Object.entries(instances)
+            .forEach(([instId, inst]) => {
+                const def = definitions[inst.definitionId] || null
+                if (!def && inst.definitionId) return
+                const currentRoster = rosters[instId] || {}
+                if (currentRoster[myPlayerId] && currentRoster[myPlayerId].removedByCoach !== true) return
+                if (inst.status === "cancelled") return
+
+                try {
+                    const { startMs: sessionStartMs, endMs: sessionEndMs } = getSessionBounds(inst, def)
+                    if (sessionStartMs <= nowMs + 60 * 60 * 1000) return
+
+                    const sessionObj = { instId, inst, def, sessionStartMs }
+                    extraSessions.push(sessionObj)
+                } catch (e) { return }
+            })
+
         activeSessions.sort(compareSessionItems)
         todaySessions.sort(compareSessionItems)
         upcomingSessions.sort(compareSessionItems)
         pastSessions.sort((a, b) => compareSessionItems(b, a))
+        extraSessions.sort(compareSessionItems)
 
-        const totalVisible = activeSessions.length + todaySessions.length + upcomingSessions.length + pastSessions.length
+        const totalVisible = activeSessions.length + todaySessions.length + upcomingSessions.length + pastSessions.length + extraSessions.length
 
         return (
             <div style={{ maxWidth: "600px", margin: "0 auto", padding: "20px" }}>
@@ -1007,10 +1166,131 @@ export default function SessionListPage() {
                     <p>Ühtegi treeningut ei leitud.</p>
                 ) : (
                     <>
-                        <SessionGroup title="Aktiivne" sessions={activeSessions} defaultOpen={true} />
-                        <SessionGroup title="Täna" sessions={todaySessions} defaultOpen={true} />
-                        <SessionGroup title="Tulevased" sessions={upcomingSessions} defaultOpen={true} />
-                        <SessionGroup title="Möödunud" sessions={pastSessions} defaultOpen={false} />
+                        {(activeSessions.length + todaySessions.length + upcomingSessions.length + pastSessions.length) > 0 && (
+                            <h3 style={{ marginTop: 0, marginBottom: "16px" }}>Minu treeningud</h3>
+                        )}
+                        <SessionGroup
+                            title="Aktiivne"
+                            sessions={activeSessions}
+                            defaultOpen={true}
+                            renderItem={s => (
+                                <SessionCardPlayer
+                                    key={s.instId}
+                                    instId={s.instId}
+                                    inst={s.inst}
+                                    def={s.def}
+                                    attendance={attendance}
+                                    rosters={rosters}
+                                    sessionMessages={sessionMessages}
+                                    playerId={myPlayerId}
+                                    nowMs={nowMs}
+                                    onPreStatus={handlePlayerPreStatus}
+                                    feedbackData={feedbackData}
+                                    feedbackLocal={feedbackLocal}
+                                    feedbackSaved={feedbackSaved}
+                                    feedbackEditing={feedbackEditing}
+                                    onFeedbackLocalChange={handleFeedbackLocalChange}
+                                    onFeedbackSave={handlePlayerFeedbackSave}
+                                    onFeedbackEdit={handleFeedbackEdit}
+                                    isExtraSession={false}
+                                />
+                            )}
+                        />
+                        <SessionGroup
+                            title="Täna"
+                            sessions={todaySessions}
+                            defaultOpen={true}
+                            renderItem={s => (
+                                <SessionCardPlayer
+                                    key={s.instId}
+                                    instId={s.instId} inst={s.inst} def={s.def}
+                                    attendance={attendance} rosters={rosters}
+                                    sessionMessages={sessionMessages}
+                                    playerId={myPlayerId}
+                                    nowMs={nowMs} onPreStatus={handlePlayerPreStatus}
+                                    feedbackData={feedbackData}
+                                    feedbackLocal={feedbackLocal}
+                                    feedbackSaved={feedbackSaved}
+                                    feedbackEditing={feedbackEditing}
+                                    onFeedbackLocalChange={handleFeedbackLocalChange}
+                                    onFeedbackSave={handlePlayerFeedbackSave}
+                                    onFeedbackEdit={handleFeedbackEdit}
+                                    isExtraSession={false}
+                                />
+                            )}
+                        />
+                        <SessionGroup
+                            title="Tulevased"
+                            sessions={upcomingSessions}
+                            defaultOpen={true}
+                            renderItem={s => (
+                                <SessionCardPlayer
+                                    key={s.instId}
+                                    instId={s.instId} inst={s.inst} def={s.def}
+                                    attendance={attendance} rosters={rosters}
+                                    sessionMessages={sessionMessages}
+                                    playerId={myPlayerId}
+                                    nowMs={nowMs} onPreStatus={handlePlayerPreStatus}
+                                    feedbackData={feedbackData}
+                                    feedbackLocal={feedbackLocal}
+                                    feedbackSaved={feedbackSaved}
+                                    feedbackEditing={feedbackEditing}
+                                    onFeedbackLocalChange={handleFeedbackLocalChange}
+                                    onFeedbackSave={handlePlayerFeedbackSave}
+                                    onFeedbackEdit={handleFeedbackEdit}
+                                    isExtraSession={false}
+                                />
+                            )}
+                        />
+                        <SessionGroup
+                            title="Möödunud"
+                            sessions={pastSessions}
+                            defaultOpen={false}
+                            renderItem={s => (
+                                <SessionCardPlayer
+                                    key={s.instId}
+                                    instId={s.instId} inst={s.inst} def={s.def}
+                                    attendance={attendance} rosters={rosters}
+                                    sessionMessages={sessionMessages}
+                                    playerId={myPlayerId}
+                                    nowMs={nowMs} onPreStatus={handlePlayerPreStatus}
+                                    feedbackData={feedbackData}
+                                    feedbackLocal={feedbackLocal}
+                                    feedbackSaved={feedbackSaved}
+                                    feedbackEditing={feedbackEditing}
+                                    onFeedbackLocalChange={handleFeedbackLocalChange}
+                                    onFeedbackSave={handlePlayerFeedbackSave}
+                                    onFeedbackEdit={handleFeedbackEdit}
+                                    isExtraSession={false}
+                                />
+                            )}
+                        />
+                        <SessionGroup
+                            title="Lisatreeningud"
+                            sessions={extraSessions}
+                            defaultOpen={true}
+                            renderItem={s => (
+                                <SessionCardPlayer
+                                    key={s.instId}
+                                    instId={s.instId} inst={s.inst} def={s.def}
+                                    attendance={attendance} rosters={rosters}
+                                    sessionMessages={sessionMessages}
+                                    playerId={myPlayerId}
+                                    nowMs={nowMs} onPreStatus={handlePlayerPreStatus}
+                                    feedbackData={feedbackData}
+                                    feedbackLocal={feedbackLocal}
+                                    feedbackSaved={feedbackSaved}
+                                    feedbackEditing={feedbackEditing}
+                                    onFeedbackLocalChange={handleFeedbackLocalChange}
+                                    onFeedbackSave={handlePlayerFeedbackSave}
+                                    onFeedbackEdit={handleFeedbackEdit}
+                                    isExtraSession={true}
+                                    myExtraRequest={extraRequests[s.instId]?.[myPlayerId] || null}
+                                    onRequestExtra={() => navigate(`/sessions/${s.instId}`)}
+                                    onCancelExtraRequest={() => handleCancelExtraRequest(s.instId, myPlayerId)}
+                                />
+                            )}
+                        />
                     </>
                 )}
             </div>
@@ -1167,8 +1447,8 @@ export default function SessionListPage() {
                         attendance={attendance} rosters={rosters}
                         isActive={isActive}
                         onClick={() => {
-                            try { localStorage.setItem("lastSessionId", instId) } catch (e) {}
-                            navigate(`/session/${instId}`)
+                            try { localStorage.setItem("lastSessionId", instId) } catch (e) { }
+                            navigate(`/sessions/${instId}`)
                         }}
                     />
                 )
@@ -1203,8 +1483,8 @@ export default function SessionListPage() {
                 lastSessionBanner = (
                     <div
                         onClick={() => {
-                            try { localStorage.setItem("lastSessionId", lastId) } catch (e) {}
-                            navigate(`/session/${lastId}`)
+                            try { localStorage.setItem("lastSessionId", lastId) } catch (e) { }
+                            navigate(`/sessions/${lastId}`)
                         }}
                         style={{
                             border: "1px solid #3b82f6", borderRadius: "8px", padding: "12px 16px",
@@ -1222,7 +1502,7 @@ export default function SessionListPage() {
                 )
             }
         }
-    } catch (e) {}
+    } catch (e) { }
 
     return (
         <div style={{ maxWidth: "600px", margin: "0 auto", padding: "20px" }}>

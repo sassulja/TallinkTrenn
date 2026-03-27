@@ -53,7 +53,7 @@ export default function AdminPage() {
     // --- Invitations State ---
     const [invitations, setInvitations] = useState({})
     const [inviteEmail, setInviteEmail] = useState("")
-    const [inviteType, setInviteType] = useState("player") // "player" | "parent"
+    const [inviteType, setInviteType] = useState("player") // "player" | "parent" | "coach"
     const [invitePlayerId, setInvitePlayerId] = useState("")
     const [inviteParentPlayers, setInviteParentPlayers] = useState({})
     const [isCreatingInvite, setIsCreatingInvite] = useState(false)
@@ -760,15 +760,14 @@ export default function AdminPage() {
                 type: inviteType,
                 role: inviteType,
                 email: email,
-                playerId: payloadPlayerId,
-                playerName: payloadPlayerName,
-                playerIds: payloadPlayerIds,
                 status: "pending",
                 token: token,
                 createdAt: new Date(now).toISOString(),
                 expiresAt: expiresAt,
                 acceptedAt: null,
-                acceptedByUid: null
+                acceptedByUid: null,
+                ...(inviteType === "player" ? { playerId: payloadPlayerId, playerName: payloadPlayerName } : {}),
+                ...(inviteType === "parent" ? { playerIds: payloadPlayerIds } : {})
             }
 
             const newInviteRef = push(ref(database, "invitations"))
@@ -1545,6 +1544,7 @@ export default function AdminPage() {
                             >
                                 <option value="player">Player</option>
                                 <option value="parent">Parent</option>
+                                <option value="coach">Coach</option>
                             </select>
                         </div>
 
@@ -1629,7 +1629,7 @@ export default function AdminPage() {
                                 cursor: isCreatingInvite ? "not-allowed" : "pointer"
                             }}
                         >
-                            {inviteType === "player" ? (isCreatingInvite ? "Creating..." : "Loo kutse") : (isCreatingInvite ? "Creating..." : "Loo lapsevanema kutse")}
+                            {inviteType === "player" ? (isCreatingInvite ? "Creating..." : "Loo kutse") : inviteType === "parent" ? (isCreatingInvite ? "Creating..." : "Loo lapsevanema kutse") : (isCreatingInvite ? "Creating..." : "Loo treeneri kutse")}
                         </button>
 
                         {generatedInviteLink && (

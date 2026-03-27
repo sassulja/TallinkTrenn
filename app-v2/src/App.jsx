@@ -110,7 +110,7 @@ function App() {
             <Route
               path="/roster"
               element={
-                <ProtectedRoute allowedRoles={["admin", "coach"]}>
+                <ProtectedRoute allowedRoles={["admin", "coach", "player"]}>
                   <RosterPage />
                 </ProtectedRoute>
               }
@@ -128,17 +128,8 @@ function App() {
             <Route
               path="/attendance"
               element={
-                <ProtectedRoute allowedRoles={["admin", "coach"]}>
+                <ProtectedRoute allowedRoles={["admin", "coach", "player"]}>
                   <AttendancePage />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/sessions"
-              element={
-                <ProtectedRoute allowedRoles={["admin", "coach", "parent", "player"]}>
-                  <SessionListPage />
                 </ProtectedRoute>
               }
             />
@@ -153,10 +144,19 @@ function App() {
             />
 
             <Route
-              path="/session/:instanceId"
+              path="/sessions/:instanceId"
               element={
-                <ProtectedRoute allowedRoles={["admin", "coach"]}>
+                <ProtectedRoute allowedRoles={["admin", "coach", "player", "parent"]}>
                   <SessionPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/sessions"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "coach", "parent", "player"]}>
+                  <SessionListPage />
                 </ProtectedRoute>
               }
             />
