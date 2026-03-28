@@ -327,15 +327,15 @@ All session-related functionality:
   Standardize spacing, typography, container 
   widths. Align headers, sections, cards.
 
-- [ ] ⬜ **11.4 — Component Standardization:** 
-  Replace repeated UI with reusable components. 
-  Buttons, status badges, lists/rows. Reduce 
-  inline styles.
-
-- [ ] ⬜ **11.5 — Visual Hierarchy & Clarity:** 
+- [ ] ⬜ **11.4 — Visual Hierarchy & Clarity:** 
   Improve primary vs secondary actions, status 
   visibility. Feedback easier to scan, statuses 
   instantly understandable.
+
+- [ ] ⬜ **11.5 — Component Standardization:** 
+  Replace repeated UI with reusable components. 
+  Buttons, status badges, lists/rows. Reduce 
+  inline styles.
 
 - [ ] ⬜ **11.6 — UX Improvements:** Loading states, 
   empty states, error feedback. Remove confusing 

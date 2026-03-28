@@ -1,167 +1,133 @@
 # Current Task Directives
 
-**Target Phase:** Phase 10.5 — Session Management & Recovery  
-**Active Chunk:** 10.5.10 — Extra Requests Consistency & Player UI Finalization
+**Target Phase:** Phase 11 — UI / UX Polish  
+**Active Chunk:** 11.6 — Toast Notification System (SessionListPage)
 
 ---
 
 ## 1. Objective
 
-Finalize extra session request system:
-
-1. Player UI:
-   - Show correct request status
-   - Allow cancel (optimistic update)
-   - Use isLocked as ONLY gate
-
-2. Data consistency:
-   - roster = source of truth
-   - extraRequests must reflect roster changes
+Replace string-based top-level message system with typed messages
+and a fixed toast notification. Non-blocking, mobile-friendly.
 
 ---
 
 ## 2. Scope
 
-- src/pages/SessionListPage.jsx
-- src/pages/SessionPage.jsx
+- src/pages/SessionListPage.jsx ONLY
 
 ---
 
-## 3. Player Rules
+## 3. Changes
 
-- isLocked = (sessionStartMs - nowMs) < 60 * 60 * 1000
-- isLocked is the ONLY gate for player actions
-- Do NOT use sessionStarted for player logic
+### 3.1 Message state
 
-### Player states:
+Replace:
+  const [parentMsg, setParentMsg] = useState("")
 
-| Status | UI |
-|------|----|
-| none / cancelled | Soovin osaleda |
-| pending | Taotlus on ootel + Tühista |
-| rejected | Taotlus tagasi lükatud |
-| approved | not shown (player in roster) |
-| isLocked | no actions |
+With:
+  const [parentMsg, setParentMsg] = useState(null)
 
----
+### 3.2 Auto-dismiss useEffect (REQUIRED)
 
-## 4. Coach/Admin Rules
+Add near other useEffects:
+  useEffect(() => {
+      if (!parentMsg) return
+      const timer = setTimeout(() => setParentMsg(null), 4000)
+      return () => clearTimeout(timer)
+  }, [parentMsg])
 
-- NEVER time-locked
-- sessionStarted is informational only
-- Coach/admin can:
-  - approve anytime
-  - add players manually anytime
-  - override rejected requests
+### 3.3 Update ALL setParentMsg calls
 
----
+Clear calls:
+  setParentMsg("") → setParentMsg(null)
 
-## 5. Data Consistency Rule (CRITICAL)
+Error messages — system failures:
+  - `Viga: ${err.message}`
+  → setParentMsg({ text: `Viga: ${err.message}`, type: "error" })
 
-Roster is the source of truth.
+Warning messages — user constraints:
+  - "Lukustatud — eelstaatust ei saa enam muuta."
+  - "Treening on täis. Kinnitamine ei ole võimalik."
+  - "Treening on täis. Palun kontrollige oma kinnitust."
+  - "Palun vali nii pingutuse kui treeneri hinnang."
+  - `Sul on juba ${sportLabel} treening samal ajal: ...`
+  → setParentMsg({ text: "...", type: "warning" })
 
-When a player is added to roster:
+Success messages — confirmed actions:
+  - "Eelstaatus salvestatud."
+  → setParentMsg({ text: "Eelstaatus salvestatud.", type: "success" })
 
-IF extraRequests/{instanceId}/{playerId} exists →
-SET status = "approved"
+### 3.4 Remove ALL inline renders
 
-This must be done in SAME logical action using multi-path update.
+Remove every occurrence of:
+  {parentMsg && <p style={{ color: parentMsg.startsWith("Viga") ? ... }}>{parentMsg}</p>}
 
-Example:
+There are exactly two occurrences — remove both.
 
-update(ref(database), {
-  [`rosters/${instanceId}/${playerId}`]: rosterData,
-  [`extraRequests/${instanceId}/${playerId}/status`]: "approved"
-})
+### 3.5 Add single toast render
 
----
+Place once at root of component return, outside all role branches,
+just before the final closing tag:
 
-## 6. SessionListPage
-
-### 6.1 extraRequests subscription
-
-- Add global subscription for extraRequests
-
-### 6.2 Cancel handler
-
-- Optimistic update:
-  - Save previous status
-  - Set status = "cancelled"
-  - On error → revert
-
-### 6.3 Props to SessionCardPlayer
-
-- myExtraRequest
-- onCancelExtraRequest
-
----
-
-## 7. SessionCardPlayer
-
-### Props
-
-- myExtraRequest
-- onCancelExtraRequest
-
-### UI Logic
-
-Use ONLY isLocked.
-
-if (isLocked) → return null
-
-if (status === "pending") → label + cancel button
-if (status === "rejected") → label only
-if (status === null || status === "cancelled") → request button
-
-### Buttons
-
-- type="button"
-- e.stopPropagation()
+  {parentMsg && (
+      <div
+          onClick={() => setParentMsg(null)}
+          style={{
+              position: "fixed",
+              bottom: "max(24px, env(safe-area-inset-bottom))",
+              left: "50%",
+              transform: "translateX(-50%)",
+              background:
+                  parentMsg.type === "error" ? "#dc2626" :
+                  parentMsg.type === "warning" ? "#d97706" :
+                  "#16a34a",
+              color: "white",
+              padding: "10px 20px",
+              borderRadius: "8px",
+              fontWeight: "bold",
+              fontSize: "14px",
+              zIndex: 9999,
+              maxWidth: "320px",
+              textAlign: "center",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+              transition: "all 0.2s ease",
+              cursor: "pointer"
+          }}
+      >
+          {parentMsg.text}
+      </div>
+  )}
 
 ---
 
-## 8. SessionPage (Player View)
+## 4. Guardrails
 
-### Cancel handler
-
-- Same optimistic logic as SessionListPage
-
-### UI Logic
-
-if (isLocked) → return null
-
-if (status === "pending") → label + cancel
-if (status === "rejected") → label
-if (status === null || status === "cancelled") → request button
-
-### Safety
-
-- Use optional chaining:
-  extraRequests?.[myPlayerId]
-
-- Remove unused sessionStarted from player logic
-
-- All buttons:
-  - type="button"
-  - e.stopPropagation()
+- NO logic changes
+- NO new components
+- NO other files touched
+- ALL setParentMsg calls must be converted — do not miss any
+- Exactly ONE toast render
+- Remove ALL inline p-tag renders (there are two)
+- Do NOT rename parentMsg
+- Do NOT introduce helper functions
+- Do NOT refactor render structure
+- Do NOT introduce a content variable
+- Minimal diff only
 
 ---
 
-## 9. Guardrails
+## 5. Definition of Done
 
-- DO NOT touch coach/admin views
-- DO NOT modify approval logic structure
-- DO NOT introduce new components
-- DO NOT re-enable re-request after rejected
-- DO NOT use sessionStarted as gate
-
----
-
-## 10. Definition of Done
-
-- Player sees correct status everywhere
-- Cancel works instantly (optimistic)
-- No re-request after rejected
-- No stale pending requests after roster update
+- Toast appears at bottom on any message
+- error → red, warning → yellow, success → green
+- Auto-dismisses after 4 seconds
+- Tap to dismiss
+- No inline messages anywhere
+- No layout shift
 - No console errors
-- Data always consistent
+
+---
+
+STOP after completion.
+Show exact diff only.
