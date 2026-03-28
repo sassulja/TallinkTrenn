@@ -6,6 +6,10 @@ import { database } from "../services/firebase"
 import { getTallinnNow, combineDateAndTime } from "../utils/dateUtils"
 import { PRESTATUS_LABELS, REALSTATUS_LABELS, EFFORT_SCALE, PLAYER_EFFORT_SCALE, COACH_ENGAGEMENT_SCALE } from "../utils/displayUtils"
 import { LoadingSpinner, ErrorMessage, EmptyState } from "../components/UIHelpers"
+import PrimaryButton from "../components/ui/PrimaryButton"
+import SecondaryButton from "../components/ui/SecondaryButton"
+import StatusText from "../components/ui/StatusText"
+import ActionBlock from "../components/ui/ActionBlock"
 
 const REAL_STATUS_CYCLE = [null, "kohal", "puudus", "hilines", "vabastatud"]
 const REAL_STATUS_DISPLAY = {
@@ -726,7 +730,7 @@ export default function SessionPage() {
 
     if (role !== "player" && !hasPermission()) {
         return (
-            <div style={{ padding: "20px", maxWidth: "600px", margin: "0 auto" }}>
+            <div style={{ maxWidth: "800px", margin: "0 auto", padding: "16px" }}>
                 <button onClick={() => navigate("/sessions")} style={{ marginBottom: "16px", cursor: "pointer" }}>← Tagasi</button>
                 <p style={{ color: "red" }}>Sul puudub õigus selle treeningu haldamiseks.</p>
             </div>
@@ -735,22 +739,22 @@ export default function SessionPage() {
 
     if (role === "player") {
         return (
-            <div style={{ maxWidth: "600px", margin: "0 auto", padding: "20px" }}>
+            <div style={{ maxWidth: "800px", margin: "0 auto", padding: "16px" }}>
                 <button onClick={() => navigate("/sessions")}
-                    style={{ marginBottom: "16px", cursor: "pointer", background: "none", border: "1px solid #ccc", borderRadius: "6px", padding: "6px 12px" }}>
+                    style={{ marginBottom: "16px", cursor: "pointer", background: "none", border: "1px solid #ccc", borderRadius: "8px", padding: "8px 12px" }}>
                     ← Tagasi
                 </button>
 
                 <div style={{ marginBottom: "16px" }}>
-                    <h2 style={{ marginBottom: "4px" }}>{formatEstonianDate(inst.date)}</h2>
+                    <h2 style={{ marginBottom: "8px" }}>{formatEstonianDate(inst.date)}</h2>
                     <div style={{ fontSize: "18px", fontWeight: "bold" }}>{timeDisplay}</div>
                     {isCancelled && (
                         <div style={{ display: "inline-block", marginTop: "8px", padding: "4px 8px", borderRadius: "999px", background: "#fee2e2", color: "#b91c1c", fontSize: "12px", fontWeight: "bold" }}>
                             Tühistatud
                         </div>
                     )}
-                    <div style={{ textTransform: "capitalize", color: "#555", marginTop: "4px" }}>{sport}</div>
-                    <div style={{ fontSize: "12px", color: "#999", marginTop: "4px" }}>{instanceId}</div>
+                    <div style={{ textTransform: "capitalize", color: "var(--color-text-secondary)", marginTop: "8px" }}>{sport}</div>
+                    <div style={{ fontSize: "12px", color: "var(--color-text-muted)", marginTop: "8px" }}>{instanceId}</div>
                 </div>
 
                 {msg && <p style={{ color: msg.startsWith("Error") ? "red" : "green", fontWeight: "bold", marginBottom: "12px" }}>{msg}</p>}
@@ -760,65 +764,55 @@ export default function SessionPage() {
 
                     if (status === "pending") {
                         return (
-                            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                                <span style={{ color: "#f59e0b", fontWeight: "bold" }}>
+                            <ActionBlock>
+                                <StatusText type="warning">
                                     Taotlus on ootel
-                                </span>
-                                <button
-                                    type="button"
-                                    onClick={e => {
-                                        e.stopPropagation()
-                                        handleCancelExtraRequest()
-                                    }}
-                                    style={{ padding: "10px 16px", background: "#ef4444", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", width: "fit-content" }}
-                                >
+                                </StatusText>
+                                <SecondaryButton onClick={e => {
+                                    e.stopPropagation()
+                                    handleCancelExtraRequest()
+                                }}>
                                     Tühista taotlus
-                                </button>
-                            </div>
+                                </SecondaryButton>
+                            </ActionBlock>
                         )
                     }
 
                     if (status === "rejected") {
                         return (
-                            <div>
-                                <span style={{ color: "#ef4444", fontWeight: "bold" }}>
+                            <ActionBlock>
+                                <StatusText type="error">
                                     Taotlus tagasi lükatud
-                                </span>
-                            </div>
+                                </StatusText>
+                            </ActionBlock>
                         )
                     }
 
                     if (status === "cancelled") {
                         return (
-                            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                                <span style={{ color: "#6b7280", fontWeight: "bold" }}>
+                            <ActionBlock>
+                                <StatusText type="muted">
                                     Taotlus tühistatud
-                                </span>
-                                <button
-                                    type="button"
-                                    onClick={e => {
-                                        e.stopPropagation()
-                                        handleRequestExtraSession()
-                                    }}
-                                    style={{ padding: "10px 16px", background: "#3b82f6", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}
-                                >
+                                </StatusText>
+                                <PrimaryButton onClick={e => {
+                                    e.stopPropagation()
+                                    handleRequestExtraSession()
+                                }}>
                                     Soovin osaleda
-                                </button>
-                            </div>
+                                </PrimaryButton>
+                            </ActionBlock>
                         )
                     }
 
                     return (
-                        <button
-                            type="button"
-                            onClick={e => {
+                        <ActionBlock>
+                            <PrimaryButton onClick={e => {
                                 e.stopPropagation()
                                 handleRequestExtraSession()
-                            }}
-                            style={{ padding: "10px 16px", background: "#3b82f6", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}
-                        >
-                            Soovin osaleda
-                        </button>
+                            }}>
+                                Soovin osaleda
+                            </PrimaryButton>
+                        </ActionBlock>
                     )
                 })()}
             </div>
@@ -861,24 +855,24 @@ export default function SessionPage() {
 
     // ─── RENDER ─────────────────────────────────────
     return (
-        <div style={{ maxWidth: "600px", margin: "0 auto", padding: "20px" }}>
+        <div style={{ maxWidth: "800px", margin: "0 auto", padding: "16px" }}>
             {/* Back button */}
             <button onClick={() => { clearTimeout(debounceTimer.current); flushWrites(); navigate("/sessions") }}
-                style={{ marginBottom: "16px", cursor: "pointer", background: "none", border: "1px solid #ccc", borderRadius: "6px", padding: "6px 12px" }}>
+                style={{ marginBottom: "16px", cursor: "pointer", background: "none", border: "1px solid #ccc", borderRadius: "8px", padding: "8px 12px" }}>
                 ← Tagasi
             </button>
 
             {/* Session Header */}
             <div style={{ marginBottom: "16px" }}>
-                <h2 style={{ marginBottom: "4px" }}>{formatEstonianDate(inst.date)}</h2>
+                <h2 style={{ marginBottom: "8px" }}>{formatEstonianDate(inst.date)}</h2>
                 <div style={{ fontSize: "18px", fontWeight: "bold" }}>{timeDisplay}</div>
                 {isCancelled && (
                     <div style={{ display: "inline-block", marginTop: "8px", padding: "4px 8px", borderRadius: "999px", background: "#fee2e2", color: "#b91c1c", fontSize: "12px", fontWeight: "bold" }}>
                         Tühistatud
                     </div>
                 )}
-                <div style={{ textTransform: "capitalize", color: "#555", marginTop: "4px" }}>{sport}</div>
-                <div style={{ fontSize: "12px", color: "#999", marginTop: "4px" }}>{instanceId}</div>
+                <div style={{ textTransform: "capitalize", color: "var(--color-text-secondary)", marginTop: "8px" }}>{sport}</div>
+                <div style={{ fontSize: "12px", color: "var(--color-text-muted)", marginTop: "8px" }}>{instanceId}</div>
                 <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap", marginTop: "12px" }}>
                     {!isEditingSessionTime ? (
                         <button onClick={() => setIsEditingSessionTime(true)}

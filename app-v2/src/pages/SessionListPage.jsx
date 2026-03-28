@@ -6,6 +6,10 @@ import { database } from "../services/firebase"
 import { getTallinnNow, combineDateAndTime } from "../utils/dateUtils"
 import { PRESTATUS_LABELS, REALSTATUS_LABELS, EFFORT_SCALE, PLAYER_EFFORT_SCALE, COACH_ENGAGEMENT_SCALE } from "../utils/displayUtils"
 import { LoadingSpinner, ErrorMessage, EmptyState } from "../components/UIHelpers"
+import PrimaryButton from "../components/ui/PrimaryButton"
+import SecondaryButton from "../components/ui/SecondaryButton"
+import StatusText from "../components/ui/StatusText"
+import ActionBlock from "../components/ui/ActionBlock"
 
 function formatEstonianDate(dateStr) {
     if (!dateStr) return "";
@@ -51,6 +55,14 @@ function getCoachFeedbackSummary(coachFb) {
         collapsed: `${effortItem.emoji} ${effortItem.label}`.split(" ")[0],
         expanded: `${effortItem.emoji} ${effortItem.label}`
     }
+}
+
+function getStatusType(status) {
+    if (status === null || status === undefined) return "muted"
+    if (status === "kinnitatud" || status === "kohal") return "success"
+    if (status === "eiOsale" || status === "puudus") return "error"
+    if (status === "hilines") return "warning"
+    return "muted"
 }
 
 // ─── Coach/Admin Session Card ───────────────────────────
@@ -136,8 +148,9 @@ function SessionCardParent({ instId, inst, def, attendance, rosters, players, se
     const playerFb = sessionFeedback?.[instId]?.[playerId]?.player
 
     const attRecord = attendance[instId]?.[playerId] || {}
-    const preStatus = attRecord.preStatus || null
+    const preStatus = attRecord.preStatus ?? "vastamata"
     const realStatus = attRecord.realStatus || null
+    const effectivePreStatus = preStatus ?? "vastamata"
 
     // Capacity check
     const currentAtt = attendance[instId] || {}
@@ -173,22 +186,26 @@ function SessionCardParent({ instId, inst, def, attendance, rosters, players, se
             marginRight: "auto"
         }}>
             <div
-                onClick={() => setIsExpanded(prev => !prev)}
-                style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "flex-start", cursor: "pointer" }}
+                onClick={() => {
+                    if (preStatus !== "vastamata") {
+                        setIsExpanded(prev => !prev)
+                    }
+                }}
+                style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "flex-start", cursor: preStatus !== "vastamata" ? "pointer" : "default" }}
             >
                 <div>
                     <div style={{ fontWeight: "var(--font-weight-bold)", fontSize: "15px", color: "var(--color-primary-dark)", marginBottom: "4px" }}>{childName}</div>
                     <div style={{ fontWeight: "var(--font-weight-bold)", fontSize: "16px" }}>{timeDisplay}</div>
-                    <div style={{ fontSize: "13px", color: "var(--color-text-secondary)" }}>
+                    <div style={{ fontSize: "12px", color: "var(--color-text-secondary)", marginTop: "8px" }}>
                         {formatEstonianDate(inst.date)}
                     </div>
-                    <div style={{ fontSize: "13px", color: "var(--color-text-muted)", textTransform: "capitalize" }}>
+                    <div style={{ fontSize: "12px", color: "var(--color-text-muted)", textTransform: "capitalize", marginTop: "8px" }}>
                         {sport}
                     </div>
                 </div>
             </div>
 
-            {!isExtraSession && (
+            {!isExtraSession && preStatus !== "vastamata" && (
                 <div
                     style={{ marginTop: "var(--spacing-sm)", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}
                 >
@@ -225,7 +242,7 @@ function SessionCardParent({ instId, inst, def, attendance, rosters, players, se
                 </div>
             )}
 
-            {isExpanded && (
+            {isExpanded && effectivePreStatus !== "vastamata" && (
                 <>
                     {/* preStatus section */}
                     {!sessionStarted ? (
@@ -356,7 +373,8 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
     const isActive = sessionStartMs <= nowMs && sessionEndMs >= nowMs
 
     const attRecord = attendance[instId]?.[playerId] || {}
-    const preStatus = attRecord.preStatus || null
+    const preStatus = attRecord.preStatus ?? "vastamata"
+    const showPreStatusBlock = !sessionStarted && (preStatus !== "vastamata" || isLocked)
     const realStatus = attRecord.realStatus || null
 
     // Capacity check
@@ -402,7 +420,11 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
             marginRight: "auto"
         }}>
             <div
-                onClick={() => setIsExpanded(prev => !prev)}
+                onClick={() => {
+                    if (showPreStatusBlock || sessionStarted) {
+                        setIsExpanded(prev => !prev)
+                    }
+                }}
                 style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "flex-start", cursor: "pointer" }}
             >
                 <div>
@@ -416,21 +438,25 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
                 </div>
             </div>
 
-            {!isExtraSession && (
+            {!isExtraSession && (sessionStarted || preStatus !== "vastamata" || coachFeedbackSummary) && (
                 <div
-                    onClick={() => setIsExpanded(prev => !prev)}
-                    style={{ marginTop: "var(--spacing-sm)", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", cursor: "pointer" }}
+                    onClick={() => {
+                        if (showPreStatusBlock || sessionStarted) {
+                            setIsExpanded(prev => !prev)
+                        }
+                    }}
+                    style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid var(--color-border)", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", cursor: "pointer" }}
                 >
                     <div style={{ fontSize: "14px", fontWeight: "var(--font-weight-medium)" }}>
                         {sessionStarted ? (
                             <>
                                 <span style={{ color: "var(--color-text-muted)" }}>Kohalolek:</span>{" "}
-                                <span style={{ fontWeight: "var(--font-weight-bold)" }}>{realStatus ? `${REAL_STATUS_DISPLAY[realStatus]?.icon} ${REAL_STATUS_DISPLAY[realStatus]?.label || REALSTATUS_LABELS.null}` : REALSTATUS_LABELS.null}</span>
+                                <StatusText type={getStatusType(realStatus)}>{realStatus ? `${REAL_STATUS_DISPLAY[realStatus]?.icon} ${REAL_STATUS_DISPLAY[realStatus]?.label || REALSTATUS_LABELS.null}` : REALSTATUS_LABELS.null}</StatusText>
                             </>
                         ) : (
                             <>
                                 <span style={{ color: "var(--color-text-muted)" }}>Staatus:</span>{" "}
-                                <span style={{ fontWeight: "var(--font-weight-bold)" }}>{PRESTATUS_LABELS[preStatus] || PRESTATUS_LABELS.null}</span>
+                                <StatusText type={getStatusType(preStatus)}>{PRESTATUS_LABELS[preStatus] || PRESTATUS_LABELS.null}</StatusText>
                             </>
                         )}
                     </div>
@@ -441,16 +467,14 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
             )}
 
             {!isExtraSession && !sessionStarted && !isLocked && preStatus !== "kinnitatud" && preStatus !== "eiOsale" && (
-                <div style={{ marginTop: "var(--spacing-sm)", display: "flex", gap: "8px" }}>
-                    <button onClick={e => { e.stopPropagation(); onPreStatus(instId, playerId, "kinnitatud") }}
-                        disabled={isFull}
-                        style={{ padding: "6px 16px", background: isFull ? "#ccc" : "var(--color-primary)", color: "white", border: "none", borderRadius: "6px", cursor: isFull ? "not-allowed" : "pointer", fontWeight: "bold" }}>
+                <div style={{ marginTop: "8px", display: "flex", gap: "8px" }}>
+                    <PrimaryButton onClick={e => { e.stopPropagation(); onPreStatus(instId, playerId, "kinnitatud") }}
+                        disabled={isFull}>
                         {isFull ? "Treening on täis" : "Kinnitan"}
-                    </button>
-                    <button onClick={e => { e.stopPropagation(); onPreStatus(instId, playerId, "eiOsale") }}
-                        style={{ padding: "6px 16px", background: "var(--color-danger)", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>
+                    </PrimaryButton>
+                    <SecondaryButton onClick={e => { e.stopPropagation(); onPreStatus(instId, playerId, "eiOsale") }}>
                         Ei osale
-                    </button>
+                    </SecondaryButton>
                 </div>
             )}
 
@@ -461,102 +485,55 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
 
                 if (status === "pending") {
                     return (
-                        <div style={{
-                            marginTop: "var(--spacing-sm)",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "8px"
-                        }}>
-                            <span style={{ color: "#f59e0b", fontWeight: "bold" }}>
+                        <ActionBlock>
+                            <StatusText type="warning">
                                 Taotlus on ootel
-                            </span>
-                            <button
-                                type="button"
-                                onClick={e => {
-                                    e.stopPropagation()
-                                    onCancelExtraRequest && onCancelExtraRequest()
-                                }}
-                                style={{
-                                    padding: "6px 16px",
-                                    background: "#ef4444",
-                                    color: "white",
-                                    border: "none",
-                                    borderRadius: "6px",
-                                    cursor: "pointer",
-                                    fontWeight: "bold",
-                                    width: "fit-content"
-                                }}
-                            >
+                            </StatusText>
+                            <SecondaryButton onClick={e => {
+                                e.stopPropagation()
+                                onCancelExtraRequest && onCancelExtraRequest()
+                            }}>
                                 Tühista taotlus
-                            </button>
-                        </div>
+                            </SecondaryButton>
+                        </ActionBlock>
                     )
                 }
 
                 if (status === "rejected") {
                     return (
-                        <div style={{ marginTop: "var(--spacing-sm)" }}>
-                            <span style={{ color: "#ef4444", fontWeight: "bold" }}>
+                        <ActionBlock>
+                            <StatusText type="error">
                                 Taotlus tagasi lükatud
-                            </span>
-                        </div>
+                            </StatusText>
+                        </ActionBlock>
                     )
                 }
 
                 if (status === "cancelled") {
                     return (
-                        <div style={{
-                            marginTop: "var(--spacing-sm)",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "8px"
-                        }}>
-                            <span style={{ color: "#6b7280", fontWeight: "bold" }}>
+                        <ActionBlock>
+                            <StatusText type="muted">
                                 Taotlus tühistatud
-                            </span>
-                            <button
-                                type="button"
-                                onClick={e => {
-                                    e.stopPropagation()
-                                    onRequestExtra && onRequestExtra()
-                                }}
-                                style={{
-                                    padding: "6px 16px",
-                                    background: "var(--color-primary)",
-                                    color: "white",
-                                    border: "none",
-                                    borderRadius: "6px",
-                                    cursor: "pointer",
-                                    fontWeight: "bold"
-                                }}
-                            >
+                            </StatusText>
+                            <PrimaryButton onClick={e => {
+                                e.stopPropagation()
+                                onRequestExtra && onRequestExtra()
+                            }}>
                                 Soovin osaleda
-                            </button>
-                        </div>
+                            </PrimaryButton>
+                        </ActionBlock>
                     )
                 }
 
                 return (
-                    <div style={{ marginTop: "var(--spacing-sm)" }}>
-                        <button
-                            type="button"
-                            onClick={e => {
-                                e.stopPropagation()
-                                onRequestExtra && onRequestExtra()
-                            }}
-                            style={{
-                                padding: "6px 16px",
-                                background: "var(--color-primary)",
-                                color: "white",
-                                border: "none",
-                                borderRadius: "6px",
-                                cursor: "pointer",
-                                fontWeight: "bold"
-                            }}
-                        >
+                    <ActionBlock>
+                        <PrimaryButton onClick={e => {
+                            e.stopPropagation()
+                            onRequestExtra && onRequestExtra()
+                        }}>
                             Soovin osaleda
-                        </button>
-                    </div>
+                        </PrimaryButton>
+                    </ActionBlock>
                 )
             })()}
 
@@ -565,7 +542,7 @@ function SessionCardPlayer({ instId, inst, def, attendance, rosters, sessionMess
                     {/* preStatus section */}
                     {!isExtraSession && (
                         <>
-                            {!sessionStarted ? (
+                            {showPreStatusBlock ? (
                                 <div style={{ marginTop: "var(--spacing-md)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--spacing-sm)" }}>
                                     {isLocked ? (
                                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -739,7 +716,6 @@ function SessionGroup({ title, sessions, defaultOpen = true, renderItem }) {
                 <span>{isOpen ? "▼" : "▶"}</span>
             </h3>
             {isOpen && <div style={{ marginTop: "12px" }}>{sessions.map(s => {
-                console.log("SG render", !!renderItem, s.instId)
                 return renderItem ? renderItem(s) : s.renderCard
             })}</div>}
         </div >
@@ -761,7 +737,7 @@ export default function SessionListPage() {
     const [sessionMessages, setSessionMessages] = useState({})
     const [extraRequests, setExtraRequests] = useState({})
     const [selectedChild, setSelectedChild] = useState("all")
-    const [parentMsg, setParentMsg] = useState("")
+    const [parentMsg, setParentMsg] = useState(null)
     const [myPlayerId, setMyPlayerId] = useState(null)
     const [feedbackData, setFeedbackData] = useState({})
     const [feedbackLocal, setFeedbackLocal] = useState({})
@@ -801,6 +777,12 @@ export default function SessionListPage() {
         return () => unsubs.forEach(u => u())
     }, [currentUser, role])
 
+    useEffect(() => {
+        if (!parentMsg) return
+        const timer = setTimeout(() => setParentMsg(null), 4000)
+        return () => clearTimeout(timer)
+    }, [parentMsg])
+
     const hasPermissionForInstance = (inst) => {
         if (role === "admin") return true
         if (role !== "coach") return false
@@ -813,7 +795,7 @@ export default function SessionListPage() {
 
     // ─── Parent preStatus handler ───────────────────
     const handleParentPreStatus = async (instId, playerId, newStatus) => {
-        setParentMsg("")
+        setParentMsg(null)
         const currentInst = instances[instId]
         const def = definitions[currentInst?.definitionId]
         if (!currentInst || !def) return
@@ -825,7 +807,7 @@ export default function SessionListPage() {
         const capacity = currentInst.capacity || 0
 
         if (nowMs >= sessionStartMs - 60 * 60 * 1000) {
-            setParentMsg("Lukustatud — eelstaatust ei saa enam muuta.")
+            setParentMsg({ text: "Lukustatud — eelstaatust ei saa enam muuta.", type: "warning" })
             return
         }
 
@@ -840,7 +822,7 @@ export default function SessionListPage() {
                 if (currentAttendance[pid].preStatus === "kinnitatud" && pid !== playerId) kinnitatudCount++
             })
             if (kinnitatudCount >= capacity) {
-                setParentMsg("Treening on täis. Kinnitamine ei ole võimalik.")
+                setParentMsg({ text: "Treening on täis. Kinnitamine ei ole võimalik.", type: "warning" })
                 return
             }
         }
@@ -887,12 +869,12 @@ export default function SessionListPage() {
                     if (latestAttendance[pid]?.preStatus === "kinnitatud") latestKinnitatudCount++
                 })
                 if (latestKinnitatudCount > capacity) {
-                    setParentMsg("Treening on täis. Palun kontrollige oma kinnitust.")
+                    setParentMsg({ text: "Treening on täis. Palun kontrollige oma kinnitust.", type: "warning" })
                 } else {
-                    setParentMsg("Eelstaatus salvestatud.")
+                    setParentMsg({ text: "Eelstaatus salvestatud.", type: "success" })
                 }
             } else {
-                setParentMsg("Eelstaatus salvestatud.")
+                setParentMsg({ text: "Eelstaatus salvestatud.", type: "success" })
             }
         } catch (err) {
             console.error("Parent preStatus write failed", err)
@@ -902,7 +884,7 @@ export default function SessionListPage() {
 
     // ─── Player preStatus handler ───────────────────
     const handlePlayerPreStatus = async (instId, playerId, newStatus) => {
-        setParentMsg("")
+        setParentMsg(null)
         const currentInst = instances[instId]
         const def = definitions[currentInst?.definitionId]
         if (!currentInst || !def) return
@@ -914,7 +896,7 @@ export default function SessionListPage() {
         const capacity = currentInst.capacity || 0
 
         if (nowMsLocal >= sessionStartMs - 60 * 60 * 1000) {
-            setParentMsg("Lukustatud — eelstaatust ei saa enam muuta.")
+            setParentMsg({ text: "Lukustatud — eelstaatust ei saa enam muuta.", type: "warning" })
             return
         }
 
@@ -928,7 +910,45 @@ export default function SessionListPage() {
                 if (currentAttendance[pid].preStatus === "kinnitatud" && pid !== playerId) kCount++
             })
             if (kCount >= capacity) {
-                setParentMsg("Treening on täis. Kinnitamine ei ole võimalik.")
+                setParentMsg({ text: "Treening on täis. Kinnitamine ei ole võimalik.", type: "warning" })
+                return
+            }
+
+            // Overlap check
+            const endTime = currentInst.endTime ?? def.endTime
+            const sessionEndMs = new Date(combineDateAndTime(currentInst.date, endTime)).getTime()
+
+            const overlappingEntry = Object.entries(attendance).find(([otherInstId, players]) => {
+                if (otherInstId === instId) return false
+                if (players?.[playerId]?.preStatus !== "kinnitatud") return false
+
+                const otherInst = instances[otherInstId]
+                if (!otherInst) return false
+
+                const otherDef = definitions[otherInst.definitionId]
+                const otherStartTime = otherInst.startTime ?? otherDef?.startTime
+                const otherEndTime = otherInst.endTime ?? otherDef?.endTime
+                if (!otherStartTime || !otherEndTime) return false
+
+                const otherStart = new Date(combineDateAndTime(otherInst.date, otherStartTime)).getTime()
+                const otherEnd = new Date(combineDateAndTime(otherInst.date, otherEndTime)).getTime()
+
+                return sessionStartMs < otherEnd && otherStart < sessionEndMs
+            })
+
+            if (overlappingEntry) {
+                const [otherInstId] = overlappingEntry
+                const otherInst = instances[otherInstId]
+                const otherDef = definitions[otherInst.definitionId]
+
+                const otherStartTime = otherInst.startTime ?? otherDef?.startTime
+                const otherEndTime = otherInst.endTime ?? otherDef?.endTime
+                const sportLabel = (otherInst.sport || "").toLowerCase()
+
+                setParentMsg({
+                    text: `Sul on juba ${sportLabel} treening samal ajal: ${formatEstonianDate(otherInst.date)} ${otherStartTime}–${otherEndTime}`,
+                    type: "warning"
+                })
                 return
             }
         }
@@ -972,12 +992,12 @@ export default function SessionListPage() {
                     if (latestAttendance[pid]?.preStatus === "kinnitatud") latestKinnitatudCount++
                 })
                 if (latestKinnitatudCount > capacity) {
-                    setParentMsg("Treening on täis. Palun kontrollige oma kinnitust.")
+                    setParentMsg({ text: "Treening on täis. Palun kontrollige oma kinnitust.", type: "warning" })
                 } else {
-                    setParentMsg("Eelstaatus salvestatud.")
+                    setParentMsg({ text: "Eelstaatus salvestatud.", type: "success" })
                 }
             } else {
-                setParentMsg("Eelstaatus salvestatud.")
+                setParentMsg({ text: "Eelstaatus salvestatud.", type: "success" })
             }
         } catch (err) {
             console.error("Player preStatus write failed", err)
@@ -1052,7 +1072,7 @@ export default function SessionListPage() {
         const key = `${instId}__${playerId}`
         const local = feedbackLocal[key]
         if (!local || !local.effort || !local.coachEngagement) {
-            setParentMsg("Palun vali nii pingutuse kui treeneri hinnang.")
+            setParentMsg({ text: "Palun vali nii pingutuse kui treeneri hinnang.", type: "warning" })
             return
         }
         const existing = feedbackData?.[instId]?.[playerId]?.player
@@ -1072,11 +1092,11 @@ export default function SessionListPage() {
             }))
             setFeedbackSaved(prev => ({ ...prev, [key]: true }))
             setFeedbackEditing(prev => ({ ...prev, [key]: false }))
-            setParentMsg("")
+            setParentMsg({ text: "Tagasiside salvestatud.", type: "success" })
             setTimeout(() => setFeedbackSaved(prev => ({ ...prev, [key]: false })), 2000)
         } catch (err) {
             console.error("Save player feedback failed", err)
-            setParentMsg(`Viga: ${err.message}`)
+            setParentMsg({ text: `Viga: ${err.message}`, type: "error" })
         }
     }
 
@@ -1157,143 +1177,171 @@ export default function SessionListPage() {
         const totalVisible = activeSessions.length + todaySessions.length + upcomingSessions.length + pastSessions.length + extraSessions.length
 
         return (
-            <div style={{ maxWidth: "600px", margin: "0 auto", padding: "20px" }}>
-                <h2 style={{ marginBottom: "16px" }}>Treeningud</h2>
+            <>
+                <div style={{ maxWidth: "600px", margin: "0 auto", padding: "20px" }}>
+                    <h2 style={{ marginBottom: "16px" }}>Treeningud</h2>
 
-                {parentMsg && <p style={{ color: parentMsg.startsWith("Viga") ? "red" : "green", fontWeight: "bold", marginBottom: "12px" }}>{parentMsg}</p>}
+                    {totalVisible === 0 ? (
+                        <p>Ühtegi treeningut ei leitud.</p>
+                    ) : (
+                        <>
+                            {(activeSessions.length + todaySessions.length + upcomingSessions.length + pastSessions.length) > 0 && (
+                                <h3 style={{ marginTop: 0, marginBottom: "16px" }}>Minu treeningud</h3>
+                            )}
+                            <SessionGroup
+                                title="Aktiivne"
+                                sessions={activeSessions}
+                                defaultOpen={true}
+                                renderItem={s => (
+                                    <SessionCardPlayer
+                                        key={s.instId}
+                                        instId={s.instId}
+                                        inst={s.inst}
+                                        def={s.def}
+                                        attendance={attendance}
+                                        rosters={rosters}
+                                        sessionMessages={sessionMessages}
+                                        playerId={myPlayerId}
+                                        nowMs={nowMs}
+                                        onPreStatus={handlePlayerPreStatus}
+                                        feedbackData={feedbackData}
+                                        feedbackLocal={feedbackLocal}
+                                        feedbackSaved={feedbackSaved}
+                                        feedbackEditing={feedbackEditing}
+                                        onFeedbackLocalChange={handleFeedbackLocalChange}
+                                        onFeedbackSave={handlePlayerFeedbackSave}
+                                        onFeedbackEdit={handleFeedbackEdit}
+                                        isExtraSession={false}
+                                    />
+                                )}
+                            />
+                            <SessionGroup
+                                title="Täna"
+                                sessions={todaySessions}
+                                defaultOpen={true}
+                                renderItem={s => (
+                                    <SessionCardPlayer
+                                        key={s.instId}
+                                        instId={s.instId} inst={s.inst} def={s.def}
+                                        attendance={attendance} rosters={rosters}
+                                        sessionMessages={sessionMessages}
+                                        playerId={myPlayerId}
+                                        nowMs={nowMs} onPreStatus={handlePlayerPreStatus}
+                                        feedbackData={feedbackData}
+                                        feedbackLocal={feedbackLocal}
+                                        feedbackSaved={feedbackSaved}
+                                        feedbackEditing={feedbackEditing}
+                                        onFeedbackLocalChange={handleFeedbackLocalChange}
+                                        onFeedbackSave={handlePlayerFeedbackSave}
+                                        onFeedbackEdit={handleFeedbackEdit}
+                                        isExtraSession={false}
+                                    />
+                                )}
+                            />
+                            <SessionGroup
+                                title="Tulevased"
+                                sessions={upcomingSessions}
+                                defaultOpen={true}
+                                renderItem={s => (
+                                    <SessionCardPlayer
+                                        key={s.instId}
+                                        instId={s.instId} inst={s.inst} def={s.def}
+                                        attendance={attendance} rosters={rosters}
+                                        sessionMessages={sessionMessages}
+                                        playerId={myPlayerId}
+                                        nowMs={nowMs} onPreStatus={handlePlayerPreStatus}
+                                        feedbackData={feedbackData}
+                                        feedbackLocal={feedbackLocal}
+                                        feedbackSaved={feedbackSaved}
+                                        feedbackEditing={feedbackEditing}
+                                        onFeedbackLocalChange={handleFeedbackLocalChange}
+                                        onFeedbackSave={handlePlayerFeedbackSave}
+                                        onFeedbackEdit={handleFeedbackEdit}
+                                        isExtraSession={false}
+                                    />
+                                )}
+                            />
+                            <SessionGroup
+                                title="Möödunud"
+                                sessions={pastSessions}
+                                defaultOpen={false}
+                                renderItem={s => (
+                                    <SessionCardPlayer
+                                        key={s.instId}
+                                        instId={s.instId} inst={s.inst} def={s.def}
+                                        attendance={attendance} rosters={rosters}
+                                        sessionMessages={sessionMessages}
+                                        playerId={myPlayerId}
+                                        nowMs={nowMs} onPreStatus={handlePlayerPreStatus}
+                                        feedbackData={feedbackData}
+                                        feedbackLocal={feedbackLocal}
+                                        feedbackSaved={feedbackSaved}
+                                        feedbackEditing={feedbackEditing}
+                                        onFeedbackLocalChange={handleFeedbackLocalChange}
+                                        onFeedbackSave={handlePlayerFeedbackSave}
+                                        onFeedbackEdit={handleFeedbackEdit}
+                                        isExtraSession={false}
+                                    />
+                                )}
+                            />
+                            <SessionGroup
+                                title="Lisatreeningud"
+                                sessions={extraSessions}
+                                defaultOpen={true}
+                                renderItem={s => (
+                                    <SessionCardPlayer
+                                        key={s.instId}
+                                        instId={s.instId} inst={s.inst} def={s.def}
+                                        attendance={attendance} rosters={rosters}
+                                        sessionMessages={sessionMessages}
+                                        playerId={myPlayerId}
+                                        nowMs={nowMs} onPreStatus={handlePlayerPreStatus}
+                                        feedbackData={feedbackData}
+                                        feedbackLocal={feedbackLocal}
+                                        feedbackSaved={feedbackSaved}
+                                        feedbackEditing={feedbackEditing}
+                                        onFeedbackLocalChange={handleFeedbackLocalChange}
+                                        onFeedbackSave={handlePlayerFeedbackSave}
+                                        onFeedbackEdit={handleFeedbackEdit}
+                                        isExtraSession={true}
+                                        myExtraRequest={extraRequests[s.instId]?.[myPlayerId] || null}
+                                        onRequestExtra={() => navigate(`/sessions/${s.instId}`)}
+                                        onCancelExtraRequest={() => handleCancelExtraRequest(s.instId, myPlayerId)}
+                                    />
+                                )}
+                            />
+                        </>
+                    )}
+                </div>
 
-                {totalVisible === 0 ? (
-                    <p>Ühtegi treeningut ei leitud.</p>
-                ) : (
-                    <>
-                        {(activeSessions.length + todaySessions.length + upcomingSessions.length + pastSessions.length) > 0 && (
-                            <h3 style={{ marginTop: 0, marginBottom: "16px" }}>Minu treeningud</h3>
-                        )}
-                        <SessionGroup
-                            title="Aktiivne"
-                            sessions={activeSessions}
-                            defaultOpen={true}
-                            renderItem={s => (
-                                <SessionCardPlayer
-                                    key={s.instId}
-                                    instId={s.instId}
-                                    inst={s.inst}
-                                    def={s.def}
-                                    attendance={attendance}
-                                    rosters={rosters}
-                                    sessionMessages={sessionMessages}
-                                    playerId={myPlayerId}
-                                    nowMs={nowMs}
-                                    onPreStatus={handlePlayerPreStatus}
-                                    feedbackData={feedbackData}
-                                    feedbackLocal={feedbackLocal}
-                                    feedbackSaved={feedbackSaved}
-                                    feedbackEditing={feedbackEditing}
-                                    onFeedbackLocalChange={handleFeedbackLocalChange}
-                                    onFeedbackSave={handlePlayerFeedbackSave}
-                                    onFeedbackEdit={handleFeedbackEdit}
-                                    isExtraSession={false}
-                                />
-                            )}
-                        />
-                        <SessionGroup
-                            title="Täna"
-                            sessions={todaySessions}
-                            defaultOpen={true}
-                            renderItem={s => (
-                                <SessionCardPlayer
-                                    key={s.instId}
-                                    instId={s.instId} inst={s.inst} def={s.def}
-                                    attendance={attendance} rosters={rosters}
-                                    sessionMessages={sessionMessages}
-                                    playerId={myPlayerId}
-                                    nowMs={nowMs} onPreStatus={handlePlayerPreStatus}
-                                    feedbackData={feedbackData}
-                                    feedbackLocal={feedbackLocal}
-                                    feedbackSaved={feedbackSaved}
-                                    feedbackEditing={feedbackEditing}
-                                    onFeedbackLocalChange={handleFeedbackLocalChange}
-                                    onFeedbackSave={handlePlayerFeedbackSave}
-                                    onFeedbackEdit={handleFeedbackEdit}
-                                    isExtraSession={false}
-                                />
-                            )}
-                        />
-                        <SessionGroup
-                            title="Tulevased"
-                            sessions={upcomingSessions}
-                            defaultOpen={true}
-                            renderItem={s => (
-                                <SessionCardPlayer
-                                    key={s.instId}
-                                    instId={s.instId} inst={s.inst} def={s.def}
-                                    attendance={attendance} rosters={rosters}
-                                    sessionMessages={sessionMessages}
-                                    playerId={myPlayerId}
-                                    nowMs={nowMs} onPreStatus={handlePlayerPreStatus}
-                                    feedbackData={feedbackData}
-                                    feedbackLocal={feedbackLocal}
-                                    feedbackSaved={feedbackSaved}
-                                    feedbackEditing={feedbackEditing}
-                                    onFeedbackLocalChange={handleFeedbackLocalChange}
-                                    onFeedbackSave={handlePlayerFeedbackSave}
-                                    onFeedbackEdit={handleFeedbackEdit}
-                                    isExtraSession={false}
-                                />
-                            )}
-                        />
-                        <SessionGroup
-                            title="Möödunud"
-                            sessions={pastSessions}
-                            defaultOpen={false}
-                            renderItem={s => (
-                                <SessionCardPlayer
-                                    key={s.instId}
-                                    instId={s.instId} inst={s.inst} def={s.def}
-                                    attendance={attendance} rosters={rosters}
-                                    sessionMessages={sessionMessages}
-                                    playerId={myPlayerId}
-                                    nowMs={nowMs} onPreStatus={handlePlayerPreStatus}
-                                    feedbackData={feedbackData}
-                                    feedbackLocal={feedbackLocal}
-                                    feedbackSaved={feedbackSaved}
-                                    feedbackEditing={feedbackEditing}
-                                    onFeedbackLocalChange={handleFeedbackLocalChange}
-                                    onFeedbackSave={handlePlayerFeedbackSave}
-                                    onFeedbackEdit={handleFeedbackEdit}
-                                    isExtraSession={false}
-                                />
-                            )}
-                        />
-                        <SessionGroup
-                            title="Lisatreeningud"
-                            sessions={extraSessions}
-                            defaultOpen={true}
-                            renderItem={s => (
-                                <SessionCardPlayer
-                                    key={s.instId}
-                                    instId={s.instId} inst={s.inst} def={s.def}
-                                    attendance={attendance} rosters={rosters}
-                                    sessionMessages={sessionMessages}
-                                    playerId={myPlayerId}
-                                    nowMs={nowMs} onPreStatus={handlePlayerPreStatus}
-                                    feedbackData={feedbackData}
-                                    feedbackLocal={feedbackLocal}
-                                    feedbackSaved={feedbackSaved}
-                                    feedbackEditing={feedbackEditing}
-                                    onFeedbackLocalChange={handleFeedbackLocalChange}
-                                    onFeedbackSave={handlePlayerFeedbackSave}
-                                    onFeedbackEdit={handleFeedbackEdit}
-                                    isExtraSession={true}
-                                    myExtraRequest={extraRequests[s.instId]?.[myPlayerId] || null}
-                                    onRequestExtra={() => navigate(`/sessions/${s.instId}`)}
-                                    onCancelExtraRequest={() => handleCancelExtraRequest(s.instId, myPlayerId)}
-                                />
-                            )}
-                        />
-                    </>
+                {parentMsg && (
+                    <div
+                        onClick={() => setParentMsg(null)}
+                        style={{
+                            position: "fixed",
+                            bottom: "max(24px, env(safe-area-inset-bottom))",
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            background:
+                                parentMsg.type === "error" ? "#dc2626" :
+                                    parentMsg.type === "warning" ? "#d97706" :
+                                        "#16a34a",
+                            color: "white",
+                            padding: "10px 20px",
+                            borderRadius: "8px",
+                            fontWeight: "bold",
+                            fontSize: "14px",
+                            zIndex: 9999,
+                            maxWidth: "320px",
+                            textAlign: "center",
+                            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                            cursor: "pointer"
+                        }}
+                    >
+                        {parentMsg.text}
+                    </div>
                 )}
-            </div>
+            </>
         )
     }
 
@@ -1368,48 +1416,76 @@ export default function SessionListPage() {
         const totalVisible = activeSessions.length + todaySessions.length + upcomingSessions.length + pastSessions.length
 
         return (
-            <div style={{ maxWidth: "600px", margin: "0 auto", padding: "20px" }}>
-                <h2 style={{ marginBottom: "16px" }}>Treeningud</h2>
+            <>
+                <div style={{ maxWidth: "600px", margin: "0 auto", padding: "20px" }}>
+                    <h2 style={{ marginBottom: "16px" }}>Treeningud</h2>
 
-                {/* Child filter */}
-                {childOptions.length > 1 && (
-                    <div style={{ display: "flex", gap: "8px", marginBottom: "20px", flexWrap: "wrap" }}>
-                        <button onClick={() => setSelectedChild("all")}
-                            style={{
-                                padding: "6px 14px", borderRadius: "20px", border: "1px solid #ccc", cursor: "pointer",
-                                background: selectedChild === "all" ? "#3b82f6" : "white",
-                                color: selectedChild === "all" ? "white" : "#333",
-                                fontWeight: selectedChild === "all" ? "bold" : "normal"
-                            }}>
-                            Kõik lapsed
-                        </button>
-                        {childOptions.map(c => (
-                            <button key={c.id} onClick={() => setSelectedChild(c.id)}
+                    {/* Child filter */}
+                    {childOptions.length > 1 && (
+                        <div style={{ display: "flex", gap: "8px", marginBottom: "20px", flexWrap: "wrap" }}>
+                            <button onClick={() => setSelectedChild("all")}
                                 style={{
                                     padding: "6px 14px", borderRadius: "20px", border: "1px solid #ccc", cursor: "pointer",
-                                    background: selectedChild === c.id ? "#3b82f6" : "white",
-                                    color: selectedChild === c.id ? "white" : "#333",
-                                    fontWeight: selectedChild === c.id ? "bold" : "normal"
+                                    background: selectedChild === "all" ? "#3b82f6" : "white",
+                                    color: selectedChild === "all" ? "white" : "#333",
+                                    fontWeight: selectedChild === "all" ? "bold" : "normal"
                                 }}>
-                                {c.name}
+                                Kõik lapsed
                             </button>
-                        ))}
+                            {childOptions.map(c => (
+                                <button key={c.id} onClick={() => setSelectedChild(c.id)}
+                                    style={{
+                                        padding: "6px 14px", borderRadius: "20px", border: "1px solid #ccc", cursor: "pointer",
+                                        background: selectedChild === c.id ? "#3b82f6" : "white",
+                                        color: selectedChild === c.id ? "white" : "#333",
+                                        fontWeight: selectedChild === c.id ? "bold" : "normal"
+                                    }}>
+                                    {c.name}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {totalVisible === 0 ? (
+                        <p>Ühtegi treeningut ei leitud.</p>
+                    ) : (
+                        <>
+                            <SessionGroup title="Aktiivne" sessions={activeSessions} defaultOpen={true} />
+                            <SessionGroup title="Täna" sessions={todaySessions} defaultOpen={true} />
+                            <SessionGroup title="Tulevased" sessions={upcomingSessions} defaultOpen={true} />
+                            <SessionGroup title="Möödunud" sessions={pastSessions} defaultOpen={false} />
+                        </>
+                    )}
+                </div>
+
+                {parentMsg && (
+                    <div
+                        onClick={() => setParentMsg(null)}
+                        style={{
+                            position: "fixed",
+                            bottom: "max(24px, env(safe-area-inset-bottom))",
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            background:
+                                parentMsg.type === "error" ? "#dc2626" :
+                                    parentMsg.type === "warning" ? "#d97706" :
+                                        "#16a34a",
+                            color: "white",
+                            padding: "10px 20px",
+                            borderRadius: "8px",
+                            fontWeight: "bold",
+                            fontSize: "14px",
+                            zIndex: 9999,
+                            maxWidth: "320px",
+                            textAlign: "center",
+                            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                            cursor: "pointer"
+                        }}
+                    >
+                        {parentMsg.text}
                     </div>
                 )}
-
-                {parentMsg && <p style={{ color: parentMsg.startsWith("Viga") ? "red" : "green", fontWeight: "bold", marginBottom: "12px" }}>{parentMsg}</p>}
-
-                {totalVisible === 0 ? (
-                    <p>Ühtegi treeningut ei leitud.</p>
-                ) : (
-                    <>
-                        <SessionGroup title="Aktiivne" sessions={activeSessions} defaultOpen={true} />
-                        <SessionGroup title="Täna" sessions={todaySessions} defaultOpen={true} />
-                        <SessionGroup title="Tulevased" sessions={upcomingSessions} defaultOpen={true} />
-                        <SessionGroup title="Möödunud" sessions={pastSessions} defaultOpen={false} />
-                    </>
-                )}
-            </div>
+            </>
         )
     }
 
