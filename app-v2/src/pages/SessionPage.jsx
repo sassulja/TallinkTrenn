@@ -141,6 +141,7 @@ export default function SessionPage() {
     const [allPlayers, setAllPlayers] = useState({})
     const [walkInPlayerId, setWalkInPlayerId] = useState("")
     const [rosterAddPlayerId, setRosterAddPlayerId] = useState("")
+    const [playerSearch, setPlayerSearch] = useState("")
     const [msg, setMsg] = useState("")
     const [error, setError] = useState(null)
     const [showExtraReqs, setShowExtraReqs] = useState(false)
@@ -435,28 +436,30 @@ export default function SessionPage() {
     }
 
     // ─── Roster add (Staatus) — NO attendance write ─
-    const handleRosterAdd = async () => {
-        if (!rosterAddPlayerId || !hasPermission()) return
+    const handleRosterAdd = async (playerId = null) => {
+        const selectedPlayerId = playerId || rosterAddPlayerId
+        if (!selectedPlayerId || !hasPermission()) return
         setMsg("")
         try {
             const nowIso = new Date().toISOString()
-            const extraReqSnap = await get(ref(database, `extraRequests/${instanceId}/${rosterAddPlayerId}`))
+            const extraReqSnap = await get(ref(database, `extraRequests/${instanceId}/${selectedPlayerId}`))
             const updates = {
-                [`rosters/${instanceId}/${rosterAddPlayerId}`]: { addedAt: nowIso, addedBy: currentUser.uid, source: "manual_add", walkIn: false, removedByCoach: false }
+                [`rosters/${instanceId}/${selectedPlayerId}`]: { addedAt: nowIso, addedBy: currentUser.uid, source: "manual_add", walkIn: false, removedByCoach: false }
             }
             if (extraReqSnap.exists()) {
-                updates[`extraRequests/${instanceId}/${rosterAddPlayerId}/status`] = "approved"
+                updates[`extraRequests/${instanceId}/${selectedPlayerId}/status`] = "approved"
             }
             await update(ref(database), updates)
             setRoster(prev => ({
                 ...prev,
-                [rosterAddPlayerId]: { addedAt: nowIso, addedBy: currentUser.uid, source: "manual_add", walkIn: false, removedByCoach: false }
+                [selectedPlayerId]: { addedAt: nowIso, addedBy: currentUser.uid, source: "manual_add", walkIn: false, removedByCoach: false }
             }))
             if (extraReqSnap.exists()) {
-                setExtraRequests(prev => ({ ...prev, [rosterAddPlayerId]: { ...(prev[rosterAddPlayerId] || {}), status: "approved" } }))
+                setExtraRequests(prev => ({ ...prev, [selectedPlayerId]: { ...(prev[selectedPlayerId] || {}), status: "approved" } }))
             }
             setMsg("Mängija lisatud nimekirja.")
             setRosterAddPlayerId("")
+            setPlayerSearch("")
         } catch (err) { console.error("Roster add failed", err); setMsg(`Error: ${err.message}`) }
     }
 
@@ -832,6 +835,21 @@ export default function SessionPage() {
     const availableForWalkIn = Object.entries(allPlayers).filter(([pId, p]) => p.active && !roster[pId])
         .sort((a, b) => compareRosterNames(`${a[1].firstName} ${a[1].lastName}`, a[0], `${b[1].firstName} ${b[1].lastName}`, b[0]))
     const availableForRosterAdd = availableForWalkIn // same list
+    const currentRoster = roster || {}
+    const availablePlayers = Object.entries(allPlayers || {})
+        .filter(([pid, p]) => {
+            if (!p) return false
+            if (currentRoster[pid] && currentRoster[pid].removedByCoach !== true) return false
+            if (!playerSearch.trim()) return false
+            const fullName = `${p.firstName || ""} ${p.lastName || ""}`.toLowerCase()
+            return fullName.includes(playerSearch.toLowerCase())
+        })
+        .sort(([, a], [, b]) => {
+            const nameA = `${a.firstName || ""} ${a.lastName || ""}`.trim()
+            const nameB = `${b.firstName || ""} ${b.lastName || ""}`.trim()
+            return nameA.localeCompare(nameB)
+        })
+        .slice(0, 8)
 
     const pendingReqs = Object.entries(extraRequests).filter(([, r]) => r.status === "pending")
     const resolvedReqs = Object.entries(extraRequests).filter(([, r]) => r.status !== "pending")
@@ -864,21 +882,20 @@ export default function SessionPage() {
 
             {/* Session Header */}
             <div style={{ marginBottom: "16px" }}>
-                <h2 style={{ marginBottom: "8px" }}>{formatEstonianDate(inst.date)}</h2>
-                <div style={{ fontSize: "18px", fontWeight: "bold" }}>{timeDisplay}</div>
+                <div style={{ fontSize: "18px", fontWeight: "bold", marginBottom: "var(--spacing-xs)" }}>
+                    {formatEstonianDate(inst.date)} · {timeDisplay}
+                </div>
                 {isCancelled && (
                     <div style={{ display: "inline-block", marginTop: "8px", padding: "4px 8px", borderRadius: "999px", background: "#fee2e2", color: "#b91c1c", fontSize: "12px", fontWeight: "bold" }}>
                         Tühistatud
                     </div>
                 )}
-                <div style={{ textTransform: "capitalize", color: "var(--color-text-secondary)", marginTop: "8px" }}>{sport}</div>
-                <div style={{ fontSize: "12px", color: "var(--color-text-muted)", marginTop: "8px" }}>{instanceId}</div>
+                <div style={{ textTransform: "capitalize", color: "var(--color-text-secondary)", marginTop: "var(--spacing-xs)" }}>{sport}</div>
                 <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap", marginTop: "12px" }}>
                     {!isEditingSessionTime ? (
-                        <button onClick={() => setIsEditingSessionTime(true)}
-                            style={{ padding: "8px 12px", background: "#f3f4f6", color: "#111827", border: "1px solid #d1d5db", borderRadius: "6px", cursor: "pointer" }}>
+                        <SecondaryButton onClick={() => setIsEditingSessionTime(true)}>
                             Muuda aega
-                        </button>
+                        </SecondaryButton>
                     ) : (
                         <>
                             <input
@@ -893,20 +910,17 @@ export default function SessionPage() {
                                 onChange={e => setEditEndTime(e.target.value)}
                                 style={{ padding: "8px", borderRadius: "6px", border: "1px solid #ccc" }}
                             />
-                            <button onClick={handleSaveSessionTime} disabled={!editStartTime || !editEndTime || isSavingSession}
-                                style={{ padding: "8px 12px", background: !editStartTime || !editEndTime || isSavingSession ? "#ccc" : "#3b82f6", color: "white", border: "none", borderRadius: "6px", cursor: !editStartTime || !editEndTime || isSavingSession ? "not-allowed" : "pointer" }}>
+                            <PrimaryButton onClick={handleSaveSessionTime} disabled={!editStartTime || !editEndTime || isSavingSession}>
                                 Salvesta
-                            </button>
-                            <button onClick={() => { setIsEditingSessionTime(false); setEditStartTime(inst.startTime || ""); setEditEndTime(inst.endTime || "") }}
-                                style={{ padding: "8px 12px", background: "white", color: "#111827", border: "1px solid #d1d5db", borderRadius: "6px", cursor: "pointer" }}>
+                            </PrimaryButton>
+                            <SecondaryButton onClick={() => { setIsEditingSessionTime(false); setEditStartTime(inst.startTime || ""); setEditEndTime(inst.endTime || "") }}>
                                 Loobu
-                            </button>
+                            </SecondaryButton>
                         </>
                     )}
-                    <button onClick={handleCancelSession} disabled={isCancelled || isSavingSession}
-                        style={{ padding: "8px 12px", background: isCancelled ? "#e5e7eb" : "#dc2626", color: "white", border: "none", borderRadius: "6px", cursor: isCancelled || isSavingSession ? "not-allowed" : "pointer" }}>
+                    <SecondaryButton onClick={handleCancelSession} disabled={isCancelled || isSavingSession}>
                         Tühista treening
-                    </button>
+                    </SecondaryButton>
                 </div>
             </div>
 
@@ -1021,15 +1035,66 @@ export default function SessionPage() {
                 {/* Roster Tools — add player to roster (no attendance write) */}
                 <div style={{ border: "1px solid #ddd", borderRadius: "8px", padding: "16px", marginBottom: "20px" }}>
                     <h3 style={{ marginTop: 0, marginBottom: "12px" }}>Lisa nimekirja</h3>
-                    <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
-                        <select value={rosterAddPlayerId} onChange={e => setRosterAddPlayerId(e.target.value)} style={{ flex: 1, minWidth: "150px", padding: "8px" }}>
-                            <option value="">-- Vali mängija --</option>
-                            {availableForRosterAdd.map(([pId, p]) => (<option key={pId} value={pId}>{p.firstName} {p.lastName}</option>))}
-                        </select>
-                        <button onClick={handleRosterAdd} disabled={!rosterAddPlayerId}
-                            style={{ padding: "8px 16px", background: rosterAddPlayerId ? "#3b82f6" : "#ccc", color: "white", border: "none", borderRadius: "6px", cursor: rosterAddPlayerId ? "pointer" : "not-allowed" }}>
-                            Lisa nimekirja
-                        </button>
+                    <div style={{ marginTop: "8px" }}>
+                        <input
+                            type="text"
+                            placeholder="Otsi mängijat..."
+                            value={playerSearch}
+                            onChange={e => setPlayerSearch(e.target.value)}
+                            style={{
+                                width: "100%",
+                                padding: "8px",
+                                borderRadius: "6px",
+                                border: "1px solid #ccc",
+                                marginBottom: "6px"
+                            }}
+                        />
+
+                        {playerSearch && (
+                            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                                {availablePlayers.length === 0 ? (
+                                    <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>
+                                        Mängijat ei leitud
+                                    </div>
+                                ) : (
+                                    availablePlayers.map(([pid, p]) => {
+                                        const name = `${p.firstName || ""} ${p.lastName || ""}`.trim()
+                                        return (
+                                            <div
+                                                key={pid}
+                                                style={{
+                                                    display: "flex",
+                                                    justifyContent: "space-between",
+                                                    alignItems: "center",
+                                                    padding: "6px 8px",
+                                                    borderRadius: "6px",
+                                                    background: "#f9fafb",
+                                                    border: "1px solid #eee"
+                                                }}
+                                            >
+                                                <span>{name}</span>
+                                                <button
+                                                    onClick={() => {
+                                                        handleRosterAdd(pid)
+                                                        setPlayerSearch("")
+                                                    }}
+                                                    style={{
+                                                        padding: "4px 8px",
+                                                        fontSize: "12px",
+                                                        borderRadius: "6px",
+                                                        border: "1px solid #ccc",
+                                                        background: "white",
+                                                        cursor: "pointer"
+                                                    }}
+                                                >
+                                                    Lisa
+                                                </button>
+                                            </div>
+                                        )
+                                    })
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 

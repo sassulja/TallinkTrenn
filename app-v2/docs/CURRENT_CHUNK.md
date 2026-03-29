@@ -1,165 +1,157 @@
 # Current Task Directives
 
 **Target Phase:** Phase 11 — UI / UX Polish  
-**Active Chunk:** 11.8 — Parent View Parity (Lisatreeningud + Fixes)
+**Active Chunk:** 11.9b — Add Player Search (Coach UX)
 
 ---
 
 ## 1. Objective
 
-Fix parent session view to match player view:
-- Fix def guard to allow one-off sessions
-- Remove broken inst.isExtraSession logic
-- Switch all parent SessionGroup calls to renderItem pattern
-- Add proper Lisatreeningud second loop (roster-based, per child, deduplicated)
-- Wire myExtraRequest, onCancelExtraRequest, onRequestExtra to SessionCardParent
+Replace the "Lisa nimekirja" dropdown with a fast inline search + add flow:
+
+- Type to filter players
+- Show limited results (max 8)
+- Exclude already rostered players
+- One-tap add
+- Clear input after add
+
+No backend or data changes.
 
 ---
 
 ## 2. Scope
 
-- src/pages/SessionListPage.jsx ONLY
-- SessionCardParent signature (add missing props)
-- Parent view section (loops + rendering)
+- src/pages/SessionPage.jsx ONLY
+- Only the "Lisa nimekirja" block in coach view
 
 ---
 
 ## 3. Changes
 
-### 3.1 SessionCardParent — add missing props to signature
+### 3.1 Add local state
 
-Current:
-  function SessionCardParent({ ..., isExtraSession = false })
+Add near other state hooks:
 
-Replace with:
-  function SessionCardParent({ ..., isExtraSession = false, myExtraRequest = null, onCancelExtraRequest, onRequestExtra })
+const [playerSearch, setPlayerSearch] = useState("")
 
-### 3.2 Fix def guard in parent main loop
+---
 
-Find in parent main loop:
-  if (!def) return
+### 3.2 Build filtered player list
 
-Replace with:
-  if (!def && inst.definitionId) return
+Before render (near existing derived data), add:
 
-### 3.3 Remove broken isExtraSession logic
+const currentRoster = rosters[instanceId] || {}
 
-Remove these lines from parent main loop entirely:
-  if (inst.isExtraSession) {
-      extraSessions.push(sessionObj)
-      return
-  }
+const availablePlayers = Object.entries(players || {})
+  .filter(([pid, p]) => {
+    if (!p) return false
 
-### 3.4 Switch parent main loop to data-only sessionObj
+    // exclude already on roster
+    if (currentRoster[pid] && currentRoster[pid].removedByCoach !== true) return false
 
-Change sessionObj construction to:
-  const sessionObj = { instId, inst, def, sessionStartMs, playerId, childName }
+    // search filter
+    if (!playerSearch.trim()) return false
 
-Remove renderCard from sessionObj entirely.
-
-### 3.5 Switch all parent SessionGroup calls to renderItem
-
-For each of: activeSessions, todaySessions, upcomingSessions, pastSessions
-Replace:
-  <SessionGroup title="..." sessions={...} defaultOpen={...} />
-
-With:
-  <SessionGroup
-      title="..."
-      sessions={...}
-      defaultOpen={...}
-      renderItem={s => (
-          <SessionCardParent
-              key={`${s.instId}_${s.playerId}`}
-              instId={s.instId} inst={s.inst} def={s.def}
-              attendance={attendance} rosters={rosters} players={players}
-              sessionMessages={sessionMessages}
-              sessionFeedback={feedbackData}
-              childName={s.childName} playerId={s.playerId}
-              nowMs={nowMs} onPreStatus={handleParentPreStatus}
-              isExtraSession={false}
-          />
-      )}
-  />
-
-### 3.6 Add extra sessions second loop
-
-After the main loop, add:
-
-  const seenExtra = new Set()
-
-  Object.entries(instances).forEach(([instId, inst]) => {
-      const def = definitions[inst.definitionId] || null
-      if (!def && inst.definitionId) return
-      if (inst.status === "cancelled") return
-
-      filteredPlayerIds.forEach(playerId => {
-          const currentRoster = rosters[instId] || {}
-          const isOnRoster = currentRoster[playerId] &&
-              currentRoster[playerId].removedByCoach !== true
-          if (isOnRoster) return
-
-          try {
-              const { startMs: sessionStartMs } = getSessionBounds(inst, def)
-              if (sessionStartMs <= nowMs + 60 * 60 * 1000) return
-
-              const key = `${instId}__${playerId}`
-              if (seenExtra.has(key)) return
-              seenExtra.add(key)
-
-              const childName = childOptions.find(c => c.id === playerId)?.name || ""
-              extraSessions.push({ instId, inst, def, sessionStartMs, playerId, childName })
-          } catch (e) { return }
-      })
+    const fullName = `${p.firstName || ""} ${p.lastName || ""}`.toLowerCase()
+    return fullName.includes(playerSearch.toLowerCase())
   })
+  .slice(0, 8)
 
-  extraSessions.sort(compareSessionItems)
+---
 
-### 3.7 Render Lisatreeningud section
+### 3.3 Replace dropdown UI
 
-Add after Möödunud SessionGroup in parent render:
+Find the current block:
 
-  <SessionGroup
-      title="Lisatreeningud"
-      sessions={extraSessions}
-      defaultOpen={true}
-      renderItem={s => (
-          <SessionCardParent
-              key={`${s.instId}_${s.playerId}`}
-              instId={s.instId} inst={s.inst} def={s.def}
-              attendance={attendance} rosters={rosters} players={players}
-              sessionMessages={sessionMessages}
-              sessionFeedback={feedbackData}
-              childName={s.childName} playerId={s.playerId}
-              nowMs={nowMs} onPreStatus={handleParentPreStatus}
-              isExtraSession={true}
-              myExtraRequest={extraRequests[s.instId]?.[s.playerId] || null}
-              onCancelExtraRequest={() => handleCancelExtraRequest(s.instId, s.playerId)}
-              onRequestExtra={() => navigate(`/sessions/${s.instId}`)}
-          />
-      )}
+<select>...</select>
+<button>Lisa nimekirja</button>
+
+Remove it completely.
+
+Replace with:
+
+<div style={{ marginTop: "8px" }}>
+  <input
+    type="text"
+    placeholder="Otsi mängijat..."
+    value={playerSearch}
+    onChange={e => setPlayerSearch(e.target.value)}
+    style={{
+      width: "100%",
+      padding: "8px",
+      borderRadius: "6px",
+      border: "1px solid #ccc",
+      marginBottom: "6px"
+    }}
   />
+
+  {playerSearch && (
+    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+      {availablePlayers.length === 0 ? (
+        <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>
+          Mängijat ei leitud
+        </div>
+      ) : (
+        availablePlayers.map(([pid, p]) => {
+          const name = `${p.firstName || ""} ${p.lastName || ""}`.trim()
+          return (
+            <div
+              key={pid}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "6px 8px",
+                borderRadius: "6px",
+                background: "#f9fafb",
+                border: "1px solid #eee"
+              }}
+            >
+              <span>{name}</span>
+              <button
+                onClick={() => {
+                  handleAddPlayer(pid)
+                  setPlayerSearch("")
+                }}
+                style={{
+                  padding: "4px 8px",
+                  fontSize: "12px",
+                  borderRadius: "6px",
+                  border: "1px solid #ccc",
+                  background: "white",
+                  cursor: "pointer"
+                }}
+              >
+                Lisa
+              </button>
+            </div>
+          )
+        })
+      )}
+    </div>
+  )}
+</div>
 
 ---
 
 ## 4. Guardrails
 
-- Do NOT touch player view
-- Do NOT touch coach/admin view
-- Do NOT touch handleCancelExtraRequest
-- Do NOT touch any other file
-- Extra sessions must NOT appear in normal session groups
-- Deduplication key = instId__playerId
+- Do NOT modify handleAddPlayer logic
+- Do NOT change data fetching
+- Do NOT introduce new components
+- Do NOT affect other tabs (Kohalolek / Tagasiside)
+- Must work with existing players structure
+- Keep styling simple
 
 ---
 
 ## 5. Definition of Done
 
-- Parent sees rostered sessions in normal groups (Aktiivne/Täna/Tulevased/Möödunud)
-- Parent sees non-rostered available sessions in Lisatreeningud only
-- No one-off sessions skipped due to missing def
-- No renderCard used in parent view
-- No duplicate cards for multi-child families
+- Typing filters players instantly
+- Already rostered players never appear
+- Max 8 results shown
+- Tap "Lisa" adds player correctly
+- Input clears after add
 - No console errors
 
 ---
