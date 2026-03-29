@@ -317,30 +317,104 @@ All session-related functionality:
 - [x] ✅ **11.2 — SessionListPage Interaction Fix:**
   - Remove expand arrow button from session cards
   - Remove expand/collapse logic
-  - Make card header (top section only) clickable → navigate to SessionPage
-  - Keep action buttons (Kinnitan / Ei osale) outside clickable area
-  - Show action buttons directly in card when preStatus === "Vastamata"
-  - Do NOT change existing logic for button actions
-  - Do NOT introduce new components
+  - Make card header clickable → navigate to SessionPage
+  - Keep action buttons outside clickable area
+  - Show action buttons directly when relevant
 
-- [ ] ⬜ **11.3 — Layout & Visual Consistency:** 
+- [x] ✅ **11.3 — Layout & Visual Consistency:** 
   Standardize spacing, typography, container 
   widths. Align headers, sections, cards.
 
 - [ ] ⬜ **11.4 — Visual Hierarchy & Clarity:** 
   Improve primary vs secondary actions, status 
-  visibility. Feedback easier to scan, statuses 
-  instantly understandable.
+  visibility. Feedback easier to scan.
 
 - [ ] ⬜ **11.5 — Component Standardization:** 
-  Replace repeated UI with reusable components. 
-  Buttons, status badges, lists/rows. Reduce 
-  inline styles.
+  Replace repeated UI with reusable components 
+  (StatusText, SectionBlock, MessageItem started).
 
-- [ ] ⬜ **11.6 — UX Improvements:** Loading states, 
-  empty states, error feedback. Remove confusing 
-  or redundant elements.
+- [ ] ⬜ **11.6 — UX Improvements:** 
+  Remove redundant elements, improve clarity, 
+  simplify flows.
 
-- [ ] ⬜ **11.7 — Final UI Cleanup:** Remove leftover 
-  debug/UI inconsistencies. Consistent look across 
-  all pages.
+- [ ] ⬜ **11.7 — Final UI Cleanup:** 
+  Remove leftover inconsistencies and debug UI.
+
+---
+
+### Phase 11 — Coach UX Improvements (NEW)
+
+- [x] ✅ **11.9a — Session Header Compression (Coach):**
+  - Combined date + time into one line
+  - Removed instanceId from UI
+  - Standardized buttons (Primary/Secondary)
+  - Reduced vertical space
+
+- [x] ✅ **11.9b — Add Player Search (Coach):**
+  - Replace dropdown with inline search input
+  - Instant filtering (name-based)
+  - Exclude already rostered players
+  - Limit results (max 8)
+  - One-tap add + clear input
+
+- [ ] ⬜ **11.9c — Status Tab Compression:**
+  - Convert player rows to single-line layout
+  - Inline status + actions (name + status + remove)
+  - Reduce vertical spacing by ~40%
+
+- [ ] ⬜ **11.9d — Status Summary Improvement:**
+  - Replace text counters with compact badges
+  - Improve scanability (Kinnitatud / Vastamata / Ei osale)
+
+- [ ] ⬜ **11.9e — Inline Add Player UI Simplification:**
+  - Remove heavy "Lisa nimekirja" block
+  - Integrate search as primary interaction (depends on 11.9b)
+
+- [ ] ⬜ **11.9f — Sticky Tab Bar (Mobile):**
+  - Make SessionPage tabs sticky under header
+  - Improve navigation during scroll
+
+- [ ] ⬜ **11.9g — Remove Top Navigation Noise:**
+  - Remove redundant "Tallink Trenn" / breadcrumb
+  - Optimize vertical space for mobile
+
+- [ ] ⬜ **11.9h — Action Hierarchy Fix:**
+  - Emphasize destructive actions (Tühista treening)
+  - Ensure correct visual priority (Primary vs Secondary vs Danger)
+
+- [ ] ⬜ **11.9i — Messages Section Compression:**
+  - Show only latest 1–2 messages
+  - Add "Vaata kõiki" expansion
+
+- [ ] ⬜ **11.9j — SessionPage Structure Optimization:**
+  - Ensure each tab has clear purpose
+  - Reduce scroll depth
+  - Keep coach actions within first viewport
+
+---
+
+### Phase 11 — Navigation Refactor (NEW)
+
+- [ ] ⬜ **11.10 — Remove Sidebar (All Roles):**
+  - Remove sidebar completely
+  - Replace with top navigation (tabs or segmented control)
+  - Optimize for mobile-first usage
+
+- [ ] ⬜ **11.11 — Unified Navigation Model:**
+  - Standardize navigation across roles (coach/player/parent/admin)
+  - Ensure consistent entry points (Treeningud, Ajalugu, etc.)
+
+---
+
+### Phase 11 — Logic Consistency Fixes (NEW)
+
+- [x] ✅ **11.12 — Shared preStatus Validation:**
+  - Extract validation into shared function
+  - Ensure identical behavior for player and parent
+  - Fix overlap inconsistency
+
+- [x] ✅ **11.13 — Parent View Parity:**
+  - Fix one-off session visibility
+  - Implement Lisatreeningud correctly
+  - Remove broken isExtraSession logic
+  - Align rendering with player view
