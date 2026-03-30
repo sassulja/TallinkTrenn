@@ -357,16 +357,16 @@ All session-related functionality:
   - Limit results (max 8)
   - One-tap add + clear input
 
-- [ ] ⬜ **11.9c — Status Tab Compression:**
+- [x] ✅ **11.9c — Status Tab Compression:**
   - Convert player rows to single-line layout
   - Inline status + actions (name + status + remove)
   - Reduce vertical spacing by ~40%
 
-- [ ] ⬜ **11.9d — Status Summary Improvement:**
+- [x] ✅ **11.9d — Status Summary Improvement:**
   - Replace text counters with compact badges
   - Improve scanability (Kinnitatud / Vastamata / Ei osale)
 
-- [ ] ⬜ **11.9e — Inline Add Player UI Simplification:**
+- [x] ✅ **11.9e — Inline Add Player UI Simplification:**
   - Remove heavy "Lisa nimekirja" block
   - Integrate search as primary interaction (depends on 11.9b)
 

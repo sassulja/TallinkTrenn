@@ -932,49 +932,48 @@ export default function SessionPage() {
             {/* ═══════════ STAATUS TAB ═══════════ */}
             {(activeTab === "staatus" || activeTab === null) && (<>
                 {/* preStatus summary */}
-                <div style={{ background: "#f8f9fa", padding: "12px 16px", borderRadius: "8px", marginBottom: "20px", fontSize: "14px", display: "flex", flexWrap: "wrap", gap: "16px" }}>
-                    <span>{PRESTATUS_LABELS.kinnitatud}: <b>{preStatusCounts.kinnitatud}</b></span>
-                    <span>{PRESTATUS_LABELS.null}: <b>{preStatusCounts.vastamata}</b></span>
-                    <span>{PRESTATUS_LABELS.eiOsale}: <b>{preStatusCounts.eiOsale}</b></span>
+                <div style={{ background: "var(--color-background-secondary)", padding: "12px", borderRadius: "8px", marginBottom: "16px", display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                    <StatusText type="muted">{PRESTATUS_LABELS.null} {preStatusCounts.vastamata}</StatusText>
+                    <StatusText type="success">{PRESTATUS_LABELS.kinnitatud} {preStatusCounts.kinnitatud}</StatusText>
+                    <StatusText type="error">{PRESTATUS_LABELS.eiOsale} {preStatusCounts.eiOsale}</StatusText>
                 </div>
 
                 {/* preStatus player list */}
                 {rosterEntries.length === 0 ? <EmptyState message="Nimekiri tühi." /> : (
-                    <div style={{ marginBottom: "20px" }}>
+                    <div style={{ marginBottom: "16px" }}>
                         {rosterEntries.filter(([, rData]) => !rData.removedByCoach).map(([pId, rData]) => {
                             const p = players[pId]
                             const pName = p ? `${p.firstName} ${p.lastName}` : "Tundmatu mängija"
                             const ps = localAtt[pId]?.preStatus || null
-                            const psLabel = PRESTATUS_LABELS[ps] || PRESTATUS_LABELS.null
-                            const psColor = PRE_STATUS_COLORS[ps] || "#999"
                             const hasAtt = localAtt[pId]?.realStatus != null
                             const canRemove = role === "admin" || !hasAtt
                             return (
-                                <div key={pId} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #eee" }}>
-                                    <span>
-                                        {pName}
-                                        {rData.walkIn && <span style={{ marginLeft: "8px", backgroundColor: "#e0f2f1", color: "#00796b", padding: "2px 6px", borderRadius: "4px", fontSize: "12px" }}>🚶</span>}
-                                    </span>
+                                <div key={pId} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", borderBottom: "1px solid var(--color-border)" }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                        <span style={{ color: psColor, fontWeight: "bold", fontSize: "13px" }}>{psLabel}</span>
-                                        <button onClick={() => handleRemovePlayer(pId)} disabled={!canRemove}
-                                            style={{ padding: "2px 8px", fontSize: "12px", background: canRemove ? "#fee2e2" : "#eee", color: canRemove ? "#dc2626" : "#999", border: "1px solid " + (canRemove ? "#fca5a5" : "#ddd"), borderRadius: "4px", cursor: canRemove ? "pointer" : "not-allowed" }}>
-                                            Eemalda
-                                        </button>
+                                        <span style={{ fontWeight: "var(--font-weight-medium)" }}>
+                                            {pName}
+                                            {rData.walkIn && <span style={{ marginLeft: "8px", backgroundColor: "#e0f2f1", color: "#00796b", padding: "2px 6px", borderRadius: "4px", fontSize: "12px" }}>🚶</span>}
+                                        </span>
+                                        <StatusText type={ps === "kinnitatud" ? "success" : ps === "eiOsale" ? "error" : "muted"}>
+                                            {PRESTATUS_LABELS[ps] || PRESTATUS_LABELS.null}
+                                        </StatusText>
                                     </div>
+                                    <SecondaryButton onClick={() => handleRemovePlayer(pId)} disabled={!canRemove}>
+                                            Eemalda
+                                    </SecondaryButton>
                                 </div>
                             )
                         })}
 
                         {/* Eemaldatud section */}
                         {rosterEntries.some(([, rData]) => rData.removedByCoach) && (
-                            <div style={{ marginTop: "16px" }}>
-                                <div style={{ fontSize: "13px", fontWeight: "bold", color: "#999", marginBottom: "8px" }}>Eemaldatud</div>
+                            <div style={{ marginTop: "12px" }}>
+                                <div style={{ fontSize: "13px", fontWeight: "bold", color: "var(--color-text-muted)", marginBottom: "8px" }}>Eemaldatud</div>
                                 {rosterEntries.filter(([, rData]) => rData.removedByCoach).map(([pId]) => {
                                     const p = players[pId]
                                     const pName = p ? `${p.firstName} ${p.lastName}` : "Tundmatu mängija"
                                     return (
-                                        <div key={pId} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid #f5f5f5", color: "#aaa" }}>
+                                        <div key={pId} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid var(--color-border)", color: "var(--color-text-muted)" }}>
                                             <span style={{ textDecoration: "line-through" }}>{pName}</span>
                                             <button onClick={() => handleRestorePlayer(pId)}
                                                 style={{ padding: "2px 8px", fontSize: "12px", background: "#f0fdf4", color: "#22c55e", border: "1px solid #86efac", borderRadius: "4px", cursor: "pointer" }}>
@@ -990,8 +989,8 @@ export default function SessionPage() {
 
                 {/* Extra Requests */}
                 {(pendingReqs.length > 0 || resolvedReqs.length > 0) && (
-                    <div style={{ borderTop: "2px solid #ddd", paddingTop: "16px", marginBottom: "20px" }}>
-                        <h3 onClick={() => setShowExtraReqs(!showExtraReqs)} style={{ cursor: "pointer", marginTop: 0 }}>
+                    <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "12px", marginBottom: "16px" }}>
+                        <h3 onClick={() => setShowExtraReqs(!showExtraReqs)} style={{ cursor: "pointer", margin: "0 0 8px" }}>
                             Lisatreeningu taotlused ({pendingReqs.length} ootel) {showExtraReqs ? "▼" : "▶"}
                         </h3>
                         {showExtraReqs && (<>
@@ -1033,74 +1032,72 @@ export default function SessionPage() {
                 )}
 
                 {/* Roster Tools — add player to roster (no attendance write) */}
-                <div style={{ border: "1px solid #ddd", borderRadius: "8px", padding: "16px", marginBottom: "20px" }}>
-                    <h3 style={{ marginTop: 0, marginBottom: "12px" }}>Lisa nimekirja</h3>
-                    <div style={{ marginTop: "8px" }}>
-                        <input
-                            type="text"
-                            placeholder="Otsi mängijat..."
-                            value={playerSearch}
-                            onChange={e => setPlayerSearch(e.target.value)}
-                            style={{
-                                width: "100%",
-                                padding: "8px",
-                                borderRadius: "6px",
-                                border: "1px solid #ccc",
-                                marginBottom: "6px"
-                            }}
-                        />
+                <div style={{ border: "1px solid var(--color-border)", borderRadius: "8px", padding: "12px", marginBottom: "16px" }}>
+                    <h3 style={{ margin: "0 0 8px" }}>Lisa nimekirja</h3>
+                    <input
+                        type="text"
+                        placeholder="Otsi mängijat..."
+                        value={playerSearch}
+                        onChange={e => setPlayerSearch(e.target.value)}
+                        style={{
+                            width: "100%",
+                            padding: "8px",
+                            borderRadius: "6px",
+                            border: "1px solid var(--color-border)",
+                            marginBottom: "6px"
+                        }}
+                    />
 
-                        {playerSearch && (
-                            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                                {availablePlayers.length === 0 ? (
-                                    <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>
-                                        Mängijat ei leitud
-                                    </div>
-                                ) : (
-                                    availablePlayers.map(([pid, p]) => {
-                                        const name = `${p.firstName || ""} ${p.lastName || ""}`.trim()
-                                        return (
-                                            <div
-                                                key={pid}
+                    {playerSearch && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                            {availablePlayers.length === 0 ? (
+                                <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>
+                                    Mängijat ei leitud
+                                </div>
+                            ) : (
+                                availablePlayers.map(([pid, p]) => {
+                                    const name = `${p.firstName || ""} ${p.lastName || ""}`.trim()
+                                    return (
+                                        <div
+                                            key={pid}
+                                            style={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "center",
+                                                padding: "6px 8px",
+                                                borderRadius: "6px",
+                                                background: "var(--color-background-secondary)",
+                                                border: "1px solid var(--color-border)"
+                                            }}
+                                        >
+                                            <span>{name}</span>
+                                            <button
+                                                onClick={() => {
+                                                    handleRosterAdd(pid)
+                                                    setPlayerSearch("")
+                                                }}
                                                 style={{
-                                                    display: "flex",
-                                                    justifyContent: "space-between",
-                                                    alignItems: "center",
-                                                    padding: "6px 8px",
+                                                    padding: "4px 8px",
+                                                    fontSize: "12px",
                                                     borderRadius: "6px",
-                                                    background: "#f9fafb",
-                                                    border: "1px solid #eee"
+                                                    border: "1px solid var(--color-border)",
+                                                    background: "white",
+                                                    cursor: "pointer"
                                                 }}
                                             >
-                                                <span>{name}</span>
-                                                <button
-                                                    onClick={() => {
-                                                        handleRosterAdd(pid)
-                                                        setPlayerSearch("")
-                                                    }}
-                                                    style={{
-                                                        padding: "4px 8px",
-                                                        fontSize: "12px",
-                                                        borderRadius: "6px",
-                                                        border: "1px solid #ccc",
-                                                        background: "white",
-                                                        cursor: "pointer"
-                                                    }}
-                                                >
-                                                    Lisa
-                                                </button>
-                                            </div>
-                                        )
-                                    })
-                                )}
-                            </div>
-                        )}
-                    </div>
+                                                Lisa
+                                            </button>
+                                        </div>
+                                    )
+                                })
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Session Messages */}
-                <div style={{ border: "1px solid #ddd", borderRadius: "8px", padding: "16px" }}>
-                    <h3 style={{ marginTop: 0, marginBottom: "12px" }}>Sõnumid</h3>
+                <div style={{ border: "1px solid var(--color-border)", borderRadius: "8px", padding: "12px" }}>
+                    <h3 style={{ margin: "0 0 8px" }}>Sõnumid</h3>
                     <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
                         <input
                             type="text"
@@ -1108,7 +1105,7 @@ export default function SessionPage() {
                             onChange={e => setMsgText(e.target.value.slice(0, 300))}
                             placeholder="Kirjuta teade..."
                             maxLength={300}
-                            style={{ flex: 1, padding: "8px", borderRadius: "6px", border: "1px solid #ccc" }}
+                            style={{ flex: 1, padding: "8px", borderRadius: "6px", border: "1px solid var(--color-border)" }}
                             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendMessage() } }}
                         />
                         <button onClick={handleSendMessage} disabled={!msgText.trim()}
