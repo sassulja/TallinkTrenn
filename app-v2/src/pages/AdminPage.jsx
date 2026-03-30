@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import Papa from "papaparse"
 import { getAuth } from "firebase/auth"
 import { ref, push, set, onValue, update } from "firebase/database"
 import { database } from "../services/firebase"
@@ -19,6 +20,8 @@ export default function AdminPage() {
     const [isSavingPlayer, setIsSavingPlayer] = useState(false)
     const [editingPlayerId, setEditingPlayerId] = useState(null)
     const [processingPlayerId, setProcessingPlayerId] = useState(null)
+    const [csvFile, setCsvFile] = useState(null)
+    const [uploadMsg, setUploadMsg] = useState("")
 
     // --- Parent Links State ---
     const [parentLinks, setParentLinks] = useState({})
@@ -455,6 +458,40 @@ export default function AdminPage() {
         } finally {
             setProcessingPlayerId(null)
         }
+    }
+
+    const handleCsvUpload = () => {
+        if (!csvFile) return
+
+        Papa.parse(csvFile, {
+            header: true,
+            skipEmptyLines: true,
+            complete: async (results) => {
+                let count = 0
+                const now = new Date().toISOString()
+
+                for (const row of results.data) {
+                    const firstName = row.firstName?.trim()
+                    const lastName = row.lastName?.trim()
+
+                    if (!firstName || !lastName) continue
+
+                    await push(ref(database, "players"), {
+                        firstName,
+                        lastName,
+                        birthYear: row.birthYear ? Number(row.birthYear) : null,
+                        fitnessGroup: row.fitnessGroup || null,
+                        wtn: row.wtn ? Number(row.wtn) : null,
+                        createdAt: now
+                    })
+
+                    count++
+                }
+
+                setUploadMsg(`${count} players added`)
+                setCsvFile(null)
+            }
+        })
     }
 
     const handleAssignParent = async (playerId, parentUid) => {
@@ -954,6 +991,19 @@ export default function AdminPage() {
 
                 {/* ---------- PLAYERS ---------- */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px", minWidth: "350px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                        <input
+                            key={csvFile ? csvFile.name : "csv-empty"}
+                            type="file"
+                            accept=".csv"
+                            onChange={e => setCsvFile(e.target.files[0])}
+                        />
+                        <button onClick={handleCsvUpload}>
+                            Upload CSV
+                        </button>
+                        {uploadMsg && <div>{uploadMsg}</div>}
+                    </div>
+
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <h3 style={{ margin: 0 }}>{editingPlayerId ? "Edit Player" : "Create Player"}</h3>
                         <div style={{ display: "flex", gap: "8px" }}>

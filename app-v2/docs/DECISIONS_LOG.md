@@ -369,3 +369,38 @@ Do not implement now. Document only.
 [2026-03-19] Admin Feedback Real-Time Update: Admin Tagasiside tab does not auto-refresh when player submits feedback from another session. Admin must reload the session page to see newly submitted player feedback. This is acceptable — admin feedback review is not a real-time workflow. Real-time feedback sync deferred to Phase 10 if needed.
 
 [2026-03-20] Write Collision Policy: Firebase RTDB uses last-write-wins semantics. All simultaneous write conflicts (preStatus, realStatus, feedback, roster) resolve via last-write-wins. This is accepted behavior. The one exception is capacity race conditions on preStatus confirm — a soft UI-level warning is shown after write if capacity is exceeded. Hard transactional enforcement deferred to a future backend phase using Firebase Cloud Functions.
+
+[2026-03-30] Top Navigation Architecture
+
+Sidebar is fully removed for all roles.
+
+Navigation is now TopNav-based:
+- Primary entry: Treeningud
+- Secondary navigation hidden behind user name dropdown
+- Role-based options:
+  - Player/Parent: Ajalugu
+  - Admin: Admin, Kohalolek, Treenerid, Tagasiside, Eksport
+- Logout is accessed via user menu (not primary UI)
+
+Rationale:
+- Mobile-first design
+- Reduce visual noise
+- Keep primary workflow (sessions) always accessible
+- Move rarely used actions behind contextual menu
+
+Future:
+- User menu will support multi-player switching (parent)
+- User settings (password, profile) will be added here
+
+[2026-03-30] SessionInstance Write Permissions
+
+sessionInstances writes allowed for:
+- admin (full access)
+- coach ONLY if:
+  sessionInstances/{instanceId}/assignedCoachIds/{uid} === true
+
+coachId field is NOT used.
+
+Rationale:
+- Consistency with permission system used in rosters, attendance, feedback
+- Avoid dual permission logic (coachId vs assignedCoachIds)

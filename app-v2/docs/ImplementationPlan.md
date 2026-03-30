@@ -1,420 +1,207 @@
 # Tallink Trenn v2 — Master Implementation Plan
 
-**Schema Version:** Frozen v1.0
-**Last Updated:** 2026-03-21
+**Schema Version:** Frozen v1.0  
+**Last Updated:** 2026-03-30  
 **Architecture:** React + Firebase RTDB (Single Role Routing, Deterministic IDs)
 
 ## Status Legend
-✅ Completed (Fully implemented, tested, and visually verified)
-🟡 Partially Completed (Needs cleanup, UI, or bug fixes)
-⬜ Not Started (Pending)
-🚨 URGENT (Security risk or critical blocker)
+✅ Completed  
+🟡 Partially Completed  
+⬜ Not Started  
+🚨 URGENT  
 
 ---
 
 ## Phase 1 — Foundation, Security & Sandboxing
-*Agent Note: The live database is currently open. Security rules and local emulator setup are the highest priority before any feature development continues.*
 
-- [x] ✅ **1.1 Project Setup & Repo Hygiene:** React app structured, modular services/utils/constants.
-- [x] ✅ **1.2 Firebase RTDB Init & Environment:** Connected to RTDB, deterministic writes working, `date-fns-tz` integrated.
-- [x] ✅ **1.3 Security Rules Placeholder:** URGENT. Lock down the open production database paths. Allow authenticated `Admin` role full access.
-- [x] ✅ **1.4 Local Emulator Setup:** Set up Firebase Emulator suite for local dev workflow so agents do not corrupt the live DB.
-- [x] ✅ **1.5 Auth + Single Role Routing:** Role routing works (`users/{uid}/role`), cleanup of legacy `roles/` drift done. Admin Role Manager UI complete.
+- [x] ✅ 1.1 Project Setup & Repo Hygiene  
+- [x] ✅ 1.2 Firebase RTDB Init & Environment  
+- [x] ✅ 1.3 Security Rules Placeholder  
+- [x] ✅ 1.4 Local Emulator Setup  
+- [x] ✅ 1.5 Auth + Single Role Routing  
+
+---
 
 ## Phase 2 — RTDB Schema Baseline & Permissions
-- [x] ✅ **2.1 RTDB JSON Tree Design:** Skeleton and conventions documented in `schema.md`.
-- [x] ✅ **2.2 Users Node:** Needs Admin Role Manager UI completed.
-- [x] ✅ **2.3 Players Node + Parent Links:** Admin UI for players and parent links completed.
-- [x] ✅ **2.4 Coach Permissions Node:** Implement global vs. assigned permissions logic. Critical blocker for Phase 4.
+
+- [x] ✅ 2.1 RTDB JSON Tree Design  
+- [x] ✅ 2.2 Users Node  
+- [x] ✅ 2.3 Players Node + Parent Links  
+- [x] ✅ 2.4 Coach Permissions Node  
+
+---
 
 ## Phase 3 — Sessions Engine
-- [x] ✅ **3.1 Session Definitions CRUD:** Admin UI complete.
-- [x] ✅ **3.2 Recurring Enrollments Manager:** Admin UI complete.
-- [x] ✅ **3.3 Recurring Changes Manager:** Effective-dated changes pending.
-- [x] ✅ **3.4 Session Instance Generator:** 30-day horizon, `YYYY-MM-DD__definitionId` working.
-- [x] ✅ **3.5 Roster Sync Engine:** Additive, protective, Policy B precedence working.
-- [x] ✅ **3.6 Admin "Sync Rosters Next 30 Days":** Button complete.
-- [x] ✅ **3.7 Security Rules v2:** Tighten rules per node/role post-schema implementation.
+
+- [x] ✅ 3.1 Session Definitions CRUD  
+- [x] ✅ 3.2 Recurring Enrollments Manager  
+- [x] ✅ 3.3 Recurring Changes Manager  
+- [x] ✅ 3.4 Session Instance Generator  
+- [x] ✅ 3.5 Roster Sync Engine  
+- [x] ✅ 3.6 Admin "Sync Rosters Next 30 Days"  
+- [x] ✅ 3.7 Security Rules v2  
+
+---
 
 ## Phase 4 — Roster & Attendance Core
-*Agent Note: Do not start until Phase 2.4 (Coach Permissions) is fully ✅.*
 
-- [x] ✅ **4.1 Manual Roster Add/Remove:** Coach/admin UI; must respect coach permissions.
-- [x] ✅ **4.2 Attendance Schema Implementation:** Spec shape, computed locks.
-- [x] ✅ **4.3 Pre-Status UI + Lock Rule:** Player/parent UI; locks 60 minutes before start.
-- [x] ✅ **4.4 Capacity Enforcement:** Kinnitatud-only; full/override warnings.
-- [x] ✅ **4.5 Coach/Admin Pre-Status Overrides:** Warnings if overridden after start time.
-- [x] ✅ **4.6 Real Attendance Marking:** Kohal / Hilines / Puudus / Vabastatud.
-- [x] ✅ **4.7 Walk-ins + Late Cancel Flagging**
+- [x] ✅ 4.1 Manual Roster Add/Remove  
+- [x] ✅ 4.2 Attendance Schema Implementation  
+- [x] ✅ 4.3 Pre-Status UI + Lock Rule  
+- [x] ✅ 4.4 Capacity Enforcement  
+- [x] ✅ 4.5 Coach/Admin Pre-Status Overrides  
+- [x] ✅ 4.6 Real Attendance Marking  
+- [x] ✅ 4.7 Walk-ins + Late Cancel Flagging  
+
+---
 
 ## Phase 5 — Extra Sessions & Requests
-- [x] ✅ **5.0 Invitation System:** Admin generates invite links for player and parent roles. Accept-invite page handles Auth user creation and player linking. No email integration — manual link sharing only.
-- [x] ✅ **5.1 One-off SessionInstance Creation:** Coach/admin UI.
-- [x] ✅ **5.2 Attendance Metadata:** markedBy / markedAt fields on attendance nodes.
-- [x] ✅ **5.3 Attendance Engine Improvements:** walk-in attendance auto-kohal on roster add, attendance write structure validation, data consistency checks.
+
+- [x] ✅ 5.0 Invitation System  
+- [x] ✅ 5.1 One-off SessionInstance Creation  
+- [x] ✅ 5.2 Attendance Metadata  
+- [x] ✅ 5.3 Attendance Engine Improvements  
+
+---
 
 ## Phase 6 — Coach Mobile UI & Messaging
-- [x] ✅ **6.1 — SessionListPage:** Coach mobile home screen at /sessions. Session list grouped by time state. Coach login redirect. Tap to navigate to /session/:instanceId.
-- [x] ✅ **6.2 — SessionPage:** Unified coach/admin session view. preStatus + realStatus in one page. Tap cycle, 5-second debounce with flush-on-exit, summary bar, walk-in UI, time-based mode switching.
-- [x] ✅ **6.3 — Mobile UI Optimizations:** Mark All Present button, swipe improvements, layout polish, localStorage last session.
-- [x] ✅ **6.4 — SessionPage Tab Structure:** Add three-tab navigation to SessionPage (Staatus, Kohalolek, Tagasiside). Move existing attendance content to Kohalolek tab. Build Staatus tab with preStatus display, extra requests, roster tools. Tagasiside tab placeholder only. Time-based default tab logic. Remove /coach placeholder. Simplify coach sidebar to Treeningud + Logout.
-- [x] ✅ **6.5 — Session Messaging:** sessionMessages schema, coach write UI in Staatus tab, read display for all permitted roles. Tests A-E passed. Two fixes applied: createdByName from RTDB displayName, Instance ID hidden from player/parent.
-- [x] ✅ **6.6 — Parent Session Cards:** SessionListPage extended to support parent role. Parent sees chronological session cards across all linked children. Data pipeline: fetch parentLinks/{uid}, fetch rosters per instanceId, merge into chronological list. Each card shows: child name, session time/sport, preStatus with Kinnitan/Ei osale buttons, attendance result after session start, coach feedback after sessionEnd+24h, feedback reminder if missing within 7-day window. Child filter: Kõik lapsed by default. Parent cannot mark attendance, write feedback, or access roster tools. PreStatus writes to attendance/{instanceId}/{playerId}/preStatus. /prestatus redirect for parents added after this chunk completes. Role-aware card components: SessionCardCoach, SessionCardParent.
-- [x] ✅ **6.7 — Player Session Cards:** Player role uses /sessions as home screen. Session cards show: session details, preStatus controls (with lock rule and capacity check), attendance result after session start, player feedback entry inline (within sessionEnd + 7 day window, only if realStatus kohal or hilines), session messages. Replaces /prestatus for players. /prestatus redirect added after this chunk completes. Player sidebar updated to Treeningud + Logout.
+
+- [x] ✅ 6.1 SessionListPage  
+- [x] ✅ 6.2 SessionPage  
+- [x] ✅ 6.3 Mobile UI Optimizations  
+- [x] ✅ 6.4 SessionPage Tab Structure  
+- [x] ✅ 6.5 Session Messaging  
+- [x] ✅ 6.6 Parent Session Cards  
+- [x] ✅ 6.7 Player Session Cards  
+
+---
 
 ## Phase 7 — Feedback
-- [x] ✅ **7.1 — Coach Feedback:** Tagasiside tab in SessionPage. Emoji-based effort rating per player. 7-day edit window from sessionEnd.
-- [x] ✅ **7.2 — Player Feedback:** Inline on PreStatusPage past session cards. Effort + coach engagement emoji ratings. 7-day edit window. Only shown if realStatus kohal or hilines.
-- [x] ✅ **7.3 — Feedback Visibility + Reminder:** 24h delay for coach feedback visibility to player/parent. Reminder indicator on /prestatus for missing feedback within window.
-- [x] ✅ **7.4 — Parent/Player History:** /player/:playerId page. Session history, attendance, coach and player feedback.
+
+- [x] ✅ 7.1 Coach Feedback  
+- [x] ✅ 7.2 Player Feedback  
+- [x] ✅ 7.3 Feedback Visibility + Reminder  
+- [x] ✅ 7.4 Parent/Player History  
+
+---
 
 ## Phase 8 — Admin Oversight & Analytics
-- [x] ✅ **8.1 — Attendance Statistics per Player:** 
-  Per-player attendance summary. Attendance rate, 
-  late cancel count, absence count, session count. 
-  Visible to admin. Accessible from player list.
-- [x] ✅ **8.2 — Admin Attendance Viewer:** 
-  Cross-session attendance overview. Filter by 
-  player, date range, sport. See patterns across 
-  multiple sessions.
-- [x] ✅ **8.3 — Coach Performance Overview:** 
-  Admin sees coach engagement averages per coach 
-  over time. Based on player coachEngagement ratings.
-- [x] ✅ **8.4 — Feedback Analytics:** 
-  Group effort averages over time, coach engagement 
-  trends, per-player feedback history summary.
-- [x] ✅ **8.5 — Session Summary Export:** 
-  Export attendance and feedback data to CSV for 
-  external reporting.
+
+- [x] ✅ 8.1 Attendance Statistics per Player  
+- [x] ✅ 8.2 Admin Attendance Viewer  
+- [x] ✅ 8.3 Coach Performance Overview  
+- [x] ✅ 8.4 Feedback Analytics  
+- [x] ✅ 8.5 Session Summary Export  
+
+---
 
 ## Phase 9 — UX Hardening & Testing
 
-**Priority order:**
+- [x] ✅ 9.1 Loading / Error / Empty States  
+- [x] ✅ 9.2 404 Catch-All Route  
+- [x] ✅ 9.3 Acceptance Tests  
+- [x] ✅ 9.4 Form Validation  
+- [x] ✅ 9.5 Permission Edge Cases  
+- [x] ✅ 9.6 State Consistency After Writes  
+- [x] ✅ 9.7 Time-Based Transition Verification  
+- [x] ✅ 9.8 Cross-Role Consistency  
 
-- [x] ✅ **9.1 — Loading / Error / Empty States:** 
-  Consistent loading spinners and error messages 
-  across all pages. Meaningful empty states 
-  distinguishing "no data yet" vs "no data matching 
-  filters". No blank screens while data loads.
+---
 
-- [x] ✅ **9.2 — 404 Catch-All Route:** 
-  Unknown routes show a proper 404 page with 
-  role-aware navigation back to home. Fix /coach 
-  empty page issue.
+## Phase 10 — Production Readiness & Stability
 
-- [x] ✅ **9.3 — Acceptance Tests:** 
-  Scripted role flows verifying end-to-end behavior 
-  for coach, player, parent, and admin workflows.
-
-- [x] ✅ **9.4 — Form Validation:** 
-  Graceful error handling on invitation creation, 
-  session definition forms, and player add forms.
-
-- [x] ✅ **9.5 — Permission Edge Cases:** 
-  UI must never show actions a user cannot perform. 
-  Audit all role-based controls.
-
-- [x] ✅ **9.6 — State Consistency After Writes:** 
-  After any action, UI reflects it immediately. 
-  No stale state requiring refresh. Covers preStatus 
-  changes, removedByCoach, feedback submit.
-
-- [x] ✅ **9.7 — Time-Based Transition Verification:** 
-  Verify all time rules switch correctly: preStatus 
-  lock (-60min), session start → Kohalolek default, 
-  sessionEnd+24h → feedback visible, 
-  sessionEnd+7d → edit lock.
-
-- [x] ✅ **9.8 — Cross-Role Consistency:** 
-  Same data must look consistent across coach, 
-  player, parent, admin. Audit known mismatches.
-
-- ## Phase 10 — Production Readiness & Stability
-
-- [x] ✅ **10.1 — Security Rules Audit:** Verify all 
-  RTDB rules per role. No cross-player access, no 
-  unintended writes, correct path scoping for 
-  attendance, feedback, roster. Remove permissive 
-  defaults. Test read/write boundaries.
-
-- [x] ✅ **10.2 — Production Environment Setup:** 
-  Separate Firebase production project. Configure 
-  .env for dev vs prod. Correct database URLs, no 
-  emulator dependencies. Verify auth + database 
-  in prod.
-
-- [x]  ✅ **10.3.1 — List Ordering + Grouping Rules:** 
-  Correct sorting today/future/past. Parent view 
-  multiple children handled correctly. Removed 
-  players always at bottom. Stable ordering across 
-  reloads.
-
-- [x] ✅ **10.3.2 — Write Collision Handling:** 
-  Define behavior for simultaneous updates. 
-  Deterministic outcome, no silent overwrites. 
-  Minimal conflict resolution where needed.
-
-- [x] ✅ **10.3.3 — Data Fallback Safety:** App must 
-  not break when attendance node missing, feedback 
-  partially missing, player link missing. Safe 
-  defaults, UI still renders, no runtime errors.
-
-- [x] ✅ **10.3.4 — Session Generation Edge Cases:** 
-  Handle definitions with no enrollments, gaps in 
-  date ranges, duplicate instance prevention. 
-  Idempotent generation, no duplicate sessions.
-
-- [x] ✅ **10.4 — Deployment:** Build production 
-  bundle, deploy to Firebase Hosting, configure 
-  domain. Verify login, data loads, no console 
-  errors.
-
-- [x] ✅ **10.5 — Release Checklist:** Smoke test 
-  all role flows. Verify no crashes, no broken UI 
-  states. Lock Phase 10.
+- [x] ✅ 10.1 Security Rules Audit  
+- [x] ✅ 10.2 Production Environment Setup  
+- [x] ✅ 10.3.1 List Ordering + Grouping Rules  
+- [x] ✅ 10.3.2 Write Collision Handling  
+- [x] ✅ 10.3.3 Data Fallback Safety  
+- [x] ✅ 10.3.4 Session Generation Edge Cases  
+- [x] ✅ 10.4 Deployment  
+- [x] ✅ 10.5 Release Checklist  
 
 ---
 
 ## Phase 10.5 — Session Management & Feature Recovery
 
-- [x] ✅ **10.5.0 — Audit Existing Functionality:**
-  Completed.
-  - Session instance editing → FOUND (SessionPage / AdminPage)
-  - One-off session creation → FOUND (AdminPage)
-  - Player extra session requests → PARTIAL → completed in later chunks
-  - Firebase data model confirmed:
-    - sessionInstances/{instanceId}
-    - rosters/{instanceId}
-    - attendance/{instanceId}
-    - extraRequests/{instanceId}/{playerId}
-  - Sessions are explicitly stored (no generated instances)
+- [x] ✅ 10.5.0 Audit Existing Functionality  
+- [x] ✅ 10.5.1 Edit Session Instance (Coach/Admin)  
+- [x] ✅ 10.5.2 One-off Session Creation  
+- [x] ✅ 10.5.3 Extra Session Requests  
+- [x] ✅ 10.5.4 Player Session List Split  
+- [x] ✅ 10.5.5 Coach Invite Flow  
+- [x] ✅ 10.5.6 Global Data Subscriptions  
+- [x] ✅ 10.5.7 Overlap Warning + Auto-reject  
+
+- [ ] ⬜ 10.5.9 Overlap check at approval (coach side)  
+- [ ] ⬜ 10.5.10 Request conflict auto-reject (capacity)  
 
 ---
-
-- [x] ✅ **10.5.1 — Edit Session Instance (Coach/Admin):**
-  Completed.
-  - Modify time per instance
-  - Cancel session
-  - No impact on recurring logic
-
----
-
-- [x] ✅ **10.5.2 — One-off Session Creation (Admin):**
-  Completed.
-  - Uses existing AdminPage flow
-  - Creates entries in sessionInstances
-  - Assigns coach, players, sport
-  - No duplicate flows introduced
-
----
-
-- [x] ✅ **10.5.3 — Extra Session Requests (Player):**
-  Completed.
-
-  Schema:
-  extraRequests/{instanceId}/{playerId}:
-    - requestedAt
-    - requestedBy
-    - status: "pending" | "approved" | "rejected"
-    - note: null
-
-  Behavior:
-  - Player can request sessions they are not on roster for
-  - Button: "Soovin osaleda"
-  - Duplicate pending requests prevented
-  - Capacity NOT checked at request stage
-  - Multiple requests allowed
-
-  Overlap handling:
-  - Uses allInstances + allAttendance
-  - Condition:
-    existing.start < new.end AND existing.end > new.start
-  - Applies only if preStatus === "kinnitatud"
-  - Does NOT block request
-  - Shows warning with conflicting session details
-
-  Approval:
-  - Player added to roster
-  - All other pending requests for same player → auto-rejected (not deleted)
-
----
-
-- [x] ✅ **10.5.4 — Player Session List Split (Lisatreeningud):**
-  Completed.
-  - "Minu treeningud" → player is on roster
-  - "Lisatreeningud" → player is NOT on roster
-  - One-off sessions supported (definition guard fix)
-  - Uses SessionGroup + SessionCardPlayer
-  - No capacity filtering
-
----
-
-- [x] ✅ **10.5.5 — Coach Invite Flow:**
-  Completed.
-  - Reuses existing invitation system
-  - Adds type: "coach"
-  - Acceptance creates:
-    users/{uid} → role: "coach"
-  - No parentLinks
-  - No permissions assigned at creation
-
----
-
-- [x] ✅ **10.5.6 — Global Data Subscriptions (Prep):**
-  Completed.
-  - Added:
-    - allInstances
-    - allAttendance
-  - Read-only
-  - Supports overlap logic
-
----
-
-- [x] ✅ **10.5.7 — Overlap Warning + Auto-reject:**
-  Completed.
-  - Overlap warning implemented (non-blocking)
-  - Uses strict interval logic
-  - Auto-reject implemented using allExtraRequests
-  - Batch update() used for rejection
-  - Safety guard added:
-    if (!otherInst) continue
-
-- [ ] ⬜ **10.5.9 — Overlap check at approval (Coach side):**
-  Block or warn coach when approving a request that would create
-  a time conflict with another confirmed session for the same player.
-
-- [ ] ⬜ **10.5.10 — Request conflict auto-reject (cross-player):**
-  When session reaches capacity on approval, auto-reject remaining
-  pending requests for that session.
-
----
-
-### ✅ Phase 10.5 Status: COMPLETE
-
-All session-related functionality:
-- Fully implemented
-- Consistent with Firebase data model
-- Handles edge cases (overlap, duplicates, missing data)
-- No blocking issues identified
-
----
-
-### 📌 Future Improvements (non-blocking)
-
-- Optional: overlap validation at approval stage (coach-side)
-- Optional: improve warning UI ("NB!" prefix)
-- Optional: expose rejected request history in UI
-
----------
 
 ## Phase 11 — UI / UX Polish & Usability
 
-- [x] ✅ **11.1 — Mobile Layout Audit:** Review 
-  AdminPage, RosterPage, AttendancePage. Fix 
-  overflow, touch targets, spacing. Usable on 
-  phone without zoom.
+- [x] ✅ 11.1 Mobile Layout Audit  
+- [x] ✅ 11.2 SessionListPage Interaction Fix  
+- [x] ✅ 11.3 Layout & Visual Consistency  
 
-- [x] ✅ **11.2 — SessionListPage Interaction Fix:**
-  - Remove expand arrow button from session cards
-  - Remove expand/collapse logic
-  - Make card header clickable → navigate to SessionPage
-  - Keep action buttons outside clickable area
-  - Show action buttons directly when relevant
-
-- [x] ✅ **11.3 — Layout & Visual Consistency:** 
-  Standardize spacing, typography, container 
-  widths. Align headers, sections, cards.
-
-- [ ] ⬜ **11.4 — Visual Hierarchy & Clarity:** 
-  Improve primary vs secondary actions, status 
-  visibility. Feedback easier to scan.
-
-- [ ] ⬜ **11.5 — Component Standardization:** 
-  Replace repeated UI with reusable components 
-  (StatusText, SectionBlock, MessageItem started).
-
-- [ ] ⬜ **11.6 — UX Improvements:** 
-  Remove redundant elements, improve clarity, 
-  simplify flows.
-
-- [ ] ⬜ **11.7 — Final UI Cleanup:** 
-  Remove leftover inconsistencies and debug UI.
+- [ ] ⬜ 11.4 Visual Hierarchy & Clarity  
+- [ ] ⬜ 11.5 Component Standardization  
+- [ ] ⬜ 11.6 UX Improvements  
+- [ ] ⬜ 11.7 Final UI Cleanup  
 
 ---
 
-### Phase 11 — Coach UX Improvements (NEW)
+## Phase 11 — Coach UX Improvements
 
-- [x] ✅ **11.9a — Session Header Compression (Coach):**
-  - Combined date + time into one line
-  - Removed instanceId from UI
-  - Standardized buttons (Primary/Secondary)
-  - Reduced vertical space
+- [x] ✅ 11.9a Session Header Compression  
+- [x] ✅ 11.9b Add Player Search  
+- [x] ✅ 11.9c Status Tab Compression  
+- [x] ✅ 11.9d Status Summary Improvement  
+- [x] ✅ 11.9e Inline Add Player UI Simplification  
+- [x] ✅ 11.9f Sticky Tab Bar  
+- [x] ✅ 11.9g Remove Top Navigation Noise  
 
-- [x] ✅ **11.9b — Add Player Search (Coach):**
-  - Replace dropdown with inline search input
-  - Instant filtering (name-based)
-  - Exclude already rostered players
-  - Limit results (max 8)
-  - One-tap add + clear input
+- [x] ✅ 11.9k Walk-in Search UX  
 
-- [x] ✅ **11.9c — Status Tab Compression:**
-  - Convert player rows to single-line layout
-  - Inline status + actions (name + status + remove)
-  - Reduce vertical spacing by ~40%
-
-- [x] ✅ **11.9d — Status Summary Improvement:**
-  - Replace text counters with compact badges
-  - Improve scanability (Kinnitatud / Vastamata / Ei osale)
-
-- [x] ✅ **11.9e — Inline Add Player UI Simplification:**
-  - Remove heavy "Lisa nimekirja" block
-  - Integrate search as primary interaction (depends on 11.9b)
-
-- [ ] ⬜ **11.9f — Sticky Tab Bar (Mobile):**
-  - Make SessionPage tabs sticky under header
-  - Improve navigation during scroll
-
-- [ ] ⬜ **11.9g — Remove Top Navigation Noise:**
-  - Remove redundant "Tallink Trenn" / breadcrumb
-  - Optimize vertical space for mobile
-
-- [ ] ⬜ **11.9h — Action Hierarchy Fix:**
-  - Emphasize destructive actions (Tühista treening)
-  - Ensure correct visual priority (Primary vs Secondary vs Danger)
-
-- [ ] ⬜ **11.9i — Messages Section Compression:**
-  - Show only latest 1–2 messages
-  - Add "Vaata kõiki" expansion
-
-- [ ] ⬜ **11.9j — SessionPage Structure Optimization:**
-  - Ensure each tab has clear purpose
-  - Reduce scroll depth
-  - Keep coach actions within first viewport
+- [ ] ⬜ 11.9h Action Hierarchy Fix  
+- [ ] ⬜ 11.9i Messages Section Compression  
+- [ ] ⬜ 11.9j SessionPage Structure Optimization  
 
 ---
 
-### Phase 11 — Navigation Refactor (NEW)
+## Phase 11 — Navigation Refactor
 
-- [ ] ⬜ **11.10 — Remove Sidebar (All Roles):**
-  - Remove sidebar completely
-  - Replace with top navigation (tabs or segmented control)
-  - Optimize for mobile-first usage
+- [x] ✅ 11.10 Remove Sidebar (All Roles)  
 
-- [ ] ⬜ **11.11 — Unified Navigation Model:**
-  - Standardize navigation across roles (coach/player/parent/admin)
-  - Ensure consistent entry points (Treeningud, Ajalugu, etc.)
+- [🟡] 🟡 11.11 Unified Navigation Model  
+  - TopNav implemented  
+  - Role-based dropdown working  
+  - Admin navigation restored  
+  - UX still needs refinement  
+
+- [x] ✅ 11.14 Top Navigation System  
+  - TopNav replaces sidebar  
+  - Name-based dropdown menu  
+  - Role-aware navigation  
+  - Outside click closes dropdown  
+  - Route-aware highlighting  
+  - Mobile-first layout  
 
 ---
 
-### Phase 11 — Logic Consistency Fixes (NEW)
+## Phase 11 — Logic Consistency Fixes
 
-- [x] ✅ **11.12 — Shared preStatus Validation:**
-  - Extract validation into shared function
-  - Ensure identical behavior for player and parent
-  - Fix overlap inconsistency
+- [x] ✅ 11.12 Shared preStatus Validation  
+- [x] ✅ 11.13 Parent View Parity  
 
-- [x] ✅ **11.13 — Parent View Parity:**
-  - Fix one-off session visibility
-  - Implement Lisatreeningud correctly
-  - Remove broken isExtraSession logic
-  - Align rendering with player view
+---
+
+## Current Status
+
+System is:
+- ✅ Feature complete  
+- ✅ Permission-consistent  
+- ✅ Navigation unified  
+- 🟡 UX still being refined  
+
+Current focus:
+→ Phase 11 polish (clarity, hierarchy, simplification)

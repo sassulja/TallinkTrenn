@@ -71,13 +71,13 @@ function RosterRow({ playerId, rData, playerData, att, sessionStarted, onTapCycl
 
     if (isRemoved) {
         if (isMobile) return (
-            <div style={{ padding: "10px 0", borderBottom: "1px solid #eee", color: "#999" }}>
+            <div style={{ padding: "10px 0", borderBottom: "1px solid var(--color-border)", color: "var(--color-text-muted)" }}>
                 <div style={{ textDecoration: "line-through" }}>{pName}</div>
                 <div style={{ fontSize: "13px", fontStyle: "italic" }}>Eemaldatud</div>
             </div>
         )
         return (
-            <tr style={{ color: "#999" }}>
+            <tr style={{ color: "var(--color-text-muted)" }}>
                 <td style={{ textDecoration: "line-through", padding: "10px 8px" }}>{pName}</td>
                 <td style={{ padding: "10px 8px" }}>—</td>
                 <td style={{ padding: "10px 8px", fontStyle: "italic" }}>Eemaldatud</td>
@@ -96,7 +96,7 @@ function RosterRow({ playerId, rData, playerData, att, sessionStarted, onTapCycl
                 {rData.walkIn && <span style={{ marginLeft: "8px", backgroundColor: "#e0f2f1", color: "#00796b", padding: "2px 6px", borderRadius: "4px", fontSize: "12px", fontWeight: "bold" }}>🚶</span>}
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ color: sessionStarted ? "#999" : "#333", fontSize: "13px" }}>{preLabel}</span>
+                <span style={{ color: sessionStarted ? "var(--color-text-muted)" : "var(--color-text)", fontSize: "13px" }}>{preLabel}</span>
                 <div style={{ minHeight: "44px", display: "flex", alignItems: "center", padding: "8px 16px", fontWeight: "bold", borderRadius: "8px", background: "#f3f4f6" }}>
                     {realInfo.icon} {realInfo.label}
                 </div>
@@ -111,7 +111,7 @@ function RosterRow({ playerId, rData, playerData, att, sessionStarted, onTapCycl
                 {pName}
                 {rData.walkIn && <span style={{ marginLeft: "8px", backgroundColor: "#e0f2f1", color: "#00796b", padding: "2px 6px", borderRadius: "4px", fontSize: "12px", fontWeight: "bold" }}>🚶</span>}
             </td>
-            <td style={{ padding: "10px 8px", color: sessionStarted ? "#999" : "#333", fontSize: sessionStarted ? "13px" : "14px" }}>{preLabel}</td>
+            <td style={{ padding: "10px 8px", color: sessionStarted ? "var(--color-text-muted)" : "var(--color-text)", fontSize: sessionStarted ? "13px" : "14px" }}>{preLabel}</td>
             <td onClick={() => !attendanceDisabled && onTapCycle(playerId)}
                 style={{ padding: "10px 8px", cursor: attendanceDisabled ? "default" : "pointer", userSelect: "none", fontWeight: "bold", transition: "background 0.15s", minHeight: "44px", opacity: attendanceDisabled ? 0.7 : 1 }}
                 onMouseDown={e => { if (!attendanceDisabled) e.currentTarget.style.background = "#e5e7eb" }}
@@ -140,6 +140,7 @@ export default function SessionPage() {
     const [extraRequests, setExtraRequests] = useState({})
     const [allPlayers, setAllPlayers] = useState({})
     const [walkInPlayerId, setWalkInPlayerId] = useState("")
+    const [walkInSearch, setWalkInSearch] = useState("")
     const [rosterAddPlayerId, setRosterAddPlayerId] = useState("")
     const [playerSearch, setPlayerSearch] = useState("")
     const [msg, setMsg] = useState("")
@@ -409,29 +410,31 @@ export default function SessionPage() {
     }
 
     // ─── Walk-in add (Kohalolek) ────────────────────
-    const handleAddWalkIn = async () => {
-        if (!walkInPlayerId || !hasPermission() || inst?.status === "cancelled") return
+    const handleAddWalkIn = async (playerId = null) => {
+        const selectedPlayerId = playerId || walkInPlayerId
+        if (!selectedPlayerId || !hasPermission() || inst?.status === "cancelled") return
         setMsg("")
         const nowIso = new Date().toISOString()
         try {
-            const extraReqSnap = await get(ref(database, `extraRequests/${instanceId}/${walkInPlayerId}`))
+            const extraReqSnap = await get(ref(database, `extraRequests/${instanceId}/${selectedPlayerId}`))
             const updates = {
-                [`rosters/${instanceId}/${walkInPlayerId}`]: { source: "walkIn", addedBy: currentUser.uid, addedAt: nowIso, walkIn: true, removedByCoach: false }
+                [`rosters/${instanceId}/${selectedPlayerId}`]: { source: "walkIn", addedBy: currentUser.uid, addedAt: nowIso, walkIn: true, removedByCoach: false }
             }
             if (extraReqSnap.exists()) {
-                updates[`extraRequests/${instanceId}/${walkInPlayerId}/status`] = "approved"
+                updates[`extraRequests/${instanceId}/${selectedPlayerId}/status`] = "approved"
             }
             await update(ref(database), updates)
-            await set(ref(database, `attendance/${instanceId}/${walkInPlayerId}`), { preStatus: null, realStatus: "kohal", lateCancel: false, markedBy: currentUser.uid, markedAt: nowIso })
+            await set(ref(database, `attendance/${instanceId}/${selectedPlayerId}`), { preStatus: null, realStatus: "kohal", lateCancel: false, markedBy: currentUser.uid, markedAt: nowIso })
             
-            setRoster(prev => ({ ...prev, [walkInPlayerId]: { source: "walkIn", addedBy: currentUser.uid, addedAt: nowIso, walkIn: true, removedByCoach: false } }))
+            setRoster(prev => ({ ...prev, [selectedPlayerId]: { source: "walkIn", addedBy: currentUser.uid, addedAt: nowIso, walkIn: true, removedByCoach: false } }))
             if (extraReqSnap.exists()) {
-                setExtraRequests(prev => ({ ...prev, [walkInPlayerId]: { ...(prev[walkInPlayerId] || {}), status: "approved" } }))
+                setExtraRequests(prev => ({ ...prev, [selectedPlayerId]: { ...(prev[selectedPlayerId] || {}), status: "approved" } }))
             }
-            setLocalAtt(prev => ({ ...prev, [walkInPlayerId]: { preStatus: null, realStatus: "kohal", lateCancel: false, markedBy: currentUser.uid, markedAt: nowIso } }))
+            setLocalAtt(prev => ({ ...prev, [selectedPlayerId]: { preStatus: null, realStatus: "kohal", lateCancel: false, markedBy: currentUser.uid, markedAt: nowIso } }))
             
             setMsg("Walk-in lisatud.")
             setWalkInPlayerId("")
+            setWalkInSearch("")
         } catch (err) { console.error("Walk-in add failed", err); setMsg(`Error: ${err.message}`) }
     }
 
@@ -735,7 +738,7 @@ export default function SessionPage() {
         return (
             <div style={{ maxWidth: "800px", margin: "0 auto", padding: "16px" }}>
                 <button onClick={() => navigate("/sessions")} style={{ marginBottom: "16px", cursor: "pointer" }}>← Tagasi</button>
-                <p style={{ color: "red" }}>Sul puudub õigus selle treeningu haldamiseks.</p>
+                <p style={{ color: "var(--color-danger)" }}>Sul puudub õigus selle treeningu haldamiseks.</p>
             </div>
         )
     }
@@ -760,7 +763,7 @@ export default function SessionPage() {
                     <div style={{ fontSize: "12px", color: "var(--color-text-muted)", marginTop: "8px" }}>{instanceId}</div>
                 </div>
 
-                {msg && <p style={{ color: msg.startsWith("Error") ? "red" : "green", fontWeight: "bold", marginBottom: "12px" }}>{msg}</p>}
+                {msg && <p style={{ color: msg.startsWith("Error") ? "var(--color-danger)" : "var(--color-success)", fontWeight: "bold", marginBottom: "12px" }}>{msg}</p>}
 
                 {!isCancelled && !playerOnRoster && (() => {
                     if (isLocked) return null
@@ -850,6 +853,21 @@ export default function SessionPage() {
             return nameA.localeCompare(nameB)
         })
         .slice(0, 8)
+    const availableWalkInPlayers = Object.entries(allPlayers || {})
+        .filter(([pid, p]) => {
+            if (!p) return false
+            if (roster[pid] && roster[pid].removedByCoach !== true) return false
+            if (!walkInSearch.trim()) return false
+
+            const fullName = `${p.firstName || ""} ${p.lastName || ""}`.toLowerCase()
+            return fullName.includes(walkInSearch.toLowerCase())
+        })
+        .sort(([, a], [, b]) => {
+            const nameA = `${a.firstName || ""} ${a.lastName || ""}`.trim()
+            const nameB = `${b.firstName || ""} ${b.lastName || ""}`.trim()
+            return nameA.localeCompare(nameB)
+        })
+        .slice(0, 8)
 
     const pendingReqs = Object.entries(extraRequests).filter(([, r]) => r.status === "pending")
     const resolvedReqs = Object.entries(extraRequests).filter(([, r]) => r.status !== "pending")
@@ -924,7 +942,7 @@ export default function SessionPage() {
                 </div>
             </div>
 
-            {msg && <p style={{ color: msg.startsWith("Error") ? "red" : "green", fontWeight: "bold", marginBottom: "12px" }}>{msg}</p>}
+            {msg && <p style={{ color: msg.startsWith("Error") ? "var(--color-danger)" : "var(--color-success)", fontWeight: "bold", marginBottom: "12px" }}>{msg}</p>}
 
             {/* Tab Bar */}
             <TabBar activeTab={activeTab || "staatus"} onTabChange={handleTabChange} />
@@ -976,7 +994,7 @@ export default function SessionPage() {
                                         <div key={pId} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid var(--color-border)", color: "var(--color-text-muted)" }}>
                                             <span style={{ textDecoration: "line-through" }}>{pName}</span>
                                             <button onClick={() => handleRestorePlayer(pId)}
-                                                style={{ padding: "2px 8px", fontSize: "12px", background: "#f0fdf4", color: "#22c55e", border: "1px solid #86efac", borderRadius: "4px", cursor: "pointer" }}>
+                                                style={{ padding: "2px 8px", fontSize: "12px", background: "#f0fdf4", color: "var(--color-success)", border: "1px solid var(--color-success)", borderRadius: "4px", cursor: "pointer" }}>
                                                 Taasta
                                             </button>
                                         </div>
@@ -998,11 +1016,11 @@ export default function SessionPage() {
                                 const p = players[pId]
                                 const pName = p ? `${p.firstName} ${p.lastName}` : "Tundmatu mängija"
                                 return (
-                                    <div key={pId} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px", borderBottom: "1px solid #eee" }}>
+                                    <div key={pId} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px", borderBottom: "1px solid var(--color-border)" }}>
                                         <span>{pName}</span>
                                         <div style={{ display: "flex", gap: "8px" }}>
-                                            <button onClick={() => handleApproveRequest(pId)} style={{ background: "#4caf50", color: "white", border: "none", borderRadius: "4px", padding: "4px 12px", cursor: "pointer" }}>Kinnita</button>
-                                            <button onClick={() => handleRejectRequest(pId)} style={{ background: "#f44336", color: "white", border: "none", borderRadius: "4px", padding: "4px 12px", cursor: "pointer" }}>Lükka tagasi</button>
+                                            <PrimaryButton onClick={() => handleApproveRequest(pId)} style={{ padding: "4px 12px", borderRadius: "4px" }}>Kinnita</PrimaryButton>
+                                            <SecondaryButton onClick={() => handleRejectRequest(pId)} style={{ padding: "4px 12px", borderRadius: "4px" }}>Lükka tagasi</SecondaryButton>
                                         </div>
                                     </div>
                                 )
@@ -1014,12 +1032,12 @@ export default function SessionPage() {
                                         const p = players[pId]
                                         const pName = p ? `${p.firstName} ${p.lastName}` : "Tundmatu mängija"
                                         return (
-                                            <div key={pId} style={{ display: "flex", justifyContent: "space-between", padding: "8px", borderBottom: "1px solid #eee" }}>
+                                            <div key={pId} style={{ display: "flex", justifyContent: "space-between", padding: "8px", borderBottom: "1px solid var(--color-border)" }}>
                                                 <span>{pName}</span>
-                                                <span style={{ color: req.status === "approved" ? "green" : "red", fontWeight: "bold" }}>
+                                                <span style={{ color: req.status === "approved" ? "var(--color-success)" : "var(--color-danger)", fontWeight: "bold" }}>
                                                     {req.status === "approved" ? "Kinnitatud" : "Tagasi lükatud"}
                                                     {req.status === "rejected" && (
-                                                        <button onClick={() => handleApproveRequest(pId)} style={{ marginLeft: "8px", background: "#4caf50", color: "white", border: "none", borderRadius: "4px", padding: "2px 8px", fontSize: "12px", cursor: "pointer" }}>Kinnita</button>
+                                                        <PrimaryButton onClick={() => handleApproveRequest(pId)} style={{ marginLeft: "8px", padding: "2px 8px", fontSize: "12px", borderRadius: "4px" }}>Kinnita</PrimaryButton>
                                                     )}
                                                 </span>
                                             </div>
@@ -1060,6 +1078,10 @@ export default function SessionPage() {
                                     return (
                                         <div
                                             key={pid}
+                                            onClick={() => {
+                                                handleRosterAdd(pid)
+                                                setPlayerSearch("")
+                                            }}
                                             style={{
                                                 display: "flex",
                                                 justifyContent: "space-between",
@@ -1067,12 +1089,14 @@ export default function SessionPage() {
                                                 padding: "6px 8px",
                                                 borderRadius: "6px",
                                                 background: "var(--color-background-secondary)",
-                                                border: "1px solid var(--color-border)"
+                                                border: "1px solid var(--color-border)",
+                                                cursor: "pointer"
                                             }}
                                         >
                                             <span>{name}</span>
                                             <button
-                                                onClick={() => {
+                                                onClick={e => {
+                                                    e.stopPropagation()
                                                     handleRosterAdd(pid)
                                                     setPlayerSearch("")
                                                 }}
@@ -1108,19 +1132,19 @@ export default function SessionPage() {
                             style={{ flex: 1, padding: "8px", borderRadius: "6px", border: "1px solid var(--color-border)" }}
                             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendMessage() } }}
                         />
-                        <button onClick={handleSendMessage} disabled={!msgText.trim()}
-                            style={{ padding: "8px 16px", background: msgText.trim() ? "#3b82f6" : "#ccc", color: "white", border: "none", borderRadius: "6px", cursor: msgText.trim() ? "pointer" : "not-allowed" }}>
+                        <PrimaryButton onClick={handleSendMessage} disabled={!msgText.trim()}
+                            style={{ borderRadius: "6px" }}>
                             Saada
-                        </button>
+                        </PrimaryButton>
                     </div>
-                    <div style={{ fontSize: "12px", color: "#999", textAlign: "right", marginBottom: "12px" }}>{msgText.length}/300</div>
+                    <div style={{ fontSize: "12px", color: "var(--color-text-muted)", textAlign: "right", marginBottom: "12px" }}>{msgText.length}/300</div>
                     {sessionMessages.length === 0 ? (
-                        <p style={{ color: "#999", textAlign: "center", fontSize: "14px" }}>Teateid pole.</p>
+                        <p style={{ color: "var(--color-text-muted)", textAlign: "center", fontSize: "14px" }}>Teateid pole.</p>
                     ) : (
                         <div style={{ maxHeight: "300px", overflowY: "auto" }}>
                             {sessionMessages.map(m => (
-                                <div key={m.id} style={{ borderBottom: "1px solid #eee", padding: "8px 0" }}>
-                                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#666", marginBottom: "4px" }}>
+                                <div key={m.id} style={{ borderBottom: "1px solid var(--color-border)", padding: "8px 0" }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "var(--color-text-muted)", marginBottom: "4px" }}>
                                         <span style={{ fontWeight: "bold" }}>{m.createdByName}</span>
                                         <span>{new Date(m.createdAt).toLocaleString("et-EE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
                                     </div>
@@ -1182,18 +1206,72 @@ export default function SessionPage() {
                 )}
 
                 {/* Walk-in Add */}
-                <div style={{ border: "1px solid #ddd", borderRadius: "8px", padding: "16px", marginBottom: "20px" }}>
+                <div style={{ border: "1px solid var(--color-border)", borderRadius: "8px", padding: "16px", marginBottom: "20px" }}>
                     <h3 style={{ marginTop: 0, marginBottom: "12px" }}>+ Lisa walk-in</h3>
-                    <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
-                        <select value={walkInPlayerId} onChange={e => setWalkInPlayerId(e.target.value)} style={{ flex: 1, minWidth: "150px", padding: "8px" }}>
-                            <option value="">-- Vali mängija --</option>
-                            {availableForWalkIn.map(([pId, p]) => (<option key={pId} value={pId}>{p.firstName} {p.lastName}</option>))}
-                        </select>
-                        <button onClick={handleAddWalkIn} disabled={!walkInPlayerId || isCancelled}
-                            style={{ padding: "8px 16px", background: walkInPlayerId && !isCancelled ? "#22c55e" : "#ccc", color: "white", border: "none", borderRadius: "6px", cursor: walkInPlayerId && !isCancelled ? "pointer" : "not-allowed" }}>
-                            Lisa
-                        </button>
-                    </div>
+                    <input
+                        type="text"
+                        placeholder="Otsi mängijat..."
+                        value={walkInSearch}
+                        onChange={e => setWalkInSearch(e.target.value)}
+                        style={{
+                            width: "100%",
+                            padding: "8px",
+                            borderRadius: "6px",
+                            border: "1px solid #ccc",
+                            marginBottom: "6px"
+                        }}
+                    />
+                    {walkInSearch && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                            {availableWalkInPlayers.length === 0 ? (
+                                <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>
+                                    Mängijat ei leitud
+                                </div>
+                            ) : (
+                                availableWalkInPlayers.map(([pid, p]) => {
+                                    const name = `${p.firstName || ""} ${p.lastName || ""}`.trim()
+                                    return (
+                                        <div
+                                            key={pid}
+                                            onClick={() => {
+                                                handleAddWalkIn(pid)
+                                                setWalkInSearch("")
+                                            }}
+                                            style={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "center",
+                                                padding: "6px 8px",
+                                                borderRadius: "6px",
+                                                background: "#f9fafb",
+                                                border: "1px solid var(--color-border)",
+                                                cursor: "pointer"
+                                            }}
+                                        >
+                                            <span>{name}</span>
+                                            <button
+                                                onClick={e => {
+                                                    e.stopPropagation()
+                                                    handleAddWalkIn(pid)
+                                                    setWalkInSearch("")
+                                                }}
+                                                style={{
+                                                    padding: "4px 8px",
+                                                    fontSize: "12px",
+                                                    borderRadius: "6px",
+                                                    border: "1px solid #ccc",
+                                                    background: "white",
+                                                    cursor: "pointer"
+                                                }}
+                                            >
+                                                Lisa
+                                            </button>
+                                        </div>
+                                    )
+                                })
+                            )}
+                        </div>
+                    )}
                 </div>
             </>)}
 
@@ -1228,11 +1306,11 @@ export default function SessionPage() {
                             const canFeedback = rStatus === "kohal" || rStatus === "hilines"
 
                             return (
-                                <div key={pId} style={{ border: "1px solid #eee", borderRadius: "8px", padding: "16px", marginBottom: "12px" }}>
+                                <div key={pId} style={{ border: "1px solid var(--color-border)", borderRadius: "8px", padding: "16px", marginBottom: "12px" }}>
                                     <div style={{ fontWeight: "bold", marginBottom: "10px", fontSize: "15px" }}>{pName}</div>
 
                                     {!canFeedback ? (
-                                        <div style={{ fontSize: "14px", color: "#999", fontStyle: "italic" }}>Ei osalenud</div>
+                                        <div style={{ fontSize: "14px", color: "var(--color-text-muted)", fontStyle: "italic" }}>Ei osalenud</div>
                                     ) : (
                                         <>
                                             {/* Effort picker */}
@@ -1243,7 +1321,7 @@ export default function SessionPage() {
                                                         disabled={isExpired}
                                                         style={{
                                                             padding: "6px 10px", borderRadius: "8px", cursor: isExpired ? "default" : "pointer",
-                                                            border: local.effort === e.value ? "2px solid #3b82f6" : "1px solid #ddd",
+                                                            border: local.effort === e.value ? "2px solid var(--color-primary)" : "1px solid #ddd",
                                                             background: local.effort === e.value ? "#eff6ff" : "white",
                                                             fontSize: "13px", transition: "all 0.1s"
                                                         }}>
@@ -1268,10 +1346,10 @@ export default function SessionPage() {
                                             {!isExpired && (
                                                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                                                     <button onClick={() => handleSaveFeedback(pId)}
-                                                        style={{ padding: "6px 16px", background: "#3b82f6", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>
+                                                        style={{ padding: "6px 16px", background: "var(--color-primary)", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>
                                                         Salvesta
                                                     </button>
-                                                    {saved && <span style={{ color: "#22c55e", fontWeight: "bold", fontSize: "13px" }}>Salvestatud ✓</span>}
+                                                    {saved && <span style={{ color: "var(--color-success)", fontWeight: "bold", fontSize: "13px" }}>Salvestatud ✓</span>}
                                                 </div>
                                             )}
                                         </>
@@ -1302,11 +1380,11 @@ export default function SessionPage() {
                                             const eff = PLAYER_EFFORT_SCALE.find(e => e.value === fb.effort) || {}
                                             const eng = COACH_ENGAGEMENT_SCALE.find(e => e.value === fb.coachEngagement) || {}
                                             return (
-                                                <div key={fb.pId} style={{ marginBottom: "12px", paddingBottom: "12px", borderBottom: "1px solid #f5f5f5" }}>
-                                                    <div style={{ fontWeight: "bold", fontSize: "14px", color: "#3b82f6", marginBottom: "4px" }}>{pName}</div>
+                                                <div key={fb.pId} style={{ marginBottom: "12px", paddingBottom: "12px", borderBottom: "1px solid var(--color-border)" }}>
+                                                    <div style={{ fontWeight: "bold", fontSize: "14px", color: "var(--color-primary)", marginBottom: "4px" }}>{pName}</div>
                                                     <div style={{ fontSize: "13px" }}>Pingutus: {eff.emoji} {eff.label}</div>
                                                     <div style={{ fontSize: "13px" }}>Treener: {eng.emoji} {eng.label}</div>
-                                                    {fb.note && <div style={{ fontSize: "13px", fontStyle: "italic", color: "#666", marginTop: "4px" }}>"{fb.note}"</div>}
+                                                    {fb.note && <div style={{ fontSize: "13px", fontStyle: "italic", color: "var(--color-text-muted)", marginTop: "4px" }}>"{fb.note}"</div>}
                                                 </div>
                                             )
                                         })}
@@ -1314,9 +1392,9 @@ export default function SessionPage() {
                                             const p = players[pId]
                                             const pName = p ? `${p.firstName} ${p.lastName}` : "Tundmatu mängija"
                                             return (
-                                                <div key={pId} style={{ marginBottom: "12px", paddingBottom: "12px", borderBottom: "1px solid #f5f5f5" }}>
-                                                    <div style={{ fontWeight: "bold", fontSize: "14px", color: "#999", marginBottom: "2px" }}>{pName}</div>
-                                                    <div style={{ fontSize: "13px", color: "#999" }}>Tagasiside puudub</div>
+                                                <div key={pId} style={{ marginBottom: "12px", paddingBottom: "12px", borderBottom: "1px solid var(--color-border)" }}>
+                                                    <div style={{ fontWeight: "bold", fontSize: "14px", color: "var(--color-text-muted)", marginBottom: "2px" }}>{pName}</div>
+                                                    <div style={{ fontSize: "13px", color: "var(--color-text-muted)" }}>Tagasiside puudub</div>
                                                 </div>
                                             )
                                         })}
