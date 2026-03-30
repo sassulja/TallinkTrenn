@@ -270,13 +270,13 @@ export default function FeedbackAnalyticsPage() {
             <h1 style={{ marginTop: 0, marginBottom: "24px", fontSize: "24px" }}>Tagasiside analüütika</h1>
 
             {/* Filters */}
-            <div style={{ marginBottom: "24px", display: "flex", gap: "12px", background: "#f9fafb", padding: "16px", borderRadius: "8px", border: "1px solid #e5e7eb" }}>
-                <select value={dateRange} onChange={e => setDateRange(e.target.value)} style={{ padding: "8px", borderRadius: "4px", border: "1px solid #d1d5db", minWidth: "180px" }}>
+            <div style={{ marginBottom: "24px", display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center", background: "#f9fafb", padding: "16px", borderRadius: "8px", border: "1px solid #e5e7eb" }}>
+                <select value={dateRange} onChange={e => setDateRange(e.target.value)} style={{ flex: 1, minWidth: "140px", padding: "8px", borderRadius: "4px", border: "1px solid #d1d5db" }}>
                     <option value="30">Viimased 30 päeva</option>
                     <option value="90">Viimased 90 päeva</option>
                     <option value="all">Kogu aeg</option>
                 </select>
-                <select value={sportFilter} onChange={e => setSportFilter(e.target.value)} style={{ padding: "8px", borderRadius: "4px", border: "1px solid #d1d5db", minWidth: "150px" }}>
+                <select value={sportFilter} onChange={e => setSportFilter(e.target.value)} style={{ flex: 1, minWidth: "140px", padding: "8px", borderRadius: "4px", border: "1px solid #d1d5db" }}>
                     <option value="all">Kõik spordialad</option>
                     {sportsMap.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
