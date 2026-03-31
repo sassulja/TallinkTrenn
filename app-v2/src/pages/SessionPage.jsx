@@ -19,7 +19,7 @@ const REAL_STATUS_DISPLAY = {
     hilines: { icon: "🟡", label: REALSTATUS_LABELS.hilines },
     vabastatud: { icon: "⚪", label: REALSTATUS_LABELS.vabastatud }
 }
-const PRE_STATUS_COLORS = { kinnitatud: "#22c55e", eiOsale: "#ef4444" }
+const PRE_STATUS_COLORS = { kinnitatud: "var(--color-success)", eiOsale: "var(--color-danger)" }
 
 function formatEstonianDate(dateStr) {
     if (!dateStr) return ""
@@ -49,8 +49,8 @@ function TabBar({ activeTab, onTabChange }) {
                     style={{
                         flex: 1, padding: "10px 0", background: "none", border: "none", cursor: "pointer",
                         fontWeight: activeTab === t.key ? "bold" : "normal", fontSize: "15px",
-                        borderBottom: activeTab === t.key ? "3px solid #3b82f6" : "3px solid transparent",
-                        color: activeTab === t.key ? "#3b82f6" : "#666", transition: "all 0.15s"
+                        borderBottom: activeTab === t.key ? "3px solid var(--color-primary)" : "3px solid transparent",
+                        color: activeTab === t.key ? "var(--color-primary)" : "var(--color-text-muted)", transition: "all 0.15s"
                     }}>
                     {t.label}
                 </button>
@@ -1243,7 +1243,7 @@ export default function SessionPage() {
                                                 alignItems: "center",
                                                 padding: "6px 8px",
                                                 borderRadius: "6px",
-                                                background: "#f9fafb",
+                                                background: "var(--color-background-secondary)",
                                                 border: "1px solid var(--color-border)",
                                                 cursor: "pointer"
                                             }}

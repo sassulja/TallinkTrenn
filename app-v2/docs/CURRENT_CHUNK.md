@@ -1,117 +1,96 @@
 # Current Task Directives
 
-**Target Phase:** Phase 11 — UI / UX Polish  
-**Active Chunk:** 11.7 — Bulk Upload (Players, CSV)
+**Target Phase:** Phase 11 — Final Cleanup  
+**Active Chunk:** 11.7 — UI Consistency Cleanup
 
 ---
 
 ## 1. Objective
 
-Add simple CSV bulk upload for players in AdminPage.
+Finish UI consistency by replacing remaining hardcoded colors
+in clearly duplicated or global patterns.
 
 ---
 
 ## 2. Scope
 
-- src/pages/AdminPage.jsx ONLY
+- src/pages/SessionPage.jsx ONLY
 
 ---
 
 ## 3. Changes
 
-### 3.1 UI
+### 3.1 PRE_STATUS_COLORS → tokens
 
-Add above "Create Player" section:
+Replace:
 
-- File input (accept .csv)
-- Button: "Upload CSV"
-- Message display
+const PRE_STATUS_COLORS = {
+  kinnitatud: "#22c55e",
+  eiOsale: "#ef4444"
+}
 
-Add state:
+With:
 
-const [csvFile, setCsvFile] = useState(null)
-const [uploadMsg, setUploadMsg] = useState("")
-
----
-
-### 3.2 CSV Parsing
-
-Import at top:
-
-import Papa from "papaparse"
-
----
-
-### 3.3 Upload handler
-
-Add function:
-
-const handleCsvUpload = () => {
-  if (!csvFile) return
-
-  Papa.parse(csvFile, {
-    header: true,
-    skipEmptyLines: true,
-    complete: async (results) => {
-      let count = 0
-      const now = new Date().toISOString()
-
-      for (const row of results.data) {
-        const firstName = row.firstName?.trim()
-        const lastName = row.lastName?.trim()
-
-        if (!firstName || !lastName) continue
-
-        await push(ref(database, "players"), {
-          firstName,
-          lastName,
-          birthYear: row.birthYear ? Number(row.birthYear) : null,
-          fitnessGroup: row.fitnessGroup || null,
-          wtn: row.wtn ? Number(row.wtn) : null,
-          createdAt: now
-        })
-
-        count++
-      }
-
-      setUploadMsg(`${count} players added`)
-      setCsvFile(null)
-    }
-  })
+const PRE_STATUS_COLORS = {
+  kinnitatud: "var(--color-success)",
+  eiOsale: "var(--color-danger)"
 }
 
 ---
 
-### 3.4 Wire UI
+### 3.2 TabBar color cleanup
 
-<input
-  type="file"
-  accept=".csv"
-  onChange={e => setCsvFile(e.target.files[0])}
-/>
+Replace inside TabBar:
 
-<button onClick={handleCsvUpload}>
-  Upload CSV
-</button>
+#3b82f6 → var(--color-primary)  
+#666 → var(--color-text-muted)
 
-{uploadMsg && <div>{uploadMsg}</div>}
+---
+
+### 3.3 Normalize search result row styles
+
+Find BOTH:
+- roster search result rows
+- walk-in search result rows
+
+Ensure BOTH use:
+
+background: "var(--color-background-secondary)"
+border: "1px solid var(--color-border)"
+
+Remove any remaining "#f9fafb"
+
+---
+
+### 3.4 Replace remaining #666
+
+Only replace:
+
+color: "#666"
+→ color: "var(--color-text-muted)"
+
+Do NOT touch:
+- other gray values
+- spacing
+- layout
 
 ---
 
 ## 4. Guardrails
 
-- Do NOT modify existing player creation logic
-- Do NOT add duplicate detection
-- Do NOT add parent linking
-- Do NOT refactor layout
+- Do NOT refactor components
+- Do NOT change structure
+- Do NOT modify logic
+- Do NOT touch other files
 
 ---
 
 ## 5. Definition of Done
 
-- CSV file can be uploaded
-- Players created in Firebase
-- Success message shown
+- No duplicate styling patterns
+- No hardcoded primary/success/danger colors
+- TabBar matches rest of UI
+- Search blocks identical
 
 ---
 
