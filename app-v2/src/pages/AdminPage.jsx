@@ -460,6 +460,16 @@ export default function AdminPage() {
         }
     }
 
+    function parseCsvNumber(value) {
+        if (value === null || value === undefined) return null
+
+        const cleaned = String(value).trim().replace(",", ".")
+        if (cleaned === "") return null
+
+        const parsed = Number(cleaned)
+        return Number.isNaN(parsed) ? null : parsed
+    }
+
     const handleCsvUpload = () => {
         if (!csvFile) return
 
@@ -479,9 +489,9 @@ export default function AdminPage() {
                     await push(ref(database, "players"), {
                         firstName,
                         lastName,
-                        birthYear: row.birthYear ? Number(row.birthYear) : null,
-                        fitnessGroup: row.fitnessGroup || null,
-                        wtn: row.wtn ? Number(row.wtn) : null,
+                        birthYear: parseCsvNumber(row.birthYear),
+                        fitnessGroup: row.fitnessGroup?.trim() || null,
+                        wtn: parseCsvNumber(row.wtn),
                         createdAt: now
                     })
 
