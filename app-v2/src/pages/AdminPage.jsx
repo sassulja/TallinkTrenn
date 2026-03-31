@@ -492,6 +492,7 @@ export default function AdminPage() {
                         birthYear: parseCsvNumber(row.birthYear),
                         fitnessGroup: row.fitnessGroup?.trim() || null,
                         wtn: parseCsvNumber(row.wtn),
+                        status: "active",
                         createdAt: now
                     })
 
